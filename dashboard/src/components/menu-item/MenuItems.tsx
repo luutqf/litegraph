@@ -1,10 +1,12 @@
+'use client';
+
 import { Menu, MenuProps } from 'antd';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { MenuItemProps } from './types';
-import Link from 'next/link';
 import { useAppDynamicNavigation } from '@/hooks/hooks';
 import { ItemType } from 'antd/es/menu/interface';
-import LitegraphTooltip from '@/components/base/tooltip/Tooltip';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 interface MenuItemsProps extends MenuProps {
   menuItems: MenuItemProps[];
@@ -13,6 +15,26 @@ interface MenuItemsProps extends MenuProps {
 
 const MenuItems = ({ menuItems, handleClickMenuItem, ...rest }: MenuItemsProps) => {
   const { serializePath } = useAppDynamicNavigation();
+  const pathname = usePathname();
+
+  const selectedKeys = useMemo(() => {
+    const find = (items: MenuItemProps[]): string[] => {
+      for (const item of items) {
+        if (item.path) {
+          const serialized = serializePath(item.path);
+          if (serialized && pathname === serialized) {
+            return [item.key];
+          }
+        }
+        if (item.children) {
+          const childMatch = find(item.children);
+          if (childMatch.length > 0) return childMatch;
+        }
+      }
+      return [];
+    };
+    return find(menuItems);
+  }, [menuItems, pathname, serializePath]);
 
   const convertToMenuItems = (items: MenuItemProps[]): ItemType[] =>
     items.map((item: MenuItemProps) => {
@@ -24,26 +46,29 @@ const MenuItems = ({ menuItems, handleClickMenuItem, ...rest }: MenuItemsProps) 
           children: convertToMenuItems(item.children),
         };
       }
+      const href = serializePath(item.path) || '#';
       return {
         key: item.key,
         icon: item.icon,
         label: (
-          <LitegraphTooltip title={item.title || item.label} placement="right">
-            <Link href={serializePath(item.path) || '#'}>
-              <span>{item.label}</span>
-            </Link>
-          </LitegraphTooltip>
+          <Link
+            href={href}
+            style={{ color: 'inherit', textDecoration: 'none', display: 'block' }}
+            onClick={() => handleClickMenuItem && handleClickMenuItem(item)}
+          >
+            {item.label}
+          </Link>
         ),
-        onClick: () => handleClickMenuItem && handleClickMenuItem(item),
+        title: item.title || item.label,
       };
     });
 
   return (
     <Menu
-      mode="inline"
-      defaultSelectedKeys={['1']}
-      items={convertToMenuItems(menuItems)}
       {...rest}
+      mode="inline"
+      selectedKeys={selectedKeys}
+      items={convertToMenuItems(menuItems)}
     />
   );
 };

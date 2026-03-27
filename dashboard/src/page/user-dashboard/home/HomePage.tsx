@@ -26,11 +26,11 @@ const HomePage = () => {
   const [isAddEditNodeVisible, setIsAddEditNodeVisible] = useState<boolean>(false);
   const [isAddEditEdgeVisible, setIsAddEditEdgeVisible] = useState<boolean>(false);
   const refetchFnRef = useRef<(() => void) | null>(null);
-  const [, setRefetchReady] = useState(0);
+  const [refetchReady, setRefetchReady] = useState(false);
 
   const handleRefetchReady = useCallback((refetch: () => void) => {
     refetchFnRef.current = refetch;
-    setRefetchReady((prev) => prev + 1);
+    setRefetchReady(true);
   }, []);
 
   const { isGraphsLoading, graphError, refetchGraphs } = useLayoutContext();
@@ -60,7 +60,7 @@ const HomePage = () => {
               icon={<ReloadOutlined />}
               onClick={() => refetchFnRef.current?.()}
               weight={600}
-              disabled={!refetchFnRef.current}
+              disabled={!refetchReady}
             >
               Refresh
             </LitegraphButton>

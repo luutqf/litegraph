@@ -2,6 +2,7 @@ import { transformToOptions } from '@/lib/graph/utils';
 
 import { useAppSelector } from '@/lib/store/hooks';
 import { RootState } from '@/lib/store/store';
+import { useCallback } from 'react';
 import {
   useGetAllNodesQuery,
   useGetAllEdgesQuery,
@@ -423,6 +424,11 @@ export const useLazyLoadEdgesAndNodes = (
     setEdgesForGraph([]);
   }, [graphId]);
 
+  const refetchNodesAndEdges = useCallback(() => {
+    refetchNodes();
+    refetchEdges();
+  }, [refetchNodes, refetchEdges]);
+
   return {
     nodes: nodesForGraph,
     edges: edgesForGraph,
@@ -430,10 +436,7 @@ export const useLazyLoadEdgesAndNodes = (
     isNodesLoading,
     isEdgesLoading,
     isLoading: isNodesLoading || isEdgesLoading,
-    refetch: () => {
-      refetchNodes();
-      refetchEdges();
-    },
+    refetch: refetchNodesAndEdges,
     nodesFirstResult,
     edgesFirstResult,
     isNodesError,
