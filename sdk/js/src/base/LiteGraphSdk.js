@@ -1226,4 +1226,679 @@ export default class LiteGraphSdk extends SdkBase {
   }
 
   //endregion
+
+  //region Admin Methods
+
+  /**
+   * List all available backups.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<Array>} List of backup metadata.
+   */
+  async listBackups(cancellationToken) {
+    const url = `${this._endpoint}v1.0/backups`;
+    return await this.get(url, null, cancellationToken);
+  }
+
+  /**
+   * Create a new database backup.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<Object>} Backup metadata.
+   */
+  async createBackup(cancellationToken) {
+    const url = `${this._endpoint}v1.0/backups`;
+    return await this.post(url, null, null, cancellationToken);
+  }
+
+  /**
+   * Read a specific backup file.
+   * @param {string} backupFilename - The backup filename.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<Object>} Backup data.
+   */
+  async readBackup(backupFilename, cancellationToken) {
+    if (!backupFilename) {
+      GenericExceptionHandlers.ArgumentNullException('backupFilename');
+    }
+    const url = `${this._endpoint}v1.0/backups/${backupFilename}`;
+    return await this.get(url, null, cancellationToken);
+  }
+
+  /**
+   * Check if a backup file exists.
+   * @param {string} backupFilename - The backup filename.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<boolean>} True if the backup exists.
+   */
+  async backupExists(backupFilename, cancellationToken) {
+    if (!backupFilename) {
+      GenericExceptionHandlers.ArgumentNullException('backupFilename');
+    }
+    const url = `${this._endpoint}v1.0/backups/${backupFilename}`;
+    return await this.head(url, cancellationToken);
+  }
+
+  /**
+   * Delete a backup file.
+   * @param {string} backupFilename - The backup filename.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<void>}
+   */
+  async deleteBackup(backupFilename, cancellationToken) {
+    if (!backupFilename) {
+      GenericExceptionHandlers.ArgumentNullException('backupFilename');
+    }
+    const url = `${this._endpoint}v1.0/backups/${backupFilename}`;
+    return await this.delete(url, cancellationToken);
+  }
+
+  /**
+   * Flush the in-memory database to disk.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<void>}
+   */
+  async flushDatabase(cancellationToken) {
+    const url = `${this._endpoint}v1.0/flush`;
+    return await this.post(url, null, null, cancellationToken);
+  }
+
+  //end region
+
+  //region Vector Index Methods
+
+  /**
+   * Enable vector indexing on a graph.
+   * @param {string} tenantGuid - Tenant GUID.
+   * @param {string} graphGuid - Graph GUID.
+   * @param {Object} config - Vector index configuration.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<Object>} Result.
+   */
+  async enableVectorIndex(tenantGuid, graphGuid, config, cancellationToken) {
+    if (!tenantGuid) {
+      GenericExceptionHandlers.ArgumentNullException('tenantGuid');
+    }
+    if (!graphGuid) {
+      GenericExceptionHandlers.ArgumentNullException('graphGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${tenantGuid}/graphs/${graphGuid}/vectorindex/enable`;
+    return await this.putUpdate(url, config, null, cancellationToken);
+  }
+
+  /**
+   * Disable vector indexing on a graph.
+   * @param {string} tenantGuid - Tenant GUID.
+   * @param {string} graphGuid - Graph GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<void>}
+   */
+  async disableVectorIndex(tenantGuid, graphGuid, cancellationToken) {
+    if (!tenantGuid) {
+      GenericExceptionHandlers.ArgumentNullException('tenantGuid');
+    }
+    if (!graphGuid) {
+      GenericExceptionHandlers.ArgumentNullException('graphGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${tenantGuid}/graphs/${graphGuid}/vectorindex`;
+    return await this.delete(url, cancellationToken);
+  }
+
+  /**
+   * Rebuild the vector index for a graph.
+   * @param {string} tenantGuid - Tenant GUID.
+   * @param {string} graphGuid - Graph GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<Object>} Result.
+   */
+  async rebuildVectorIndex(tenantGuid, graphGuid, cancellationToken) {
+    if (!tenantGuid) {
+      GenericExceptionHandlers.ArgumentNullException('tenantGuid');
+    }
+    if (!graphGuid) {
+      GenericExceptionHandlers.ArgumentNullException('graphGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${tenantGuid}/graphs/${graphGuid}/vectorindex/rebuild`;
+    return await this.post(url, null, null, cancellationToken);
+  }
+
+  /**
+   * Get the vector index configuration for a graph.
+   * @param {string} tenantGuid - Tenant GUID.
+   * @param {string} graphGuid - Graph GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<Object>} Vector index configuration.
+   */
+  async getVectorIndexConfig(tenantGuid, graphGuid, cancellationToken) {
+    if (!tenantGuid) {
+      GenericExceptionHandlers.ArgumentNullException('tenantGuid');
+    }
+    if (!graphGuid) {
+      GenericExceptionHandlers.ArgumentNullException('graphGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${tenantGuid}/graphs/${graphGuid}/vectorindex/config`;
+    return await this.get(url, null, cancellationToken);
+  }
+
+  /**
+   * Get vector index statistics for a graph.
+   * @param {string} tenantGuid - Tenant GUID.
+   * @param {string} graphGuid - Graph GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<Object>} Vector index statistics.
+   */
+  async getVectorIndexStats(tenantGuid, graphGuid, cancellationToken) {
+    if (!tenantGuid) {
+      GenericExceptionHandlers.ArgumentNullException('tenantGuid');
+    }
+    if (!graphGuid) {
+      GenericExceptionHandlers.ArgumentNullException('graphGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${tenantGuid}/graphs/${graphGuid}/vectorindex/stats`;
+    return await this.get(url, null, cancellationToken);
+  }
+
+  //end region
+
+  //region Graph Advanced Methods
+
+  /**
+   * Get a subgraph starting from a specific node.
+   * @param {string} tenantGuid - Tenant GUID.
+   * @param {string} graphGuid - Graph GUID.
+   * @param {string} nodeGuid - Starting node GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<Object>} Subgraph data.
+   */
+  async getSubgraph(tenantGuid, graphGuid, nodeGuid, cancellationToken) {
+    if (!tenantGuid) {
+      GenericExceptionHandlers.ArgumentNullException('tenantGuid');
+    }
+    if (!graphGuid) {
+      GenericExceptionHandlers.ArgumentNullException('graphGuid');
+    }
+    if (!nodeGuid) {
+      GenericExceptionHandlers.ArgumentNullException('nodeGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${tenantGuid}/graphs/${graphGuid}/nodes/${nodeGuid}/subgraph`;
+    return await this.get(url, null, cancellationToken);
+  }
+
+  /**
+   * Get subgraph statistics starting from a specific node.
+   * @param {string} tenantGuid - Tenant GUID.
+   * @param {string} graphGuid - Graph GUID.
+   * @param {string} nodeGuid - Starting node GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<Object>} Subgraph statistics.
+   */
+  async getSubgraphStatistics(tenantGuid, graphGuid, nodeGuid, cancellationToken) {
+    if (!tenantGuid) {
+      GenericExceptionHandlers.ArgumentNullException('tenantGuid');
+    }
+    if (!graphGuid) {
+      GenericExceptionHandlers.ArgumentNullException('graphGuid');
+    }
+    if (!nodeGuid) {
+      GenericExceptionHandlers.ArgumentNullException('nodeGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${tenantGuid}/graphs/${graphGuid}/nodes/${nodeGuid}/subgraph/stats`;
+    return await this.get(url, null, cancellationToken);
+  }
+
+  /**
+   * Get statistics for a specific graph.
+   * @param {string} tenantGuid - Tenant GUID.
+   * @param {string} graphGuid - Graph GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<Object>} Graph statistics.
+   */
+  async getGraphStatistics(tenantGuid, graphGuid, cancellationToken) {
+    if (!tenantGuid) {
+      GenericExceptionHandlers.ArgumentNullException('tenantGuid');
+    }
+    if (!graphGuid) {
+      GenericExceptionHandlers.ArgumentNullException('graphGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${tenantGuid}/graphs/${graphGuid}/stats`;
+    return await this.get(url, null, cancellationToken);
+  }
+
+  /**
+   * Get statistics for all graphs in a tenant.
+   * @param {string} tenantGuid - Tenant GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<Object>} All graph statistics.
+   */
+  async getAllGraphStatistics(tenantGuid, cancellationToken) {
+    if (!tenantGuid) {
+      GenericExceptionHandlers.ArgumentNullException('tenantGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${tenantGuid}/graphs/stats`;
+    return await this.get(url, null, cancellationToken);
+  }
+
+  //end region
+
+  //region Node Advanced Methods
+
+  /**
+   * Get the most connected nodes in a graph.
+   * @param {string} tenantGuid - Tenant GUID.
+   * @param {string} graphGuid - Graph GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<Array>} List of most connected nodes.
+   */
+  async getMostConnectedNodes(tenantGuid, graphGuid, cancellationToken) {
+    if (!tenantGuid) {
+      GenericExceptionHandlers.ArgumentNullException('tenantGuid');
+    }
+    if (!graphGuid) {
+      GenericExceptionHandlers.ArgumentNullException('graphGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${tenantGuid}/graphs/${graphGuid}/nodes/mostconnected`;
+    return await this.get(url, null, cancellationToken);
+  }
+
+  /**
+   * Get the least connected nodes in a graph.
+   * @param {string} tenantGuid - Tenant GUID.
+   * @param {string} graphGuid - Graph GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<Array>} List of least connected nodes.
+   */
+  async getLeastConnectedNodes(tenantGuid, graphGuid, cancellationToken) {
+    if (!tenantGuid) {
+      GenericExceptionHandlers.ArgumentNullException('tenantGuid');
+    }
+    if (!graphGuid) {
+      GenericExceptionHandlers.ArgumentNullException('graphGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${tenantGuid}/graphs/${graphGuid}/nodes/leastconnected`;
+    return await this.get(url, null, cancellationToken);
+  }
+
+  //end region
+
+  //region Scoped Label Operations
+
+  /**
+   * Read labels for a specific graph.
+   * @param {string} tenantGuid - Tenant GUID.
+   * @param {string} graphGuid - Graph GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<LabelMetadata[]>} List of labels.
+   */
+  async readGraphLabels(tenantGuid, graphGuid, cancellationToken) {
+    if (!tenantGuid) {
+      GenericExceptionHandlers.ArgumentNullException('tenantGuid');
+    }
+    if (!graphGuid) {
+      GenericExceptionHandlers.ArgumentNullException('graphGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${tenantGuid}/graphs/${graphGuid}/labels`;
+    return await this.getMany(url, LabelMetadata, cancellationToken);
+  }
+
+  /**
+   * Read labels for a specific node.
+   * @param {string} tenantGuid - Tenant GUID.
+   * @param {string} graphGuid - Graph GUID.
+   * @param {string} nodeGuid - Node GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<LabelMetadata[]>} List of labels.
+   */
+  async readNodeLabels(tenantGuid, graphGuid, nodeGuid, cancellationToken) {
+    if (!tenantGuid) {
+      GenericExceptionHandlers.ArgumentNullException('tenantGuid');
+    }
+    if (!graphGuid) {
+      GenericExceptionHandlers.ArgumentNullException('graphGuid');
+    }
+    if (!nodeGuid) {
+      GenericExceptionHandlers.ArgumentNullException('nodeGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${tenantGuid}/graphs/${graphGuid}/nodes/${nodeGuid}/labels`;
+    return await this.getMany(url, LabelMetadata, cancellationToken);
+  }
+
+  /**
+   * Read labels for a specific edge.
+   * @param {string} tenantGuid - Tenant GUID.
+   * @param {string} graphGuid - Graph GUID.
+   * @param {string} edgeGuid - Edge GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<LabelMetadata[]>} List of labels.
+   */
+  async readEdgeLabels(tenantGuid, graphGuid, edgeGuid, cancellationToken) {
+    if (!tenantGuid) {
+      GenericExceptionHandlers.ArgumentNullException('tenantGuid');
+    }
+    if (!graphGuid) {
+      GenericExceptionHandlers.ArgumentNullException('graphGuid');
+    }
+    if (!edgeGuid) {
+      GenericExceptionHandlers.ArgumentNullException('edgeGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${tenantGuid}/graphs/${graphGuid}/edges/${edgeGuid}/labels`;
+    return await this.getMany(url, LabelMetadata, cancellationToken);
+  }
+
+  /**
+   * Delete all labels for a specific graph.
+   * @param {string} tenantGuid - Tenant GUID.
+   * @param {string} graphGuid - Graph GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<void>}
+   */
+  async deleteGraphLabels(tenantGuid, graphGuid, cancellationToken) {
+    if (!tenantGuid) {
+      GenericExceptionHandlers.ArgumentNullException('tenantGuid');
+    }
+    if (!graphGuid) {
+      GenericExceptionHandlers.ArgumentNullException('graphGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${tenantGuid}/graphs/${graphGuid}/labels`;
+    return await this.delete(url, cancellationToken);
+  }
+
+  /**
+   * Delete all labels for a specific node.
+   * @param {string} tenantGuid - Tenant GUID.
+   * @param {string} graphGuid - Graph GUID.
+   * @param {string} nodeGuid - Node GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<void>}
+   */
+  async deleteNodeLabels(tenantGuid, graphGuid, nodeGuid, cancellationToken) {
+    if (!tenantGuid) {
+      GenericExceptionHandlers.ArgumentNullException('tenantGuid');
+    }
+    if (!graphGuid) {
+      GenericExceptionHandlers.ArgumentNullException('graphGuid');
+    }
+    if (!nodeGuid) {
+      GenericExceptionHandlers.ArgumentNullException('nodeGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${tenantGuid}/graphs/${graphGuid}/nodes/${nodeGuid}/labels`;
+    return await this.delete(url, cancellationToken);
+  }
+
+  /**
+   * Delete all labels for a specific edge.
+   * @param {string} tenantGuid - Tenant GUID.
+   * @param {string} graphGuid - Graph GUID.
+   * @param {string} edgeGuid - Edge GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<void>}
+   */
+  async deleteEdgeLabels(tenantGuid, graphGuid, edgeGuid, cancellationToken) {
+    if (!tenantGuid) {
+      GenericExceptionHandlers.ArgumentNullException('tenantGuid');
+    }
+    if (!graphGuid) {
+      GenericExceptionHandlers.ArgumentNullException('graphGuid');
+    }
+    if (!edgeGuid) {
+      GenericExceptionHandlers.ArgumentNullException('edgeGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${tenantGuid}/graphs/${graphGuid}/edges/${edgeGuid}/labels`;
+    return await this.delete(url, cancellationToken);
+  }
+
+  //end region
+
+  //region Scoped Tag Operations
+
+  /**
+   * Read tags for a specific graph.
+   * @param {string} tenantGuid - Tenant GUID.
+   * @param {string} graphGuid - Graph GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<TagMetaData[]>} List of tags.
+   */
+  async readGraphTags(tenantGuid, graphGuid, cancellationToken) {
+    if (!tenantGuid) {
+      GenericExceptionHandlers.ArgumentNullException('tenantGuid');
+    }
+    if (!graphGuid) {
+      GenericExceptionHandlers.ArgumentNullException('graphGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${tenantGuid}/graphs/${graphGuid}/tags`;
+    return await this.getMany(url, TagMetaData, cancellationToken);
+  }
+
+  /**
+   * Read tags for a specific node.
+   * @param {string} tenantGuid - Tenant GUID.
+   * @param {string} graphGuid - Graph GUID.
+   * @param {string} nodeGuid - Node GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<TagMetaData[]>} List of tags.
+   */
+  async readNodeTags(tenantGuid, graphGuid, nodeGuid, cancellationToken) {
+    if (!tenantGuid) {
+      GenericExceptionHandlers.ArgumentNullException('tenantGuid');
+    }
+    if (!graphGuid) {
+      GenericExceptionHandlers.ArgumentNullException('graphGuid');
+    }
+    if (!nodeGuid) {
+      GenericExceptionHandlers.ArgumentNullException('nodeGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${tenantGuid}/graphs/${graphGuid}/nodes/${nodeGuid}/tags`;
+    return await this.getMany(url, TagMetaData, cancellationToken);
+  }
+
+  /**
+   * Read tags for a specific edge.
+   * @param {string} tenantGuid - Tenant GUID.
+   * @param {string} graphGuid - Graph GUID.
+   * @param {string} edgeGuid - Edge GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<TagMetaData[]>} List of tags.
+   */
+  async readEdgeTags(tenantGuid, graphGuid, edgeGuid, cancellationToken) {
+    if (!tenantGuid) {
+      GenericExceptionHandlers.ArgumentNullException('tenantGuid');
+    }
+    if (!graphGuid) {
+      GenericExceptionHandlers.ArgumentNullException('graphGuid');
+    }
+    if (!edgeGuid) {
+      GenericExceptionHandlers.ArgumentNullException('edgeGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${tenantGuid}/graphs/${graphGuid}/edges/${edgeGuid}/tags`;
+    return await this.getMany(url, TagMetaData, cancellationToken);
+  }
+
+  /**
+   * Delete all tags for a specific graph.
+   * @param {string} tenantGuid - Tenant GUID.
+   * @param {string} graphGuid - Graph GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<void>}
+   */
+  async deleteGraphTags(tenantGuid, graphGuid, cancellationToken) {
+    if (!tenantGuid) {
+      GenericExceptionHandlers.ArgumentNullException('tenantGuid');
+    }
+    if (!graphGuid) {
+      GenericExceptionHandlers.ArgumentNullException('graphGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${tenantGuid}/graphs/${graphGuid}/tags`;
+    return await this.delete(url, cancellationToken);
+  }
+
+  /**
+   * Delete all tags for a specific node.
+   * @param {string} tenantGuid - Tenant GUID.
+   * @param {string} graphGuid - Graph GUID.
+   * @param {string} nodeGuid - Node GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<void>}
+   */
+  async deleteNodeTags(tenantGuid, graphGuid, nodeGuid, cancellationToken) {
+    if (!tenantGuid) {
+      GenericExceptionHandlers.ArgumentNullException('tenantGuid');
+    }
+    if (!graphGuid) {
+      GenericExceptionHandlers.ArgumentNullException('graphGuid');
+    }
+    if (!nodeGuid) {
+      GenericExceptionHandlers.ArgumentNullException('nodeGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${tenantGuid}/graphs/${graphGuid}/nodes/${nodeGuid}/tags`;
+    return await this.delete(url, cancellationToken);
+  }
+
+  /**
+   * Delete all tags for a specific edge.
+   * @param {string} tenantGuid - Tenant GUID.
+   * @param {string} graphGuid - Graph GUID.
+   * @param {string} edgeGuid - Edge GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<void>}
+   */
+  async deleteEdgeTags(tenantGuid, graphGuid, edgeGuid, cancellationToken) {
+    if (!tenantGuid) {
+      GenericExceptionHandlers.ArgumentNullException('tenantGuid');
+    }
+    if (!graphGuid) {
+      GenericExceptionHandlers.ArgumentNullException('graphGuid');
+    }
+    if (!edgeGuid) {
+      GenericExceptionHandlers.ArgumentNullException('edgeGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${tenantGuid}/graphs/${graphGuid}/edges/${edgeGuid}/tags`;
+    return await this.delete(url, cancellationToken);
+  }
+
+  //end region
+
+  //region Scoped Vector Operations
+
+  /**
+   * Read vectors for a specific graph.
+   * @param {string} tenantGuid - Tenant GUID.
+   * @param {string} graphGuid - Graph GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<VectorMetadata[]>} List of vectors.
+   */
+  async readGraphVectors(tenantGuid, graphGuid, cancellationToken) {
+    if (!tenantGuid) {
+      GenericExceptionHandlers.ArgumentNullException('tenantGuid');
+    }
+    if (!graphGuid) {
+      GenericExceptionHandlers.ArgumentNullException('graphGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${tenantGuid}/graphs/${graphGuid}/vectors`;
+    return await this.getMany(url, VectorMetadata, cancellationToken);
+  }
+
+  /**
+   * Read vectors for a specific node.
+   * @param {string} tenantGuid - Tenant GUID.
+   * @param {string} graphGuid - Graph GUID.
+   * @param {string} nodeGuid - Node GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<VectorMetadata[]>} List of vectors.
+   */
+  async readNodeVectors(tenantGuid, graphGuid, nodeGuid, cancellationToken) {
+    if (!tenantGuid) {
+      GenericExceptionHandlers.ArgumentNullException('tenantGuid');
+    }
+    if (!graphGuid) {
+      GenericExceptionHandlers.ArgumentNullException('graphGuid');
+    }
+    if (!nodeGuid) {
+      GenericExceptionHandlers.ArgumentNullException('nodeGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${tenantGuid}/graphs/${graphGuid}/nodes/${nodeGuid}/vectors`;
+    return await this.getMany(url, VectorMetadata, cancellationToken);
+  }
+
+  /**
+   * Read vectors for a specific edge.
+   * @param {string} tenantGuid - Tenant GUID.
+   * @param {string} graphGuid - Graph GUID.
+   * @param {string} edgeGuid - Edge GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<VectorMetadata[]>} List of vectors.
+   */
+  async readEdgeVectors(tenantGuid, graphGuid, edgeGuid, cancellationToken) {
+    if (!tenantGuid) {
+      GenericExceptionHandlers.ArgumentNullException('tenantGuid');
+    }
+    if (!graphGuid) {
+      GenericExceptionHandlers.ArgumentNullException('graphGuid');
+    }
+    if (!edgeGuid) {
+      GenericExceptionHandlers.ArgumentNullException('edgeGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${tenantGuid}/graphs/${graphGuid}/edges/${edgeGuid}/vectors`;
+    return await this.getMany(url, VectorMetadata, cancellationToken);
+  }
+
+  /**
+   * Delete all vectors for a specific graph.
+   * @param {string} tenantGuid - Tenant GUID.
+   * @param {string} graphGuid - Graph GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<void>}
+   */
+  async deleteGraphVectors(tenantGuid, graphGuid, cancellationToken) {
+    if (!tenantGuid) {
+      GenericExceptionHandlers.ArgumentNullException('tenantGuid');
+    }
+    if (!graphGuid) {
+      GenericExceptionHandlers.ArgumentNullException('graphGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${tenantGuid}/graphs/${graphGuid}/vectors`;
+    return await this.delete(url, cancellationToken);
+  }
+
+  /**
+   * Delete all vectors for a specific node.
+   * @param {string} tenantGuid - Tenant GUID.
+   * @param {string} graphGuid - Graph GUID.
+   * @param {string} nodeGuid - Node GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<void>}
+   */
+  async deleteNodeVectors(tenantGuid, graphGuid, nodeGuid, cancellationToken) {
+    if (!tenantGuid) {
+      GenericExceptionHandlers.ArgumentNullException('tenantGuid');
+    }
+    if (!graphGuid) {
+      GenericExceptionHandlers.ArgumentNullException('graphGuid');
+    }
+    if (!nodeGuid) {
+      GenericExceptionHandlers.ArgumentNullException('nodeGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${tenantGuid}/graphs/${graphGuid}/nodes/${nodeGuid}/vectors`;
+    return await this.delete(url, cancellationToken);
+  }
+
+  /**
+   * Delete all vectors for a specific edge.
+   * @param {string} tenantGuid - Tenant GUID.
+   * @param {string} graphGuid - Graph GUID.
+   * @param {string} edgeGuid - Edge GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<void>}
+   */
+  async deleteEdgeVectors(tenantGuid, graphGuid, edgeGuid, cancellationToken) {
+    if (!tenantGuid) {
+      GenericExceptionHandlers.ArgumentNullException('tenantGuid');
+    }
+    if (!graphGuid) {
+      GenericExceptionHandlers.ArgumentNullException('graphGuid');
+    }
+    if (!edgeGuid) {
+      GenericExceptionHandlers.ArgumentNullException('edgeGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${tenantGuid}/graphs/${graphGuid}/edges/${edgeGuid}/vectors`;
+    return await this.delete(url, cancellationToken);
+  }
+
+  //end region
 }

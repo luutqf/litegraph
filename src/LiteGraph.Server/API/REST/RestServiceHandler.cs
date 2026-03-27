@@ -18,6 +18,7 @@
     using SyslogLogging;
     using WatsonWebserver;
     using WatsonWebserver.Core;
+    using WatsonWebserver.Core.OpenApi;
 
     internal class RestServiceHandler
     {
@@ -75,6 +76,63 @@
 
             InitializeRoutes();
 
+            _Webserver.UseOpenApi(openApi =>
+            {
+                openApi.Info.Title = "LiteGraph API";
+                openApi.Info.Version = "v5.0";
+                openApi.Info.Description = "LiteGraph is a lightweight graph database with vector search, multi-tenancy, and AI agent integration. This API provides full CRUD operations for graphs, nodes, edges, labels, tags, and vectors with built-in HNSW vector indexing.";
+                openApi.Info.Contact = new OpenApiContact
+                {
+                    Name = "LiteGraph",
+                    Url = "https://github.com/jchristn/LiteGraph"
+                };
+                openApi.Info.License = new OpenApiLicense
+                {
+                    Name = "MIT",
+                    Url = "https://github.com/jchristn/LiteGraph/blob/main/LICENSE.md"
+                };
+
+                openApi.Tags.Add(new OpenApiTag { Name = "System", Description = "Health checks and system information" });
+                openApi.Tags.Add(new OpenApiTag { Name = "Tokens", Description = "Authentication token management" });
+                openApi.Tags.Add(new OpenApiTag { Name = "Admin", Description = "Administrative operations including backups, restore, and database flush" });
+                openApi.Tags.Add(new OpenApiTag { Name = "Tenants", Description = "Multi-tenant management and statistics" });
+                openApi.Tags.Add(new OpenApiTag { Name = "Users", Description = "User account management" });
+                openApi.Tags.Add(new OpenApiTag { Name = "Credentials", Description = "Bearer token credential management" });
+                openApi.Tags.Add(new OpenApiTag { Name = "Graphs", Description = "Graph CRUD, search, statistics, and GEXF export" });
+                openApi.Tags.Add(new OpenApiTag { Name = "VectorIndex", Description = "HNSW vector index configuration, rebuild, and statistics" });
+                openApi.Tags.Add(new OpenApiTag { Name = "Nodes", Description = "Node CRUD, search, and batch operations" });
+                openApi.Tags.Add(new OpenApiTag { Name = "NodeTraversal", Description = "Node relationship traversal: parents, children, neighbors, and edges" });
+                openApi.Tags.Add(new OpenApiTag { Name = "Edges", Description = "Edge CRUD, search, and batch operations" });
+                openApi.Tags.Add(new OpenApiTag { Name = "Routes", Description = "Route finding and graph traversal between nodes" });
+                openApi.Tags.Add(new OpenApiTag { Name = "Labels", Description = "Label management for graphs, nodes, and edges" });
+                openApi.Tags.Add(new OpenApiTag { Name = "Tags", Description = "Key-value tag management for graphs, nodes, and edges" });
+                openApi.Tags.Add(new OpenApiTag { Name = "Vectors", Description = "Vector embedding storage, search, and management" });
+
+                openApi.SecuritySchemes["BearerToken"] = new OpenApiSecurityScheme
+                {
+                    Type = "http",
+                    Scheme = "bearer",
+                    Description = "Bearer token authentication. Use the admin token or a credential bearer token."
+                };
+                openApi.SecuritySchemes["EmailPassword"] = new OpenApiSecurityScheme
+                {
+                    Type = "apiKey",
+                    Name = "x-email",
+                    In = "header",
+                    Description = "Email-based authentication. Requires x-email, x-password, and x-tenant-guid headers."
+                };
+                openApi.SecuritySchemes["SecurityToken"] = new OpenApiSecurityScheme
+                {
+                    Type = "apiKey",
+                    Name = "x-token",
+                    In = "header",
+                    Description = "Temporal security token (24-hour expiry). Obtain via GET /v1.0/token."
+                };
+
+                openApi.IncludePreAuthRoutes = true;
+                openApi.IncludePostAuthRoutes = true;
+            });
+
             _Logging.Info(_Header + "starting REST server on " + _Settings.Rest.Prefix);
             _Webserver.Start();
 
@@ -94,243 +152,243 @@
 
         internal void InitializeRoutes()
         {
-            _Webserver.Routes.PreAuthentication.Static.Add(HttpMethod.HEAD, "/", LoopbackRoute, ExceptionRoute);
-            _Webserver.Routes.PreAuthentication.Static.Add(HttpMethod.GET, "/", RootRoute, ExceptionRoute);
-            _Webserver.Routes.PreAuthentication.Static.Add(HttpMethod.GET, "/favicon.ico", FaviconRoute, ExceptionRoute);
-            _Webserver.Routes.PreAuthentication.Static.Add(HttpMethod.GET, "/v1.0/token/tenants", TokenTenantsRoute, ExceptionRoute);
+            _Webserver.Routes.PreAuthentication.Static.Add(HttpMethod.HEAD, "/", LoopbackRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Health check", "System"));
+            _Webserver.Routes.PreAuthentication.Static.Add(HttpMethod.GET, "/", RootRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Server information", "System"));
+            _Webserver.Routes.PreAuthentication.Static.Add(HttpMethod.GET, "/favicon.ico", FaviconRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Favicon", "System"));
+            _Webserver.Routes.PreAuthentication.Static.Add(HttpMethod.GET, "/v1.0/token/tenants", TokenTenantsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("List tenants for email", "Tokens"));
 
             #region Tokens
 
-            _Webserver.Routes.PostAuthentication.Static.Add(HttpMethod.GET, "/v1.0/token", TokenCreateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Static.Add(HttpMethod.GET, "/v1.0/token/details", TokenDetailsRoute, ExceptionRoute);
+            _Webserver.Routes.PostAuthentication.Static.Add(HttpMethod.GET, "/v1.0/token", TokenCreateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Generate authentication token", "Tokens"));
+            _Webserver.Routes.PostAuthentication.Static.Add(HttpMethod.GET, "/v1.0/token/details", TokenDetailsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Get token details", "Tokens"));
 
             #endregion
 
             #region Admin
 
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/backups", BackupReadAllRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/backups/{backupFilename}", BackupReadRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.HEAD, "/v1.0/backups/{backupFilename}", BackupExistsRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v1.0/backups", BackupRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/backups/{backupFilename}", BackupDeleteRoute, ExceptionRoute);
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/backups", BackupReadAllRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("List all backups", "Admin"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/backups/{backupFilename}", BackupReadRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read backup file", "Admin"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.HEAD, "/v1.0/backups/{backupFilename}", BackupExistsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Check if backup exists", "Admin"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v1.0/backups", BackupRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Create backup", "Admin"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/backups/{backupFilename}", BackupDeleteRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete backup", "Admin"));
 
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v1.0/flush", FlushRoute, ExceptionRoute);
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v1.0/flush", FlushRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Flush database to disk", "Admin"));
 
             #endregion
 
             #region Tenants
 
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants", TenantCreateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants", TenantReadManyRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v2.0/tenants", TenantEnumerateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v2.0/tenants", TenantEnumerateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/stats", TenantStatisticsRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}", TenantReadRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/stats", TenantStatisticsRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.HEAD, "/v1.0/tenants/{tenantGuid}", TenantExistsRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}", TenantUpdateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}", TenantDeleteRoute, ExceptionRoute);
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants", TenantCreateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Create tenant", "Tenants"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants", TenantReadManyRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("List tenants", "Tenants"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v2.0/tenants", TenantEnumerateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Enumerate tenants", "Tenants"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v2.0/tenants", TenantEnumerateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Enumerate tenants (POST)", "Tenants"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/stats", TenantStatisticsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Get all tenant statistics", "Tenants"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}", TenantReadRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read tenant", "Tenants"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/stats", TenantStatisticsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Get tenant statistics", "Tenants"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.HEAD, "/v1.0/tenants/{tenantGuid}", TenantExistsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Check if tenant exists", "Tenants"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}", TenantUpdateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Update tenant", "Tenants"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}", TenantDeleteRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete tenant", "Tenants"));
 
             #endregion
 
             #region Users
 
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/users", UserCreateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/users", UserReadManyRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v2.0/tenants/{tenantGuid}/users", UserEnumerateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v2.0/tenants/{tenantGuid}/users", UserEnumerateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/users/{userGuid}", UserReadRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.HEAD, "/v1.0/tenants/{tenantGuid}/users/{userGuid}", UserExistsRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/users/{userGuid}", UserUpdateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/users/{userGuid}", UserDeleteRoute, ExceptionRoute);
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/users", UserCreateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Create user", "Users"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/users", UserReadManyRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("List users", "Users"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v2.0/tenants/{tenantGuid}/users", UserEnumerateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Enumerate users", "Users"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v2.0/tenants/{tenantGuid}/users", UserEnumerateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Enumerate users (POST)", "Users"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/users/{userGuid}", UserReadRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read user", "Users"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.HEAD, "/v1.0/tenants/{tenantGuid}/users/{userGuid}", UserExistsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Check if user exists", "Users"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/users/{userGuid}", UserUpdateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Update user", "Users"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/users/{userGuid}", UserDeleteRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete user", "Users"));
 
             #endregion
 
             #region Credentials
 
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/credentials", CredentialCreateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/credentials", CredentialReadManyRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v2.0/tenants/{tenantGuid}/credentials", CredentialEnumerateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/credentials/bearer/{bearerToken}", CredentialReadByBearerTokenRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v2.0/tenants/{tenantGuid}/credentials", CredentialEnumerateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/credentials/{credentialGuid}", CredentialReadRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.HEAD, "/v1.0/tenants/{tenantGuid}/credentials/{credentialGuid}", CredentialExistsRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/credentials/{credentialGuid}", CredentialUpdateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/users/{userGuid}/credentials", CredentialDeleteByUserRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/credentials", CredentialDeleteAllInTenantRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/credentials/{credentialGuid}", CredentialDeleteRoute, ExceptionRoute);            
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/credentials", CredentialCreateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Create credential", "Credentials"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/credentials", CredentialReadManyRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("List credentials", "Credentials"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v2.0/tenants/{tenantGuid}/credentials", CredentialEnumerateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Enumerate credentials", "Credentials"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/credentials/bearer/{bearerToken}", CredentialReadByBearerTokenRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Lookup credential by bearer token", "Credentials"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v2.0/tenants/{tenantGuid}/credentials", CredentialEnumerateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Enumerate credentials (POST)", "Credentials"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/credentials/{credentialGuid}", CredentialReadRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read credential", "Credentials"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.HEAD, "/v1.0/tenants/{tenantGuid}/credentials/{credentialGuid}", CredentialExistsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Check if credential exists", "Credentials"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/credentials/{credentialGuid}", CredentialUpdateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Update credential", "Credentials"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/users/{userGuid}/credentials", CredentialDeleteByUserRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete credentials by user", "Credentials"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/credentials", CredentialDeleteAllInTenantRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete all credentials in tenant", "Credentials"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/credentials/{credentialGuid}", CredentialDeleteRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete credential", "Credentials"));            
 
             #endregion
 
             #region Labels
 
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/labels", LabelCreateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/labels/bulk", LabelCreateManyRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/labels", LabelReadManyRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v2.0/tenants/{tenantGuid}/labels", LabelEnumerateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v2.0/tenants/{tenantGuid}/labels", LabelEnumerateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/labels/all", LabelReadAllInTenantRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/labels/all", LabelReadAllInGraphRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/labels", LabelReadManyGraphRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/labels", LabelReadManyNodeRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/{edgeGuid}/labels", LabelReadManyEdgeRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/labels/{labelGuid}", LabelReadRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.HEAD, "/v1.0/tenants/{tenantGuid}/labels/{labelGuid}", LabelExistsRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/labels/{labelGuid}", LabelUpdateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/labels/all", LabelDeleteAllInTenantRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/labels/all", LabelDeleteAllInGraphRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/labels", LabelDeleteGraphLabelsRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/labels", LabelDeleteNodeLabelsRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/{edgeGuid}/labels", LabelDeleteEdgeLabelsRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/labels/bulk", LabelDeleteManyRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/labels/{labelGuid}", LabelDeleteRoute, ExceptionRoute);
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/labels", LabelCreateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Create label", "Labels"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/labels/bulk", LabelCreateManyRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Create multiple labels", "Labels"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/labels", LabelReadManyRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("List labels", "Labels"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v2.0/tenants/{tenantGuid}/labels", LabelEnumerateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Enumerate labels", "Labels"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v2.0/tenants/{tenantGuid}/labels", LabelEnumerateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Enumerate labels (POST)", "Labels"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/labels/all", LabelReadAllInTenantRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read all labels in tenant", "Labels"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/labels/all", LabelReadAllInGraphRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read all labels in graph", "Labels"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/labels", LabelReadManyGraphRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read graph labels", "Labels"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/labels", LabelReadManyNodeRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read node labels", "Labels"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/{edgeGuid}/labels", LabelReadManyEdgeRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read edge labels", "Labels"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/labels/{labelGuid}", LabelReadRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read label", "Labels"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.HEAD, "/v1.0/tenants/{tenantGuid}/labels/{labelGuid}", LabelExistsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Check if label exists", "Labels"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/labels/{labelGuid}", LabelUpdateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Update label", "Labels"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/labels/all", LabelDeleteAllInTenantRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete all labels in tenant", "Labels"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/labels/all", LabelDeleteAllInGraphRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete all labels in graph", "Labels"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/labels", LabelDeleteGraphLabelsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete graph labels", "Labels"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/labels", LabelDeleteNodeLabelsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete node labels", "Labels"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/{edgeGuid}/labels", LabelDeleteEdgeLabelsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete edge labels", "Labels"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/labels/bulk", LabelDeleteManyRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete multiple labels", "Labels"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/labels/{labelGuid}", LabelDeleteRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete label", "Labels"));
 
             #endregion
 
             #region Tags
 
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/tags", TagCreateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/tags/bulk", TagCreateManyRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/tags/all", TagReadAllInTenantRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/tags", TagReadManyRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v2.0/tenants/{tenantGuid}/tags", TagEnumerateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/tags/all", TagReadAllInGraphRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/tags", TagReadManyGraphRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/tags", TagReadManyNodeRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/{edgeGuid}/tags", TagReadManyEdgeRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v2.0/tenants/{tenantGuid}/tags", TagEnumerateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/tags/{tagGuid}", TagReadRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.HEAD, "/v1.0/tenants/{tenantGuid}/tags/{tagGuid}", TagExistsRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/tags/{tagGuid}", TagUpdateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/tags/bulk", TagDeleteManyRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/tags/all", TagDeleteAllInTenantRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/tags/all", TagDeleteAllInGraphRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/tags", TagDeleteGraphTagsRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/tags", TagDeleteNodeTagsRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/{edgeGuid}/tags", TagDeleteEdgeTagsRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/tags/{tagGuid}", TagDeleteRoute, ExceptionRoute);
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/tags", TagCreateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Create tag", "Tags"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/tags/bulk", TagCreateManyRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Create multiple tags", "Tags"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/tags/all", TagReadAllInTenantRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read all tags in tenant", "Tags"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/tags", TagReadManyRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("List tags", "Tags"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v2.0/tenants/{tenantGuid}/tags", TagEnumerateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Enumerate tags", "Tags"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/tags/all", TagReadAllInGraphRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read all tags in graph", "Tags"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/tags", TagReadManyGraphRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read graph tags", "Tags"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/tags", TagReadManyNodeRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read node tags", "Tags"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/{edgeGuid}/tags", TagReadManyEdgeRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read edge tags", "Tags"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v2.0/tenants/{tenantGuid}/tags", TagEnumerateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Enumerate tags (POST)", "Tags"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/tags/{tagGuid}", TagReadRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read tag", "Tags"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.HEAD, "/v1.0/tenants/{tenantGuid}/tags/{tagGuid}", TagExistsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Check if tag exists", "Tags"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/tags/{tagGuid}", TagUpdateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Update tag", "Tags"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/tags/bulk", TagDeleteManyRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete multiple tags", "Tags"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/tags/all", TagDeleteAllInTenantRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete all tags in tenant", "Tags"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/tags/all", TagDeleteAllInGraphRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete all tags in graph", "Tags"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/tags", TagDeleteGraphTagsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete graph tags", "Tags"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/tags", TagDeleteNodeTagsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete node tags", "Tags"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/{edgeGuid}/tags", TagDeleteEdgeTagsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete edge tags", "Tags"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/tags/{tagGuid}", TagDeleteRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete tag", "Tags"));
 
             #endregion
 
             #region Vectors
 
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/vectors", VectorCreateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/vectors/bulk", VectorCreateManyRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v1.0/tenants/{tenantGuid}/vectors", VectorSearchRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/vectors", VectorReadManyRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v2.0/tenants/{tenantGuid}/vectors", VectorEnumerateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v2.0/tenants/{tenantGuid}/vectors", VectorEnumerateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/vectors/all", VectorReadAllInTenantRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectors/all", VectorReadAllInGraphRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectors", VectorReadManyGraphRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/vectors", VectorReadManyNodeRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/{edgeGuid}/vectors", VectorReadManyEdgeRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/vectors/{vectorGuid}", VectorReadRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.HEAD, "/v1.0/tenants/{tenantGuid}/vectors/{vectorGuid}", VectorExistsRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/vectors/{vectorGuid}", VectorUpdateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/vectors/bulk", VectorDeleteManyRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/vectors/all", VectorDeleteAllInTenantRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectors/all", VectorDeleteAllInGraphRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectors", VectorDeleteGraphVectorsRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/vectors", VectorDeleteNodeVectorsRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/{edgeGuid}/vectors", VectorDeleteEdgeVectorsRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/vectors/{vectorGuid}", VectorDeleteRoute, ExceptionRoute);
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/vectors", VectorCreateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Create vector", "Vectors"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/vectors/bulk", VectorCreateManyRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Create multiple vectors", "Vectors"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v1.0/tenants/{tenantGuid}/vectors", VectorSearchRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Search vectors", "Vectors"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/vectors", VectorReadManyRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("List vectors", "Vectors"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v2.0/tenants/{tenantGuid}/vectors", VectorEnumerateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Enumerate vectors", "Vectors"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v2.0/tenants/{tenantGuid}/vectors", VectorEnumerateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Enumerate vectors (POST)", "Vectors"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/vectors/all", VectorReadAllInTenantRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read all vectors in tenant", "Vectors"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectors/all", VectorReadAllInGraphRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read all vectors in graph", "Vectors"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectors", VectorReadManyGraphRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read graph vectors", "Vectors"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/vectors", VectorReadManyNodeRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read node vectors", "Vectors"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/{edgeGuid}/vectors", VectorReadManyEdgeRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read edge vectors", "Vectors"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/vectors/{vectorGuid}", VectorReadRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read vector", "Vectors"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.HEAD, "/v1.0/tenants/{tenantGuid}/vectors/{vectorGuid}", VectorExistsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Check if vector exists", "Vectors"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/vectors/{vectorGuid}", VectorUpdateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Update vector", "Vectors"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/vectors/bulk", VectorDeleteManyRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete multiple vectors", "Vectors"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/vectors/all", VectorDeleteAllInTenantRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete all vectors in tenant", "Vectors"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectors/all", VectorDeleteAllInGraphRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete all vectors in graph", "Vectors"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectors", VectorDeleteGraphVectorsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete graph vectors", "Vectors"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/vectors", VectorDeleteNodeVectorsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete node vectors", "Vectors"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/{edgeGuid}/vectors", VectorDeleteEdgeVectorsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete edge vectors", "Vectors"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/vectors/{vectorGuid}", VectorDeleteRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete vector", "Vectors"));
 
             #endregion
 
             #region Graphs
 
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/graphs", GraphCreateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v1.0/tenants/{tenantGuid}/graphs/first", GraphReadFirstRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v1.0/tenants/{tenantGuid}/graphs/search", GraphSearchRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/stats", GraphStatisticsRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/all", GraphReadAllInTenantRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}", GraphReadRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/stats", GraphStatisticsRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.HEAD, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}", GraphExistsRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs", GraphReadManyRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v2.0/tenants/{tenantGuid}/graphs", GraphEnumerateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v2.0/tenants/{tenantGuid}/graphs", GraphEnumerateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}", GraphUpdateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/all", GraphDeleteAllInTenantRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}", GraphDeleteRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/existence", GraphExistenceRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/subgraph", GraphSubgraphRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/subgraph/stats", GraphSubgraphStatisticsRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/export/gexf", GraphGexfExportRoute, ExceptionRoute);
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/graphs", GraphCreateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Create graph", "Graphs"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v1.0/tenants/{tenantGuid}/graphs/first", GraphReadFirstRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read first matching graph", "Graphs"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v1.0/tenants/{tenantGuid}/graphs/search", GraphSearchRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Search graphs", "Graphs"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/stats", GraphStatisticsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Get all graph statistics", "Graphs"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/all", GraphReadAllInTenantRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read all graphs in tenant", "Graphs"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}", GraphReadRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read graph", "Graphs"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/stats", GraphStatisticsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Get graph statistics", "Graphs"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.HEAD, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}", GraphExistsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Check if graph exists", "Graphs"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs", GraphReadManyRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("List graphs", "Graphs"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v2.0/tenants/{tenantGuid}/graphs", GraphEnumerateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Enumerate graphs", "Graphs"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v2.0/tenants/{tenantGuid}/graphs", GraphEnumerateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Enumerate graphs (POST)", "Graphs"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}", GraphUpdateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Update graph", "Graphs"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/all", GraphDeleteAllInTenantRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete all graphs in tenant", "Graphs"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}", GraphDeleteRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete graph", "Graphs"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/existence", GraphExistenceRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Check batch existence", "Graphs"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/subgraph", GraphSubgraphRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Get subgraph from node", "Graphs"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/subgraph/stats", GraphSubgraphStatisticsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Get subgraph statistics", "Graphs"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/export/gexf", GraphGexfExportRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Export graph as GEXF", "Graphs"));
 
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectorindex/enable", GraphEnableVectorIndexRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectorindex/config", GraphGetVectorIndexConfigRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectorindex", GraphDisableVectorIndexRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectorindex/rebuild", GraphRebuildVectorIndexRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectorindex/stats", GraphVectorIndexStatsRoute, ExceptionRoute);
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectorindex/enable", GraphEnableVectorIndexRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Enable vector indexing", "VectorIndex"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectorindex/config", GraphGetVectorIndexConfigRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Get vector index configuration", "VectorIndex"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectorindex", GraphDisableVectorIndexRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Disable vector indexing", "VectorIndex"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectorindex/rebuild", GraphRebuildVectorIndexRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Rebuild vector index", "VectorIndex"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectorindex/stats", GraphVectorIndexStatsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Get vector index statistics", "VectorIndex"));
 
             // v2.0 versions for consistency
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v2.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectorindex/enable", GraphEnableVectorIndexRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v2.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectorindex/config", GraphGetVectorIndexConfigRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v2.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectorindex", GraphDisableVectorIndexRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v2.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectorindex/rebuild", GraphRebuildVectorIndexRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v2.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectorindex/stats", GraphVectorIndexStatsRoute, ExceptionRoute);
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v2.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectorindex/enable", GraphEnableVectorIndexRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Enable vector indexing", "VectorIndex"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v2.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectorindex/config", GraphGetVectorIndexConfigRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Get vector index configuration", "VectorIndex"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v2.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectorindex", GraphDisableVectorIndexRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Disable vector indexing", "VectorIndex"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v2.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectorindex/rebuild", GraphRebuildVectorIndexRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Rebuild vector index", "VectorIndex"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v2.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectorindex/stats", GraphVectorIndexStatsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Get vector index statistics", "VectorIndex"));
 
             #endregion
 
             #region Nodes
 
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes", NodeCreateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/bulk", NodeCreateManyRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/first", NodeReadFirstRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/search", NodeSearchRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/all", NodeReadAllInGraphRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/mostconnected", NodeReadMostConnectedRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/leastconnected", NodeReadLeastConnectedRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}", NodeReadRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.HEAD, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}", NodeExistsRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes", NodeReadManyRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v2.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes", NodeEnumerateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v2.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes", NodeEnumerateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}", NodeUpdateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/all", NodeDeleteAllRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/bulk", NodeDeleteManyRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}", NodeDeleteRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/nodes/all", NodeReadAllInTenantRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/nodes/all", NodeDeleteAllInTenantRoute, ExceptionRoute);
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes", NodeCreateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Create node", "Nodes"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/bulk", NodeCreateManyRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Create multiple nodes", "Nodes"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/first", NodeReadFirstRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read first matching node", "Nodes"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/search", NodeSearchRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Search nodes", "Nodes"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/all", NodeReadAllInGraphRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read all nodes in graph", "Nodes"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/mostconnected", NodeReadMostConnectedRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read most connected nodes", "Nodes"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/leastconnected", NodeReadLeastConnectedRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read least connected nodes", "Nodes"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}", NodeReadRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read node", "Nodes"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.HEAD, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}", NodeExistsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Check if node exists", "Nodes"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes", NodeReadManyRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("List nodes", "Nodes"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v2.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes", NodeEnumerateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Enumerate nodes", "Nodes"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v2.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes", NodeEnumerateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Enumerate nodes (POST)", "Nodes"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}", NodeUpdateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Update node", "Nodes"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/all", NodeDeleteAllRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete all nodes in graph", "Nodes"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/bulk", NodeDeleteManyRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete multiple nodes", "Nodes"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}", NodeDeleteRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete node", "Nodes"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/nodes/all", NodeReadAllInTenantRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read all nodes in tenant", "Nodes"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/nodes/all", NodeDeleteAllInTenantRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete all nodes in tenant", "Nodes"));
 
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/edges/from", EdgesFromNodeRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/edges/to", EdgesToNodeRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/edges", AllEdgesToNodeRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/neighbors", NodeNeighborsRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/parents", NodeParentsRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/children", NodeChildrenRoute, ExceptionRoute);
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/edges/from", EdgesFromNodeRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Get outgoing edges from node", "NodeTraversal"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/edges/to", EdgesToNodeRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Get incoming edges to node", "NodeTraversal"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/edges", AllEdgesToNodeRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Get all edges for node", "NodeTraversal"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/neighbors", NodeNeighborsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Get node neighbors", "NodeTraversal"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/parents", NodeParentsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Get parent nodes", "NodeTraversal"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/children", NodeChildrenRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Get child nodes", "NodeTraversal"));
 
             #endregion
 
             #region Edges
 
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges", EdgeCreateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/bulk", EdgeCreateManyRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/between", EdgesBetweenRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/first", EdgeReadFirstRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/search", EdgeSearchRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/edges/all", EdgeReadAllInTenantRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/all", EdgeReadAllInGraphRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/{edgeGuid}", EdgeReadRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.HEAD, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/{edgeGuid}", EdgeExistsRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges", EdgeReadManyRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v2.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges", EdgeEnumerateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v2.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges", EdgeEnumerateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/{edgeGuid}", EdgeUpdateRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/all", EdgeDeleteAllRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/bulk", EdgeDeleteManyRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/{edgeGuid}", EdgeDeleteRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/edges/all", EdgeDeleteAllInTenantRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/edges", EdgeDeleteNodeEdgesRoute, ExceptionRoute);
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/edges/bulk", EdgeDeleteNodeEdgesManyRoute, ExceptionRoute);
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges", EdgeCreateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Create edge", "Edges"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/bulk", EdgeCreateManyRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Create multiple edges", "Edges"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/between", EdgesBetweenRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Get edges between nodes", "Edges"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/first", EdgeReadFirstRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read first matching edge", "Edges"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/search", EdgeSearchRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Search edges", "Edges"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/edges/all", EdgeReadAllInTenantRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read all edges in tenant", "Edges"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/all", EdgeReadAllInGraphRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read all edges in graph", "Edges"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/{edgeGuid}", EdgeReadRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read edge", "Edges"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.HEAD, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/{edgeGuid}", EdgeExistsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Check if edge exists", "Edges"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges", EdgeReadManyRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("List edges", "Edges"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v2.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges", EdgeEnumerateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Enumerate edges", "Edges"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v2.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges", EdgeEnumerateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Enumerate edges (POST)", "Edges"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/{edgeGuid}", EdgeUpdateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Update edge", "Edges"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/all", EdgeDeleteAllRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete all edges in graph", "Edges"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/bulk", EdgeDeleteManyRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete multiple edges", "Edges"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/{edgeGuid}", EdgeDeleteRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete edge", "Edges"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/edges/all", EdgeDeleteAllInTenantRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete all edges in tenant", "Edges"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/edges", EdgeDeleteNodeEdgesRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete all edges for node", "Edges"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/edges/bulk", EdgeDeleteNodeEdgesManyRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete edges for multiple nodes", "Edges"));
 
             #endregion
 
             #region Routes-and-Traversal
 
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/routes", GetRoutesRoute, ExceptionRoute);
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/routes", GetRoutesRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Find routes between nodes", "Routes"));
 
             #endregion
         }

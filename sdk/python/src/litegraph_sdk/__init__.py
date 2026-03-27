@@ -12,6 +12,9 @@ from .models.route_request import RouteRequestModel
 from .models.route_response import RouteResultModel
 from .models.search_graphs import SearchRequestGraph, SearchResultGraph
 from .models.search_node_edge import SearchRequest, SearchResult, SearchResultEdge
+from .models.vector_search_request import VectorSearchRequestModel
+from .models.vector_search_result import VectorSearchResultModel
+from .resources.admin import Admin
 from .resources.credentials import Credential
 from .resources.edges import Edge
 from .resources.graphs import Graph, GraphModel
@@ -23,3 +26,4 @@ from .resources.routes_between import RouteEdges
 from .resources.tags import Tag
 from .resources.tenants import Tenant
 from .resources.users import User
+from .resources.vectors import Vector
