@@ -86,7 +86,7 @@
   "overrides": {
     "form-data": "^4.0.2",
     "qs": "^6.14.1",
-    "lodash": "^4.17.23",
+    "lodash": "^4.18.0",
     "js-yaml": "^4.1.1",
     "brace-expansion": "^2.0.1",
     "@babel/helpers": "^7.26.10"
