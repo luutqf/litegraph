@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LiteGraph\LiteGraph.csproj" />
+    <ProjectReference Include="..\LiteGraph.Server\LiteGraph.Server.csproj" />
+    <ProjectReference Include="..\LiteGraph.McpServer\LiteGraph.McpServer.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Touchstone.Core" Version="0.1.12" />
+    <PackageReference Include="Voltaic" Version="0.1.5" />
+  </ItemGroup>
+
+</Project>

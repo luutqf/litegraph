@@ -18,6 +18,7 @@
     {
         static bool _RunForever = true;
         static bool _Debug = false;
+        static bool _UseInMemoryDatabase = false;
         static Serializer _Serializer = new Serializer();
         static LiteGraphClient _Client = null;
         static Guid _TenantGuid = Guid.Parse("00000000-0000-0000-0000-000000000000");
@@ -30,13 +31,17 @@
 
         static async Task MainAsync(string[] args, CancellationToken token = default)
         {
-            _Client = new LiteGraphClient(new SqliteGraphRepository());
+            _UseInMemoryDatabase = ShouldUseInMemoryDatabase(args);
+            _Client = new LiteGraphClient(CreateRepository());
             _Client.Logging.MinimumSeverity = 0;
             _Client.Logging.Logger = Logger;
             _Client.Logging.LogQueries = _Debug;
             _Client.Logging.LogResults = _Debug;
 
             _Client.InitializeRepository();
+            Console.WriteLine(_UseInMemoryDatabase
+                ? "[INFO] Using in-memory SQLite repository (--ram/--in-memory). Use 'flush' to persist to litegraph.db."
+                : "[INFO] Using on-disk SQLite repository.");
 
             while (_RunForever)
             {
@@ -46,6 +51,7 @@
                 else if (userInput.Equals("q")) _RunForever = false;
                 else if (userInput.Equals("cls")) Console.Clear();
                 else if (userInput.Equals("backup")) await BackupDatabase(token).ConfigureAwait(false);
+                else if (userInput.Equals("flush")) await FlushDatabase(token).ConfigureAwait(false);
                 else if (userInput.Equals("debug")) ToggleDebug();
                 else if (userInput.Equals("tenant")) await SetTenant().ConfigureAwait(false);
                 else if (userInput.Equals("graph")) await SetGraph().ConfigureAwait(false);
@@ -103,6 +109,22 @@
             // Cleanup on exit
             CleanupTestAssets();
         }
+
+        static bool ShouldUseInMemoryDatabase(string[] args)
+        {
+            return args.Any(arg =>
+                arg.Equals("--ram", StringComparison.OrdinalIgnoreCase)
+                || arg.Equals("--in-memory", StringComparison.OrdinalIgnoreCase)
+                || arg.Equals("ram", StringComparison.OrdinalIgnoreCase)
+                || arg.Equals("in-memory", StringComparison.OrdinalIgnoreCase));
+        }
+
+        static SqliteGraphRepository CreateRepository()
+        {
+            return _UseInMemoryDatabase
+                ? new SqliteGraphRepository("litegraph.db", true)
+                : new SqliteGraphRepository();
+        }
         
         static void CleanupTestAssets()
         {
@@ -153,6 +175,7 @@
             Console.WriteLine("  cls             clear the screen");
             Console.WriteLine("  debug           enable or disable debug (enabled: " + _Debug + ")");
             Console.WriteLine("  backup          backup database to a file");
+            Console.WriteLine("  flush           flush the database to disk");
             Console.WriteLine("");
             Console.WriteLine("  tenant          set the tenant GUID (currently " + _TenantGuid + ")");
             Console.WriteLine("  graph           set the graph GUID (currently " + _GraphGuid + ")");
@@ -167,12 +190,17 @@
             Console.WriteLine("  test2-1         using sample graph 2, validate node retrieval by properties");
             Console.WriteLine("  test3-1         create test tenant, graph, and node using anonymous data");
             Console.WriteLine("  test3-2         create test tenant, graph, and node using var");
+            Console.WriteLine("  test3-3         validate complex data handling");
             Console.WriteLine("  subgraph        test subgraph retrieval from a starting node");
             Console.WriteLine("");
             Console.WriteLine("  [type] [cmd]    execute a command against a given type");
             Console.WriteLine("  where:");
             Console.WriteLine("    [type] : tenant graph node edge user cred");
             Console.WriteLine("    [cmd]  : create all read exists update delete search");
+            Console.WriteLine("");
+            Console.WriteLine("  Startup args:");
+            Console.WriteLine("    --ram         start with an in-memory SQLite database");
+            Console.WriteLine("    --in-memory   alias for --ram");
             Console.WriteLine("");
             Console.WriteLine("  For node operations, additional commands are available");
             Console.WriteLine("    edgesto    edgesfrom   edgesbetween   mostconnected");
@@ -193,6 +221,13 @@
             string filename = Inputty.GetString("Backup filename:", null, true);
             if (String.IsNullOrEmpty(filename)) return;
             await _Client.Admin.Backup(filename, token).ConfigureAwait(false);
+        }
+
+        static Task FlushDatabase(CancellationToken token = default)
+        {
+            _Client.Flush();
+            Console.WriteLine("[OK] Flush completed");
+            return Task.CompletedTask;
         }
 
         static void ToggleDebug()

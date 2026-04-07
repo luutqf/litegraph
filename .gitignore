@@ -342,3 +342,7 @@ paket-files/
 __pycache__/
 *.pyc
  
+
+# Local diagnostics and generated test databases
+.codex-temp/
+test-automated-*.db

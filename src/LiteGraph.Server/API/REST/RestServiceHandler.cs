@@ -15,6 +15,9 @@
     using LiteGraph.Server.API.Agnostic;
     using LiteGraph.Server.Classes;
     using LiteGraph.Server.Services;
+    using ApiErrorResponse = LiteGraph.Server.Classes.ApiErrorResponse;
+    using AuthenticationResultEnum = LiteGraph.Server.Classes.AuthenticationResultEnum;
+    using AuthorizationResultEnum = LiteGraph.Server.Classes.AuthorizationResultEnum;
     using SyslogLogging;
     using WatsonWebserver;
     using WatsonWebserver.Core;
@@ -22,8 +25,6 @@
 
     internal class RestServiceHandler
     {
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-
         #region Internal-Members
 
         #endregion
@@ -2420,6 +2421,5 @@
 
         #endregion
 
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
     }
 }
