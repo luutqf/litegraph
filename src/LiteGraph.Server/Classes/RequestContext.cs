@@ -453,7 +453,8 @@
             SetAuthValues();
             SetRequestValues();
 
-            Data = ctx.Request.DataAsBytes;
+            byte[] data = ctx.Request.DataAsBytes;
+            Data = data != null && data.Length > 0 ? data : null;
         }
 
         #endregion
@@ -520,8 +521,11 @@
                 if (_Url.QueryExists(Constants.SkipQuerystring))
                     if (Int32.TryParse(_Url.GetQueryValue(Constants.SkipQuerystring), out int skip)) Skip = skip;
 
-                if (_Url.QueryExists(Constants.MaxKeysQuerystring))
-                    if (Int32.TryParse(_Url.GetQueryValue(Constants.MaxKeysQuerystring), out int maxKeys)) MaxKeys = maxKeys;
+                string maxKeysValue = null;
+                if (_Url.QueryExists(Constants.MaxKeysQuerystring)) maxKeysValue = _Url.GetQueryValue(Constants.MaxKeysQuerystring);
+                else if (_Url.QueryExists(Constants.MaxKeysQuerystringAlternate)) maxKeysValue = _Url.GetQueryValue(Constants.MaxKeysQuerystringAlternate);
+
+                if (Int32.TryParse(maxKeysValue, out int maxKeys)) MaxKeys = maxKeys;
 
                 if (_Url.QueryExists(Constants.EnumerationOrderQuerystring))
                 {

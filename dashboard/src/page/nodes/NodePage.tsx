@@ -161,6 +161,7 @@ const NodePage = () => {
             dataSource={dataSource}
             loading={isNodesLoading}
             rowKey={'GUID'}
+            onRowClick={handleEditNode}
             pagination={{
               ...tablePaginationConfig,
               total: nodesList?.TotalRecords,

@@ -32,10 +32,47 @@ const ResizableTitle = (props: any) => {
 
 interface LitegraphTableProps<T = any> extends TableProps<T> {
   showTotal?: boolean;
+  hideHorizontalScroll?: boolean;
+  onRowClick?: (record: T, event: React.MouseEvent<HTMLElement>) => void;
 }
 
+const interactiveRowClickSelector = [
+  'a[href]',
+  'button',
+  'input',
+  'textarea',
+  'select',
+  'label',
+  '[role="button"]',
+  '[role="link"]',
+  '[role="menuitem"]',
+  '[data-row-click-ignore="true"]',
+  '.ant-btn',
+  '.ant-checkbox-wrapper',
+  '.ant-dropdown',
+  '.ant-dropdown-trigger',
+  '.ant-pagination',
+  '.ant-select',
+  '.ant-switch',
+].join(',');
+
+const shouldIgnoreRowClick = (target: EventTarget | null) => {
+  return target instanceof HTMLElement && Boolean(target.closest(interactiveRowClickSelector));
+};
+
 const LitegraphTable = <T extends object = any>(props: LitegraphTableProps<T>) => {
-  const { columns, dataSource, showTotal = true, pagination, ...rest } = props;
+  const {
+    columns,
+    dataSource,
+    showTotal = true,
+    pagination,
+    onRow,
+    onRowClick,
+    hideHorizontalScroll,
+    className,
+    tableLayout,
+    ...rest
+  } = props;
   const [columnsState, setColumnsState] = useState(columns);
 
   const handleResize =
@@ -51,35 +88,76 @@ const LitegraphTable = <T extends object = any>(props: LitegraphTableProps<T>) =
       });
     };
 
-  const columnsWithResizable = columnsState?.map((col: any, index: number) => ({
-    ...col,
-    onHeaderCell: (column: any) => ({
-      width: column.width,
-      onResize: handleResize(index),
-    }),
-  }));
+  const columnsWithResizable = columnsState?.map((col: any, index: number) => {
+    const isLastColumn = index === columnsState.length - 1;
+
+    if (isLastColumn) {
+      return col;
+    }
+
+    return {
+      ...col,
+      onHeaderCell: (column: any) => ({
+        width: column.width,
+        onResize: handleResize(index),
+      }),
+    };
+  });
 
   useEffect(() => {
     setColumnsState(columns);
   }, [columns]);
 
-  const totalRecords = Array.isArray(dataSource) ? dataSource.length : 0;
+  const paginationWithTotal =
+    pagination !== false
+      ? {
+          ...((typeof pagination === 'object' ? pagination : {}) as object),
+          showTotal: showTotal
+            ? (total: number) => (
+                <LitegraphText style={{ marginRight: 8 }}>
+                  Total: <strong>{total}</strong> records
+                </LitegraphText>
+              )
+            : undefined,
+        }
+      : false;
 
-  const paginationWithTotal = pagination !== false ? {
-    ...((typeof pagination === 'object' ? pagination : {}) as object),
-    showTotal: showTotal ? (total: number) => (
-      <LitegraphText style={{ marginRight: 8 }}>
-        Total: <strong>{total}</strong> records
-      </LitegraphText>
-    ) : undefined,
-  } : false;
+  const getRowProps: TableProps<T>['onRow'] = (record, index) => {
+    const rowProps = onRow?.(record, index) || {};
+
+    if (!onRowClick) {
+      return rowProps;
+    }
+
+    const { onClick, style, className, ...restRowProps } = rowProps;
+
+    return {
+      ...restRowProps,
+      className: [className, 'litegraph-clickable-row'].filter(Boolean).join(' ') || undefined,
+      style: { cursor: 'pointer', ...style },
+      onClick: (event) => {
+        onClick?.(event);
+
+        if (event.defaultPrevented || shouldIgnoreRowClick(event.target)) {
+          return;
+        }
+
+        onRowClick(record, event);
+      },
+    };
+  };
 
   return (
     <Table
       {...rest}
+      className={[className, hideHorizontalScroll ? 'litegraph-table-no-horizontal-scroll' : '']
+        .filter(Boolean)
+        .join(' ')}
       dataSource={dataSource}
       columns={columnsWithResizable}
       pagination={paginationWithTotal}
+      onRow={getRowProps}
+      tableLayout={hideHorizontalScroll ? 'fixed' : tableLayout}
       components={{
         header: {
           cell: ResizableTitle,

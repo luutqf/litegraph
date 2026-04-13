@@ -19,8 +19,7 @@ This monorepo contains the LiteGraph database core, server, dashboard, and clien
 | [`sdk/csharp/`](sdk/csharp/) | C# SDK for REST API ([NuGet](https://www.nuget.org/packages/LiteGraph.Sdk/)) |
 | [`sdk/python/`](sdk/python/) | Python SDK for REST API ([PyPI](https://pypi.org/project/litegraph-sdk/)) |
 | [`sdk/js/`](sdk/js/) | JavaScript/Node.js SDK for REST API ([npm](https://www.npmjs.com/package/litegraphdb)) |
-| [`docker-litegraph/`](docker-litegraph/) | Docker deployment for LiteGraph Server |
-| [`docker-mcp/`](docker-mcp/) | Docker deployment for MCP Server |
+| [`docker/`](docker/) | Docker Compose deployment for LiteGraph Server and MCP Server |
 
 ## New in v5.0.x
 
@@ -383,7 +382,7 @@ Modify ./litegraph.json to change the REST listener hostname to make externally 
 
 ## Running in Docker
 
-A Docker image is available in [Docker Hub](https://hub.docker.com/r/jchristn77/litegraph) under `jchristn77/litegraph`.  Use the Docker Compose start (`compose-up.sh` and `compose-up.bat`) and stop (`compose-down.sh` and `compose-down.bat`) scripts in the `Docker` directory if you wish to run within Docker Compose.  Ensure that you have a valid database file (e.g. `litegraph.db`) and configuration file (e.g. `litegraph.json`) exposed into your container.
+A Docker image is available in [Docker Hub](https://hub.docker.com/r/jchristn77/litegraph) under `jchristn77/litegraph`. Use `docker/compose.yaml` if you wish to run LiteGraph and the MCP server with Docker Compose. Ensure that `docker/litegraph.db`, `docker/litegraph.json`, and `docker/litegraph-mcp.json` are configured for your deployment.
 
 ## MCP Server
 
@@ -469,17 +468,16 @@ Configuration can be overridden using environment variables:
 | `MCP_WS_HOSTNAME` | WebSocket server hostname |
 | `MCP_WS_PORT` | WebSocket server port |
 
-### Running MCP Server in Docker
+### Running LiteGraph and MCP Server in Docker
 
-A Docker image for the MCP server is available at `jchristn77/litegraph-mcp`. Use the Docker Compose files in the `docker-mcp` directory:
+Docker images are available at `jchristn77/litegraph` and `jchristn77/litegraph-mcp`. Use the Docker Compose file in the `docker` directory:
 
 ```bash
-cd docker-mcp
-./compose-up.sh   # Linux/Mac
-compose-up.bat    # Windows
+cd docker
+docker compose up
 ```
 
-Ensure your `litegraph.json` in the `docker-mcp` directory is configured to point to your LiteGraph server.
+The server uses `docker/litegraph.json`; the MCP server uses `docker/litegraph-mcp.json`.
 
 ## Version History
 

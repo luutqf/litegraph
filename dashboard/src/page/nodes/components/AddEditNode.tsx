@@ -275,14 +275,20 @@ const AddEditNode = ({
       width={800}
       cancelText={readonly ? 'Close' : 'Cancel'}
       okButtonProps={{
-        disabled: !formValid,
+        disabled: isGraphLoading || isNodeLoading || !formValid,
         'data-testid': 'add-node-submit-button',
         hidden: readonly,
       }}
       data-testid="add-edit-node-modal"
+      forceRender
     >
-      {isGraphLoading || isNodeLoading ? (
-        <PageLoading />
+      {!isAddEditNodeVisible ? (
+        <Form form={form} style={{ display: 'none' }} />
+      ) : isGraphLoading || isNodeLoading ? (
+        <>
+          <Form form={form} style={{ display: 'none' }} />
+          <PageLoading />
+        </>
       ) : (
         <Form
           initialValues={initialValues}
@@ -294,7 +300,12 @@ const AddEditNode = ({
           requiredMark={!readonly}
         >
           <LitegraphFlex gap={readonly ? 10 : 0} vertical={!readonly}>
-            <LitegraphFormItem className="flex-1" label="Graph" name="graphName" tooltip="The graph this node belongs to">
+            <LitegraphFormItem
+              className="flex-1"
+              label="Graph"
+              name="graphName"
+              tooltip="The graph this node belongs to"
+            >
               <LitegraphInput readOnly variant="borderless" />
             </LitegraphFormItem>
 
@@ -313,7 +324,11 @@ const AddEditNode = ({
               />
             </LitegraphFormItem>
           </LitegraphFlex>
-          <LabelInput name="labels" readonly={readonly} tooltip="Labels associated with this node" />
+          <LabelInput
+            name="labels"
+            readonly={readonly}
+            tooltip="Labels associated with this node"
+          />
 
           <Form.Item label="Tags" tooltip="Key-value tags for this node">
             <TagsInput name="tags" readonly={readonly} />

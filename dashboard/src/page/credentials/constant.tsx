@@ -1,6 +1,11 @@
 import React from 'react';
 import { Button, Dropdown, TableProps } from 'antd';
-import { MoreOutlined, CheckCircleFilled, CloseCircleFilled, CodeOutlined } from '@ant-design/icons';
+import {
+  MoreOutlined,
+  CheckCircleFilled,
+  CloseCircleFilled,
+  CodeOutlined,
+} from '@ant-design/icons';
 import CopyButton from '@/components/base/copy-button/CopyButton';
 import { CredentialType } from '@/types/types';
 import { formatDateTime } from '@/utils/dateUtils';
@@ -9,6 +14,26 @@ import TableSearch from '@/components/table-search/TableSearch';
 import { onGUIDFilter, onNameFilter } from '@/constants/table';
 import { columnTooltip } from '@/utils/tooltipUtils';
 import LitegraphTooltip from '@/components/base/tooltip/Tooltip';
+
+const monoCellStyle = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 4,
+  fontFamily: 'monospace',
+  fontSize: 12,
+  maxWidth: '100%',
+  minWidth: 0,
+  width: '100%',
+} as const;
+
+const monoValueStyle = {
+  display: 'block',
+  flex: '1 1 auto',
+  minWidth: 0,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+} as const;
 
 export const tableColumns = (
   handleEdit: (user: CredentialType) => void,
@@ -23,14 +48,21 @@ export const tableColumns = (
       <TableSearch {...props} placeholder="Search GUID" />
     ),
     onFilter: (value, record) => onGUIDFilter(value, record.GUID),
-    width: 350,
-    render: (GUID: string) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'monospace', fontSize: 12, whiteSpace: 'nowrap' }}>{GUID}<CopyButton text={GUID} tooltipTitle="Copy GUID" /></span>,
+    width: 220,
+    ellipsis: true,
+    render: (GUID: string) => (
+      <span style={monoCellStyle} title={GUID}>
+        <span style={monoValueStyle}>{GUID}</span>
+        <CopyButton text={GUID} tooltipTitle="Copy GUID" />
+      </span>
+    ),
   },
   {
     title: columnTooltip('User', 'Associated user name'),
     dataIndex: 'userName',
     key: 'userName',
-    width: 250,
+    width: 150,
+    ellipsis: true,
     filterDropdown: (props: FilterDropdownProps) => (
       <TableSearch {...props} placeholder="Search User" />
     ),
@@ -41,7 +73,8 @@ export const tableColumns = (
     title: columnTooltip('Name', 'Credential display name'),
     dataIndex: 'Name',
     key: 'name',
-    width: 200,
+    width: 150,
+    ellipsis: true,
     filterDropdown: (props: FilterDropdownProps) => (
       <TableSearch {...props} placeholder="Search Name" />
     ),
@@ -53,14 +86,19 @@ export const tableColumns = (
     title: columnTooltip('Bearer Token', 'Authentication bearer token'),
     dataIndex: 'BearerToken',
     key: 'BearerToken',
-    width: 200,
-    render: (BearerToken: string) => <div>{BearerToken}</div>,
+    width: 160,
+    ellipsis: true,
+    render: (BearerToken: string) => (
+      <span style={monoCellStyle} title={BearerToken}>
+        <span style={monoValueStyle}>{BearerToken}</span>
+      </span>
+    ),
   },
   {
     title: columnTooltip('Active', 'Whether the credential is active'),
     dataIndex: 'Active',
     key: 'Active',
-    width: 100,
+    width: 70,
     sorter: (a: CredentialType, b: CredentialType) => Number(b.Active) - Number(a.Active),
     render: (active: boolean) =>
       active ? (
@@ -73,15 +111,16 @@ export const tableColumns = (
     title: columnTooltip('Created UTC', 'Date and time of creation in UTC'),
     dataIndex: 'CreatedUtc',
     key: 'CreatedUtc',
-    width: 200,
+    width: 150,
     sorter: (a: CredentialType, b: CredentialType) =>
       new Date(a.CreatedUtc).getTime() - new Date(b.CreatedUtc).getTime(),
     render: (CreatedUtc: string) => <div>{formatDateTime(CreatedUtc)}</div>,
+    ellipsis: true,
   },
   {
     title: columnTooltip('Actions', 'Available operations'),
     key: 'actions',
-    width: 100,
+    width: 70,
     render: (_: any, record: CredentialType) => {
       const items = [
         {

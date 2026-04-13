@@ -147,9 +147,16 @@ const VectorPage = () => {
       ) : (
         <LitegraphTable
           loading={isGraphsLoading || isVectorsLoading}
-          columns={tableColumns(handleEditVector, handleDelete, isNodesLoading, isEdgesLoading, setJsonViewRecord)}
+          columns={tableColumns(
+            handleEditVector,
+            handleDelete,
+            isNodesLoading,
+            isEdgesLoading,
+            setJsonViewRecord
+          )}
           dataSource={transformedVectorsList}
           rowKey={'GUID'}
+          onRowClick={handleEditVector}
           pagination={{
             ...tablePaginationConfig,
             total: data?.TotalRecords,

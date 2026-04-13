@@ -166,10 +166,17 @@ const EdgePage = () => {
             )}
           </LitegraphFlex>
           <LitegraphTable
-            columns={tableColumns(handleEditEdge, handleDelete, hasScoreOrDistance, isNodesLoading, setJsonViewRecord)}
+            columns={tableColumns(
+              handleEditEdge,
+              handleDelete,
+              hasScoreOrDistance,
+              isNodesLoading,
+              setJsonViewRecord
+            )}
             dataSource={transformedEdgesList}
             loading={isEdgesLoading}
             rowKey={'GUID'}
+            onRowClick={handleEditEdge}
             pagination={{
               ...tablePaginationConfig,
               total: edgesList?.TotalRecords,

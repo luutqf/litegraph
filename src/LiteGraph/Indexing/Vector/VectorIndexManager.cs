@@ -51,6 +51,8 @@ namespace LiteGraph.Indexing.Vector
         /// <returns>Vector index or null if indexing is not enabled.</returns>
         public async Task<IVectorIndex> GetOrCreateIndexAsync(Graph graph, CancellationToken cancellationToken = default)
         {
+            ThrowIfDisposed();
+
             if (graph == null) throw new ArgumentNullException(nameof(graph));
             if (!graph.VectorIndexType.HasValue || graph.VectorIndexType == VectorIndexTypeEnum.None)
                 return null;
@@ -88,6 +90,8 @@ namespace LiteGraph.Indexing.Vector
             string indexFile = null,
             CancellationToken cancellationToken = default)
         {
+            ThrowIfDisposed();
+
             if (graph == null) throw new ArgumentNullException(nameof(graph));
             if (indexType == VectorIndexTypeEnum.None)
                 throw new ArgumentException("Index type cannot be None.");
@@ -131,6 +135,8 @@ namespace LiteGraph.Indexing.Vector
         /// <returns>Task.</returns>
         public async Task DisableIndexingAsync(Guid graphGuid, bool deleteIndexFile = false)
         {
+            ThrowIfDisposed();
+
             if (_Indexes.TryRemove(graphGuid, out IVectorIndex index))
             {
                 VectorIndexStatistics stats = index.GetStatistics();
@@ -170,6 +176,8 @@ namespace LiteGraph.Indexing.Vector
             IEnumerable<VectorMetadata> vectors,
             CancellationToken cancellationToken = default)
         {
+            ThrowIfDisposed();
+
             if (graph == null) throw new ArgumentNullException(nameof(graph));
             if (!graph.VectorIndexType.HasValue || graph.VectorIndexType == VectorIndexTypeEnum.None)
                 throw new ArgumentException("Graph must have indexing enabled.");
@@ -244,6 +252,8 @@ namespace LiteGraph.Indexing.Vector
         /// <returns>Index statistics or null if no index exists.</returns>
         public VectorIndexStatistics GetStatistics(Guid graphGuid)
         {
+            ThrowIfDisposed();
+
             if (_Indexes.TryGetValue(graphGuid, out var index))
             {
                 return index.GetStatistics();
@@ -258,6 +268,8 @@ namespace LiteGraph.Indexing.Vector
         /// <returns>True if an index exists.</returns>
         public bool HasIndex(Guid graphGuid)
         {
+            ThrowIfDisposed();
+
             return _Indexes.ContainsKey(graphGuid);
         }
 
@@ -268,6 +280,8 @@ namespace LiteGraph.Indexing.Vector
         /// <returns>Vector index or null if not found.</returns>
         public IVectorIndex GetIndex(Guid graphGuid)
         {
+            ThrowIfDisposed();
+
             _Indexes.TryGetValue(graphGuid, out IVectorIndex index);
             return index;
         }
@@ -278,6 +292,8 @@ namespace LiteGraph.Indexing.Vector
         /// <param name="graphGuid">Graph GUID.</param>
         public void UnloadIndex(Guid graphGuid)
         {
+            ThrowIfDisposed();
+
             if (_Indexes.TryRemove(graphGuid, out IVectorIndex index))
             {
                 index.Dispose();
@@ -291,6 +307,8 @@ namespace LiteGraph.Indexing.Vector
         /// <returns>Task.</returns>
         public async Task SaveAllAsync(CancellationToken cancellationToken = default)
         {
+            ThrowIfDisposed();
+
             IEnumerable<Task> tasks = _Indexes.Values.Select(index => index.SaveAsync(cancellationToken));
             await Task.WhenAll(tasks);
         }
@@ -326,6 +344,11 @@ namespace LiteGraph.Indexing.Vector
             }
         }
 
+        private void ThrowIfDisposed()
+        {
+            if (_Disposed) throw new ObjectDisposedException(nameof(VectorIndexManager));
+        }
+
         #endregion
     }
 
@@ -346,7 +369,14 @@ namespace LiteGraph.Indexing.Vector
                 return value;
 
             value = await valueFactory(key);
-            return dictionary.GetOrAdd(key, value);
+            TValue result = dictionary.GetOrAdd(key, value);
+
+            if (!EqualityComparer<TValue>.Default.Equals(result, value) && value is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
+
+            return result;
         }
     }
 }

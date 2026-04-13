@@ -1,0 +1,43 @@
+services:
+
+  #
+  # LiteGraph Server
+  # See https://hub.docker.com/r/jchristn77/litegraph
+  # and https://github.com/jchristn/LiteGraph
+  #
+
+  litegraph:
+    container_name: 'litegraph'
+    image: 'jchristn77/litegraph:v5.0.0'
+    network_mode: 'host'
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./litegraph.json:/app/litegraph.json
+      - ./litegraph.db:/app/litegraph.db
+      - ./logs/litegraph/:/app/logs/
+      - ./backups/litegraph/:/app/backups/
+    healthcheck:
+      test: curl --fail http://localhost:8701
+
+  #
+  # LiteGraph MCP Server
+  # See https://hub.docker.com/r/jchristn77/litegraph-mcp
+  # and https://github.com/jchristn/LiteGraph
+  #
+
+  litegraph-mcp:
+    container_name: 'litegraph-mcp'
+    image: 'jchristn77/litegraph-mcp:v5.0.0'
+    network_mode: 'host'
+    stdin_open: true
+    tty: true
+    depends_on:
+      litegraph:
+        condition: service_healthy
+    volumes:
+      - ./litegraph-mcp.json:/app/litegraph.json
+      - ./logs/litegraph-mcp/:/app/logs/
+      - ./backups/litegraph-mcp/:/app/backups/
+    healthcheck:
+      test: curl --fail http://localhost:8200

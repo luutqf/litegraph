@@ -82,10 +82,12 @@ const TenantPage = () => {
         <FallBack retry={fetchTenantsList}>Something went wrong.</FallBack>
       ) : (
         <LitegraphTable
+          hideHorizontalScroll
           loading={isTenantsLoading}
           columns={tableColumns(handleEditTenant, handleDeleteTenant, setJsonViewRecord)}
           dataSource={tenantsList}
           rowKey={'GUID'}
+          onRowClick={handleEditTenant}
           pagination={{
             ...tablePaginationConfig,
             total: data?.TotalRecords,

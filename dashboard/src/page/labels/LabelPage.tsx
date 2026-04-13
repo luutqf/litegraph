@@ -152,9 +152,16 @@ const LabelPage = () => {
       ) : (
         <LitegraphTable
           loading={isLabelsLoading || isGraphsLoading}
-          columns={tableColumns(handleEditLabel, handleDelete, isNodesLoading, isEdgesLoading, setJsonViewRecord)}
+          columns={tableColumns(
+            handleEditLabel,
+            handleDelete,
+            isNodesLoading,
+            isEdgesLoading,
+            setJsonViewRecord
+          )}
           dataSource={transformedLabelsList}
           rowKey={'GUID'}
+          onRowClick={handleEditLabel}
           pagination={{
             ...tablePaginationConfig,
             total: labelsList?.TotalRecords,

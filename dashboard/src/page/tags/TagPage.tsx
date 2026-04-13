@@ -142,9 +142,16 @@ const TagPage = () => {
       ) : (
         <LitegraphTable
           loading={isGraphsLoading || isTagsLoading}
-          columns={tableColumns(handleEditTag, handleDelete, isNodesLoading, isEdgesLoading, setJsonViewRecord)}
+          columns={tableColumns(
+            handleEditTag,
+            handleDelete,
+            isNodesLoading,
+            isEdgesLoading,
+            setJsonViewRecord
+          )}
           dataSource={transformedTagsList}
           rowKey={'GUID'}
+          onRowClick={handleEditTag}
           pagination={{
             ...tablePaginationConfig,
             total: data?.TotalRecords,

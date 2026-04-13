@@ -49,12 +49,15 @@ namespace LiteGraph.Indexing.Vector
         /// <inheritdoc />
         public async Task InitializeAsync(Graph graph, CancellationToken cancellationToken = default)
         {
+            ThrowIfDisposed();
+
             if (graph == null) throw new ArgumentNullException(nameof(graph));
             if (!graph.VectorDimensionality.HasValue)
                 throw new ArgumentException("Graph must have VectorDimensionality set for indexing.");
             if (!graph.VectorIndexType.HasValue || graph.VectorIndexType == VectorIndexTypeEnum.None)
                 throw new ArgumentException("Graph must have VectorIndexType set to HnswRam or HnswSqlite.");
 
+            DisposeIndexStorage();
             _Graph = graph;
 
             // Create appropriate storage based on index type
@@ -98,6 +101,8 @@ namespace LiteGraph.Indexing.Vector
         /// <inheritdoc />
         public async Task AddAsync(Guid vectorId, List<float> vector, CancellationToken cancellationToken = default)
         {
+            ThrowIfDisposed();
+
             if (vectorId == Guid.Empty) throw new ArgumentException("Vector ID cannot be empty.");
             if (vector == null || vector.Count == 0) throw new ArgumentNullException(nameof(vector));
             if (_Index == null) throw new InvalidOperationException("Index not initialized.");
@@ -109,6 +114,8 @@ namespace LiteGraph.Indexing.Vector
         /// <inheritdoc />
         public async Task AddBatchAsync(Dictionary<Guid, List<float>> vectors, CancellationToken cancellationToken = default)
         {
+            ThrowIfDisposed();
+
             if (vectors == null || vectors.Count == 0) return;
             if (_Index == null) throw new InvalidOperationException("Index not initialized.");
 
@@ -119,6 +126,8 @@ namespace LiteGraph.Indexing.Vector
         /// <inheritdoc />
         public async Task UpdateAsync(Guid vectorId, List<float> vector, CancellationToken cancellationToken = default)
         {
+            ThrowIfDisposed();
+
             if (vectorId == Guid.Empty) throw new ArgumentException("Vector ID cannot be empty.");
             if (vector == null || vector.Count == 0) throw new ArgumentNullException(nameof(vector));
             if (_Index == null) throw new InvalidOperationException("Index not initialized.");
@@ -131,6 +140,8 @@ namespace LiteGraph.Indexing.Vector
         /// <inheritdoc />
         public async Task RemoveAsync(Guid vectorId, CancellationToken cancellationToken = default)
         {
+            ThrowIfDisposed();
+
             if (vectorId == Guid.Empty) throw new ArgumentException("Vector ID cannot be empty.");
             if (_Index == null) throw new InvalidOperationException("Index not initialized.");
 
@@ -141,6 +152,8 @@ namespace LiteGraph.Indexing.Vector
         /// <inheritdoc />
         public async Task RemoveBatchAsync(List<Guid> vectorIds, CancellationToken cancellationToken = default)
         {
+            ThrowIfDisposed();
+
             if (vectorIds == null || vectorIds.Count == 0) return;
             if (_Index == null) throw new InvalidOperationException("Index not initialized.");
 
@@ -155,6 +168,8 @@ namespace LiteGraph.Indexing.Vector
             int? ef = null,
             CancellationToken cancellationToken = default)
         {
+            ThrowIfDisposed();
+
             if (queryVector == null || queryVector.Count == 0) throw new ArgumentNullException(nameof(queryVector));
             if (k <= 0) throw new ArgumentOutOfRangeException(nameof(k), "k must be greater than 0.");
             if (_Index == null) throw new InvalidOperationException("Index not initialized.");
@@ -175,6 +190,8 @@ namespace LiteGraph.Indexing.Vector
         /// <inheritdoc />
         public async Task SaveAsync(CancellationToken cancellationToken = default)
         {
+            ThrowIfDisposed();
+
             if (_Index == null) throw new InvalidOperationException("Index not initialized.");
 
             // For SQLite storage, the index is automatically persisted
@@ -192,6 +209,8 @@ namespace LiteGraph.Indexing.Vector
         /// <inheritdoc />
         public async Task LoadAsync(CancellationToken cancellationToken = default)
         {
+            ThrowIfDisposed();
+
             if (_Index == null) throw new InvalidOperationException("Index not initialized.");
 
             if (_Graph?.VectorIndexType == VectorIndexTypeEnum.HnswRam && !string.IsNullOrEmpty(_Graph.VectorIndexFile))
@@ -208,6 +227,8 @@ namespace LiteGraph.Indexing.Vector
         /// <inheritdoc />
         public VectorIndexStatistics GetStatistics()
         {
+            ThrowIfDisposed();
+
             int vectorCount = 0;
             try
             {
@@ -287,6 +308,8 @@ namespace LiteGraph.Indexing.Vector
         /// <inheritdoc />
         public async Task ClearAsync(CancellationToken cancellationToken = default)
         {
+            ThrowIfDisposed();
+
             if (_Index == null) throw new InvalidOperationException("Index not initialized.");
 
             // Reinitialize the index
@@ -296,6 +319,8 @@ namespace LiteGraph.Indexing.Vector
         /// <inheritdoc />
         public bool Contains(Guid vectorId)
         {
+            ThrowIfDisposed();
+
             try
             {
                 if (_Storage != null)
@@ -333,11 +358,27 @@ namespace LiteGraph.Indexing.Vector
                 if (disposing)
                 {
                     // HnswIndex doesn't implement IDisposable
-                    // But we should dispose of our storage if it's disposable
-                    _Index = null;
+                    // But we should dispose of our storage if it's disposable.
+                    DisposeIndexStorage();
+                    _Graph = null;
                 }
                 _Disposed = true;
             }
+        }
+
+        private void DisposeIndexStorage()
+        {
+            if (_Storage is IDisposable disposableStorage) disposableStorage.Dispose();
+            if (_LayerStorage is IDisposable disposableLayerStorage) disposableLayerStorage.Dispose();
+
+            _Index = null;
+            _Storage = null;
+            _LayerStorage = null;
+        }
+
+        private void ThrowIfDisposed()
+        {
+            if (_Disposed) throw new ObjectDisposedException(nameof(HnswLiteVectorIndex));
         }
 
         #endregion

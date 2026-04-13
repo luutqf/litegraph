@@ -324,11 +324,17 @@ const AddEditEdge = ({
         onClose && onClose();
       }}
       width={800}
-      okButtonProps={{ disabled: !formValid }}
+      okButtonProps={{ disabled: isEdgeLoading || !formValid }}
       data-testid="add-edit-edge-modal"
+      forceRender
     >
-      {isEdgeLoading ? (
-        <PageLoading />
+      {!isAddEditEdgeVisible ? (
+        <Form form={form} style={{ display: 'none' }} />
+      ) : isEdgeLoading ? (
+        <>
+          <Form form={form} style={{ display: 'none' }} />
+          <PageLoading />
+        </>
       ) : (
         <Form
           initialValues={{
@@ -342,7 +348,12 @@ const AddEditEdge = ({
           requiredMark={!readonly}
         >
           <LitegraphFlex vertical={!readonly} gap={readonly ? 10 : 0}>
-            <LitegraphFormItem className="flex-1" label="Graph" name="graphName" tooltip="The graph this edge belongs to">
+            <LitegraphFormItem
+              className="flex-1"
+              label="Graph"
+              name="graphName"
+              tooltip="The graph this edge belongs to"
+            >
               <LitegraphInput readOnly variant="borderless" />
             </LitegraphFormItem>
             <LitegraphFormItem
@@ -426,7 +437,12 @@ const AddEditEdge = ({
                 }}
               />
             </LitegraphFormItem>
-            <LabelInput name="labels" className="flex-1" readonly={readonly} tooltip="Labels associated with this edge" />
+            <LabelInput
+              name="labels"
+              className="flex-1"
+              readonly={readonly}
+              tooltip="Labels associated with this edge"
+            />
           </LitegraphFlex>
           <Form.Item label="Tags" tooltip="Key-value tags for this edge">
             <TagsInput name="tags" readonly={readonly} />

@@ -177,11 +177,17 @@ const AddEditGraph = ({
       confirmLoading={isCreateLoading || isUpdateLoading}
       onCancel={() => setIsAddEditGraphVisible(false)}
       width={800}
-      okButtonProps={{ disabled: !formValid }}
+      okButtonProps={{ disabled: isGraphLoading || !formValid }}
       data-testid="add-edit-graph-modal"
+      forceRender
     >
-      {isGraphLoading ? (
-        <PageLoading />
+      {!isAddEditGraphVisible ? (
+        <Form form={form} style={{ display: 'none' }} />
+      ) : isGraphLoading ? (
+        <>
+          <Form form={form} style={{ display: 'none' }} />
+          <PageLoading />
+        </>
       ) : (
         <Form
           initialValues={initialValues}
@@ -192,7 +198,12 @@ const AddEditGraph = ({
           onValuesChange={(_, allValues) => setFormValues(allValues)}
         >
           {/* Graph Name */}
-          <LitegraphFormItem label="Name" name="name" tooltip="Display name for the graph" rules={validationRules.name}>
+          <LitegraphFormItem
+            label="Name"
+            name="name"
+            tooltip="Display name for the graph"
+            rules={validationRules.name}
+          >
             <LitegraphInput placeholder="Enter graph name" data-testid="graph-name-input" />
           </LitegraphFormItem>
           <LabelInput name="labels" tooltip="Labels associated with this graph" />
@@ -202,7 +213,11 @@ const AddEditGraph = ({
           <Form.Item label="Vectors" tooltip="Vector embeddings for this graph">
             <VectorsInput name="vectors" />
           </Form.Item>
-          <LitegraphFormItem label="Data" name="data" tooltip="Arbitrary JSON data attached to this graph">
+          <LitegraphFormItem
+            label="Data"
+            name="data"
+            tooltip="Arbitrary JSON data attached to this graph"
+          >
             <JsonEditor
               key={uniqueKey}
               value={form.getFieldValue('data') || {}}

@@ -48,6 +48,7 @@ const SearchModal = ({
     <LitegraphModal
       maskClosable={false}
       destroyOnClose={false}
+      forceRender
       title="Search"
       centered
       open={isSearchModalVisible}
@@ -58,51 +59,58 @@ const SearchModal = ({
       onOk={handleSearch}
       okText="Search"
     >
-      <Form
-        initialValues={initialSearchData}
-        form={form}
-        clearOnDestroy={false}
-        layout="vertical"
-        onFinish={handleSearch}
-      >
-        <LabelInput name="labels" tooltip="Filter by classification labels" />
-        <Form.Item label="Tags" tooltip="Filter by key-value tags" rules={[{ validator: validateAtLeastOne(form) }]}>
-          <TagsInput name="tags" />
-        </Form.Item>
-        <LitegraphFormItem
-          label="Expression"
-          name="expr"
-          tooltip="Filter using expression syntax"
-          rules={[{ validator: validateAtLeastOne(form) }]}
-          extra={
-            <>
-              <LitegraphText color={LightGraphTheme.subHeadingColor}>
-                Example:{' '}
-                {`
+      {!isSearchModalVisible ? (
+        <Form form={form} style={{ display: 'none' }} />
+      ) : (
+        <Form
+          initialValues={initialSearchData}
+          form={form}
+          clearOnDestroy={false}
+          layout="vertical"
+          onFinish={handleSearch}
+        >
+          <LabelInput name="labels" tooltip="Filter by classification labels" />
+          <Form.Item
+            label="Tags"
+            tooltip="Filter by key-value tags"
+            rules={[{ validator: validateAtLeastOne(form) }]}
+          >
+            <TagsInput name="tags" />
+          </Form.Item>
+          <LitegraphFormItem
+            label="Expression"
+            name="expr"
+            tooltip="Filter using expression syntax"
+            rules={[{ validator: validateAtLeastOne(form) }]}
+            extra={
+              <>
+                <LitegraphText color={LightGraphTheme.subHeadingColor}>
+                  Example:{' '}
+                  {`
               {
                 "Left": "Key",
                 "Operator": "Equals",
                 "Right": "Value"
               }
               `}
-              </LitegraphText>
-            </>
-          }
-        >
-          <JsonEditor
-            key={uniqueKey.current}
-            value={form.getFieldValue('expr')}
-            onChange={(json: any) => {
-              form.setFieldsValue({ expr: json });
-            }}
-            enableSort={false}
-            enableTransform={false}
-            mode="code"
-            data-testid="node-data-input"
-          />
-        </LitegraphFormItem>
+                </LitegraphText>
+              </>
+            }
+          >
+            <JsonEditor
+              key={uniqueKey.current}
+              value={form.getFieldValue('expr')}
+              onChange={(json: any) => {
+                form.setFieldsValue({ expr: json });
+              }}
+              enableSort={false}
+              enableTransform={false}
+              mode="code"
+              data-testid="node-data-input"
+            />
+          </LitegraphFormItem>
 
-        {/* <LitegraphFormItem
+          {/* <LitegraphFormItem
           label="Embeddings"
           name="embeddings"
           rules={[{ validator: validateAtLeastOne(form) }]}
@@ -119,7 +127,8 @@ const SearchModal = ({
             data-testid="vector-search-input"
           />
         </LitegraphFormItem> */}
-      </Form>
+        </Form>
+      )}
     </LitegraphModal>
   );
 };

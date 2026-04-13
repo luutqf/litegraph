@@ -624,6 +624,7 @@ const graphSlice = enhancedSdk.injectEndpoints({
       }),
     }),
   }),
+  overrideExisting: true,
 });
 
 export const {

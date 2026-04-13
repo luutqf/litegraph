@@ -17,6 +17,26 @@ import { UserMetadata } from 'litegraphdb/dist/types/types';
 import { columnTooltip } from '@/utils/tooltipUtils';
 import LitegraphTooltip from '@/components/base/tooltip/Tooltip';
 
+const monoCellStyle = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 4,
+  fontFamily: 'monospace',
+  fontSize: 12,
+  maxWidth: '100%',
+  minWidth: 0,
+  width: '100%',
+} as const;
+
+const monoValueStyle = {
+  display: 'block',
+  flex: '1 1 auto',
+  minWidth: 0,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+} as const;
+
 const PasswordCell = ({ password }: { password: string }) => {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -50,18 +70,25 @@ export const tableColumns = (
       title: columnTooltip('GUID', 'Globally unique identifier'),
       dataIndex: 'GUID',
       key: 'GUID',
-      width: 350,
+      width: 220,
+      ellipsis: true,
       filterDropdown: (props: FilterDropdownProps) => (
         <TableSearch {...props} placeholder="Search GUID" />
       ),
       onFilter: (value, record) => onGUIDFilter(value, record.GUID),
-      render: (GUID: string) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'monospace', fontSize: 12, whiteSpace: 'nowrap' }}>{GUID}<CopyButton text={GUID} tooltipTitle="Copy GUID" /></span>,
+      render: (GUID: string) => (
+        <span style={monoCellStyle} title={GUID}>
+          <span style={monoValueStyle}>{GUID}</span>
+          <CopyButton text={GUID} tooltipTitle="Copy GUID" />
+        </span>
+      ),
     },
     {
       title: columnTooltip('First Name', 'User first name'),
       dataIndex: 'FirstName',
       key: 'FirstName',
-      width: 200,
+      width: 120,
+      ellipsis: true,
       filterDropdown: (props: FilterDropdownProps) => (
         <TableSearch {...props} placeholder="Search First Name" />
       ),
@@ -73,7 +100,8 @@ export const tableColumns = (
       title: columnTooltip('Last Name', 'User last name'),
       dataIndex: 'LastName',
       key: 'LastName',
-      width: 200,
+      width: 120,
+      ellipsis: true,
       filterDropdown: (props: FilterDropdownProps) => (
         <TableSearch {...props} placeholder="Search Last Name" />
       ),
@@ -85,7 +113,8 @@ export const tableColumns = (
       title: columnTooltip('Email', 'User email address'),
       dataIndex: 'Email',
       key: 'Email',
-      width: 200,
+      width: 170,
+      ellipsis: true,
       filterDropdown: (props: FilterDropdownProps) => (
         <TableSearch {...props} placeholder="Search Email" />
       ),
@@ -96,14 +125,14 @@ export const tableColumns = (
       title: columnTooltip('Password', 'User password (click eye to reveal)'),
       dataIndex: 'Password',
       key: 'Password',
-      width: 200,
+      width: 100,
       render: (Password: string, record: UserMetadata) => <PasswordCell password={Password} />,
     },
     {
       title: columnTooltip('Active', 'Whether the user account is active'),
       dataIndex: 'Active',
       key: 'Active',
-      width: 100,
+      width: 70,
       sorter: (a: UserMetadata, b: UserMetadata) => Number(b.Active) - Number(a.Active),
       render: (active: boolean) =>
         active ? (
@@ -116,7 +145,8 @@ export const tableColumns = (
       title: columnTooltip('Created UTC', 'Date and time of creation in UTC'),
       dataIndex: 'CreatedUtc',
       key: 'CreatedUtc',
-      width: 200,
+      width: 150,
+      ellipsis: true,
       sorter: (a: UserMetadata, b: UserMetadata) =>
         new Date(a.CreatedUtc).getTime() - new Date(b.CreatedUtc).getTime(),
       render: (CreatedUtc: string) => <div>{formatDateTime(CreatedUtc)}</div>,
@@ -124,7 +154,7 @@ export const tableColumns = (
     {
       title: columnTooltip('Actions', 'Available operations'),
       key: 'actions',
-      width: 100,
+      width: 70,
       render: (_: any, record: UserMetadata) => {
         const items = [
           {

@@ -227,6 +227,7 @@ const GraphPage = () => {
           dataSource={graphDataSource}
           loading={isGraphsLoading || isFetchGexfByGraphIdLoading}
           rowKey={'GUID'}
+          onRowClick={handleEdit}
           pagination={{
             ...tablePaginationConfig,
             total: data?.TotalRecords,
@@ -278,16 +279,18 @@ const GraphPage = () => {
           setSelectedGraph(null);
         }}
       />
-      {viewVectorIndexConfigModalVisible && <EnableVectorIndexModal
-        isEnableVectorIndexModalVisible={viewVectorIndexConfigModalVisible}
-        setIsEnableVectorIndexModalVisible={setViewVectorIndexConfigModalVisible}
-        graphId={selectedGraph?.GUID || ''}
-        viewMode={true}
-        onSuccess={() => {
-          setViewVectorIndexConfigModalVisible(false);
-          setSelectedGraph(null);
-        }}
-      />}
+      {viewVectorIndexConfigModalVisible && (
+        <EnableVectorIndexModal
+          isEnableVectorIndexModalVisible={viewVectorIndexConfigModalVisible}
+          setIsEnableVectorIndexModalVisible={setViewVectorIndexConfigModalVisible}
+          graphId={selectedGraph?.GUID || ''}
+          viewMode={true}
+          onSuccess={() => {
+            setViewVectorIndexConfigModalVisible(false);
+            setSelectedGraph(null);
+          }}
+        />
+      )}
       <VectorIndexStatsModal
         isVisible={vectorIndexStatsModalVisible}
         setIsVisible={setVectorIndexStatsModalVisible}

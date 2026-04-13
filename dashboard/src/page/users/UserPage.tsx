@@ -90,10 +90,12 @@ const UserPage = () => {
         <FallBack retry={fetchUsersList}>Something went wrong.</FallBack>
       ) : (
         <LitegraphTable
+          hideHorizontalScroll
           loading={isUsersLoading}
           columns={tableColumns(handleEditUser, handleDeleteUser, setJsonViewRecord)}
           dataSource={usersList}
           rowKey={'GUID'}
+          onRowClick={handleEditUser}
           pagination={{
             ...tablePaginationConfig,
             total: data?.TotalRecords,

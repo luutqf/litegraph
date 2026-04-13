@@ -17,7 +17,7 @@
     /// The graph repository base class is only responsible for primitives.
     /// Validation and cross-cutting functions should be performed in LiteGraphClient rather than in the graph repository base.
     /// </summary>
-    public abstract class GraphRepositoryBase
+    public abstract class GraphRepositoryBase : IDisposable
     {
         #region Public-Members
 
@@ -119,6 +119,7 @@
 
         private LoggingSettings _Logging = new LoggingSettings();
         private Serializer _Serializer = new Serializer();
+        private bool _Disposed = false;
 
         #endregion
 
@@ -133,6 +134,47 @@
         /// Flush database contents to disk.  Only required if using an in-memory instance of a LiteGraph database.
         /// </summary>
         public abstract void Flush();
+
+        /// <summary>
+        /// Dispose resources owned by the repository.
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        #endregion
+
+        #region Protected-Methods
+
+        /// <summary>
+        /// Dispose resources owned by the repository.
+        /// </summary>
+        /// <param name="disposing">Disposing managed resources.</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            _Disposed = true;
+        }
+
+        /// <summary>
+        /// Throw if the repository has been disposed.
+        /// </summary>
+        protected void ThrowIfDisposed()
+        {
+            if (_Disposed) throw new ObjectDisposedException(GetType().FullName);
+        }
+
+        /// <summary>
+        /// Indicates whether the repository has been disposed.
+        /// </summary>
+        protected bool Disposed
+        {
+            get
+            {
+                return _Disposed;
+            }
+        }
 
         #endregion
 

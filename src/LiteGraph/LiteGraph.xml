@@ -3569,6 +3569,27 @@
             Flush database contents to disk.  Only required if using an in-memory instance of a LiteGraph database.
             </summary>
         </member>
+        <member name="M:LiteGraph.GraphRepositories.GraphRepositoryBase.Dispose">
+            <summary>
+            Dispose resources owned by the repository.
+            </summary>
+        </member>
+        <member name="M:LiteGraph.GraphRepositories.GraphRepositoryBase.Dispose(System.Boolean)">
+            <summary>
+            Dispose resources owned by the repository.
+            </summary>
+            <param name="disposing">Disposing managed resources.</param>
+        </member>
+        <member name="M:LiteGraph.GraphRepositories.GraphRepositoryBase.ThrowIfDisposed">
+            <summary>
+            Throw if the repository has been disposed.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.GraphRepositories.GraphRepositoryBase.Disposed">
+            <summary>
+            Indicates whether the repository has been disposed.
+            </summary>
+        </member>
         <member name="T:LiteGraph.GraphRepositories.Interfaces.IAdminMethods">
             <summary>
             Interface for admin methods.
@@ -6274,6 +6295,9 @@
             Saves the in-memory database back to disk file
             </summary>
         </member>
+        <member name="M:LiteGraph.GraphRepositories.Sqlite.SqliteGraphRepository.Dispose(System.Boolean)">
+            <inheritdoc />
+        </member>
         <member name="T:LiteGraph.GraphStatistics">
             <summary>
             Graph statistics.
@@ -7107,6 +7131,16 @@
             <param name="logging">Logging.</param>
             <param name="caching">Caching settings.</param>
             <param name="storage">Storage settings.</param>
+        </member>
+        <member name="M:LiteGraph.LiteGraphClient.#ctor(LiteGraph.GraphRepositories.GraphRepositoryBase,LiteGraph.LoggingSettings,LiteGraph.CachingSettings,LiteGraph.StorageSettings,System.Boolean)">
+            <summary>
+            Instantiate LiteGraph client.
+            </summary>
+            <param name="repo">Graph repository driver.</param>
+            <param name="logging">Logging.</param>
+            <param name="caching">Caching settings.</param>
+            <param name="storage">Storage settings.</param>
+            <param name="disposeRepository">Dispose the repository when this client is disposed.</param>
         </member>
         <member name="M:LiteGraph.LiteGraphClient.#ctor(System.String)">
             <summary>

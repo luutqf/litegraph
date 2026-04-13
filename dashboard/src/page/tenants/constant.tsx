@@ -1,6 +1,11 @@
 import React from 'react';
 import { Button, Dropdown, TableProps } from 'antd';
-import { CheckCircleFilled, CloseCircleFilled, MoreOutlined, CodeOutlined } from '@ant-design/icons';
+import {
+  CheckCircleFilled,
+  CloseCircleFilled,
+  MoreOutlined,
+  CodeOutlined,
+} from '@ant-design/icons';
 import CopyButton from '@/components/base/copy-button/CopyButton';
 import { formatDateTime } from '@/utils/dateUtils';
 import { FilterDropdownProps } from 'antd/es/table/interface';
@@ -9,6 +14,26 @@ import { onGUIDFilter, onNameFilter } from '@/constants/table';
 import { TenantMetaData } from 'litegraphdb/dist/types/types';
 import { columnTooltip } from '@/utils/tooltipUtils';
 import LitegraphTooltip from '@/components/base/tooltip/Tooltip';
+
+const monoCellStyle = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 4,
+  fontFamily: 'monospace',
+  fontSize: 12,
+  maxWidth: '100%',
+  minWidth: 0,
+  width: '100%',
+} as const;
+
+const monoValueStyle = {
+  display: 'block',
+  flex: '1 1 auto',
+  minWidth: 0,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+} as const;
 
 export const tableColumns = (
   handleEdit: (tenant: TenantMetaData) => void,
@@ -23,14 +48,21 @@ export const tableColumns = (
     ),
     onFilter: (value, record) => onGUIDFilter(value, record.GUID),
     key: 'GUID',
-    width: 450,
-    render: (GUID: string) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'monospace', fontSize: 12, whiteSpace: 'nowrap' }}>{GUID}<CopyButton text={GUID} tooltipTitle="Copy GUID" /></span>,
+    width: 240,
+    ellipsis: true,
+    render: (GUID: string) => (
+      <span style={monoCellStyle} title={GUID}>
+        <span style={monoValueStyle}>{GUID}</span>
+        <CopyButton text={GUID} tooltipTitle="Copy GUID" />
+      </span>
+    ),
   },
   {
     title: columnTooltip('Name', 'Tenant display name'),
     dataIndex: 'Name',
     key: 'Name',
-    width: 350,
+    width: 220,
+    ellipsis: true,
     filterDropdown: (props: FilterDropdownProps) => (
       <TableSearch {...props} placeholder="Search Name" />
     ),
@@ -43,7 +75,7 @@ export const tableColumns = (
     title: columnTooltip('Active', 'Whether the tenant is active'),
     dataIndex: 'Active',
     key: 'Active',
-    width: 100,
+    width: 80,
     sorter: (a: TenantMetaData, b: TenantMetaData) => Number(b.Active) - Number(a.Active),
     render: (active: boolean) =>
       active ? (
@@ -58,13 +90,14 @@ export const tableColumns = (
     sorter: (a: TenantMetaData, b: TenantMetaData) =>
       new Date(a.CreatedUtc).getTime() - new Date(b.CreatedUtc).getTime(),
     key: 'CreatedUtc',
-    width: 200,
+    width: 150,
+    ellipsis: true,
     render: (CreatedUtc: string) => <div>{formatDateTime(CreatedUtc)}</div>,
   },
   {
     title: columnTooltip('Actions', 'Available operations'),
     key: 'actions',
-    width: 100,
+    width: 70,
     render: (_: any, record: TenantMetaData) => {
       const items = [
         {

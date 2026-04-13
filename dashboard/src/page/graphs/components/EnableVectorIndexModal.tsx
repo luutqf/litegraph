@@ -102,24 +102,33 @@ const EnableVectorIndexModal = ({
       okButtonProps={viewMode ? { onClick: handleCancel } : { disabled: !formValid }}
       data-testid="enable-vector-index-modal"
       width={800}
+      forceRender
     >
-      {viewMode && isVectorIndexConfigLoading ? (
-        <PageLoading />
+      {!isEnableVectorIndexModalVisible ? (
+        <Form form={form} style={{ display: 'none' }} />
+      ) : viewMode && isVectorIndexConfigLoading ? (
+        <>
+          <Form form={form} style={{ display: 'none' }} />
+          <PageLoading />
+        </>
       ) : viewMode && isConfigError ? (
-        <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-          <div style={{ color: '#d32f2f', fontSize: '16px', marginBottom: '12px' }}>
-            Failed to load vector index configuration
+        <>
+          <Form form={form} style={{ display: 'none' }} />
+          <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+            <div style={{ color: '#d32f2f', fontSize: '16px', marginBottom: '12px' }}>
+              Failed to load vector index configuration
+            </div>
+            <div style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>
+              {configError &&
+                ((configError as any)?.data?.Description ||
+                  (configError as any)?.Description ||
+                  'Unable to retrieve configuration details')}
+            </div>
+            <div style={{ fontSize: '12px', color: '#999' }}>
+              The vector index may not be enabled or there was an issue accessing the configuration.
+            </div>
           </div>
-          <div style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>
-            {configError &&
-              ((configError as any)?.data?.Description ||
-                (configError as any)?.Description ||
-                'Unable to retrieve configuration details')}
-          </div>
-          <div style={{ fontSize: '12px', color: '#999' }}>
-            The vector index may not be enabled or there was an issue accessing the configuration.
-          </div>
-        </div>
+        </>
       ) : !viewMode ? (
         <Form
           form={form}
@@ -161,7 +170,11 @@ const EnableVectorIndexModal = ({
               />
             </LitegraphFormItem>
 
-            <LitegraphFormItem label="Vector Index Threshold" name="VectorIndexThreshold" tooltip="Minimum number of vectors before indexing">
+            <LitegraphFormItem
+              label="Vector Index Threshold"
+              name="VectorIndexThreshold"
+              tooltip="Minimum number of vectors before indexing"
+            >
               <LitegraphInput type="number" placeholder="Enter threshold" variant="outlined" />
             </LitegraphFormItem>
 
@@ -233,7 +246,11 @@ const EnableVectorIndexModal = ({
           requiredMark={false}
         >
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-            <LitegraphFormItem label="Vector Index Type" name="VectorIndexType" tooltip="Type of vector index to use">
+            <LitegraphFormItem
+              label="Vector Index Type"
+              name="VectorIndexType"
+              tooltip="Type of vector index to use"
+            >
               <LitegraphSelect
                 readonly
                 placeholder="Select Vector Index Type"
@@ -246,23 +263,43 @@ const EnableVectorIndexModal = ({
               />
             </LitegraphFormItem>
 
-            <LitegraphFormItem label="Vector Index File" name="VectorIndexFile" tooltip="File path for the vector index">
+            <LitegraphFormItem
+              label="Vector Index File"
+              name="VectorIndexFile"
+              tooltip="File path for the vector index"
+            >
               <LitegraphInput variant="borderless" readOnly />
             </LitegraphFormItem>
 
-            <LitegraphFormItem label="Vector Index Threshold" name="VectorIndexThreshold" tooltip="Minimum number of vectors before indexing">
+            <LitegraphFormItem
+              label="Vector Index Threshold"
+              name="VectorIndexThreshold"
+              tooltip="Minimum number of vectors before indexing"
+            >
               <LitegraphInput variant="borderless" readOnly />
             </LitegraphFormItem>
 
-            <LitegraphFormItem label="Vector Dimensionality" name="VectorDimensionality" tooltip="Number of dimensions in the vectors">
+            <LitegraphFormItem
+              label="Vector Dimensionality"
+              name="VectorDimensionality"
+              tooltip="Number of dimensions in the vectors"
+            >
               <LitegraphInput variant="borderless" readOnly />
             </LitegraphFormItem>
 
-            <LitegraphFormItem label="Vector Index M" name="VectorIndexM" tooltip="Maximum number of connections per node in the HNSW graph">
+            <LitegraphFormItem
+              label="Vector Index M"
+              name="VectorIndexM"
+              tooltip="Maximum number of connections per node in the HNSW graph"
+            >
               <LitegraphInput variant="borderless" readOnly />
             </LitegraphFormItem>
 
-            <LitegraphFormItem label="Vector Index Ef" name="VectorIndexEf" tooltip="Number of candidates to consider during search">
+            <LitegraphFormItem
+              label="Vector Index Ef"
+              name="VectorIndexEf"
+              tooltip="Number of candidates to consider during search"
+            >
               <LitegraphInput variant="borderless" readOnly />
             </LitegraphFormItem>
 

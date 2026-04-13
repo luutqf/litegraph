@@ -14,7 +14,6 @@
     using LiteGraph.Server.Classes;
     using LiteGraph.Server.Services;
     using SyslogLogging;
-    using WatsonWebserver;
 
     /// <summary>
     /// Orchestrator server.
@@ -44,6 +43,10 @@
 
         private static CancellationTokenSource _TokenSource = new CancellationTokenSource();
         private static CancellationToken _Token;
+        private static readonly TaskCompletionSource<bool> _ShutdownSignal = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        private static readonly object _ShutdownLock = new object();
+        private static volatile bool _ShutdownRequested = false;
+        private static bool _CleanupStarted = false;
 
         #endregion
 
@@ -51,22 +54,25 @@
 
         public static async Task Main(string[] args)
         {
-            Welcome();
-            ParseArguments(args);
-            InitializeSettings();
-            await InitializeGlobals().ConfigureAwait(false);
-
-            _Logging.Info(_Header + "started at " + DateTime.UtcNow + " using process ID " + _ProcessId);
-
-            EventWaitHandle waitHandle = new EventWaitHandle(false, EventResetMode.AutoReset);
-            bool waitHandleSignal = false;
-            do
+            try
             {
-                waitHandleSignal = waitHandle.WaitOne(1000);
-            }
-            while (!waitHandleSignal);
+                RegisterShutdownHandlers();
 
-            _Logging.Info(_Header + "stopped at " + DateTime.UtcNow);
+                Welcome();
+                ParseArguments(args);
+                InitializeSettings();
+                await InitializeGlobals().ConfigureAwait(false);
+
+                if (!_ShutdownRequested)
+                {
+                    _Logging.Info(_Header + "started at " + DateTime.UtcNow + " using process ID " + _ProcessId);
+                    await WaitForShutdownAsync().ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                await CleanupAsync().ConfigureAwait(false);
+            }
         }
 
         #endregion
@@ -101,6 +107,149 @@
                     }
                 }
             }
+        }
+
+        private static void RegisterShutdownHandlers()
+        {
+            Console.CancelKeyPress += (sender, e) =>
+            {
+                e.Cancel = true;
+                RequestShutdown("CTRL+C received");
+            };
+
+            AppDomain.CurrentDomain.ProcessExit += (sender, e) =>
+            {
+                RequestShutdown("process exit received");
+                CleanupAsync().GetAwaiter().GetResult();
+            };
+        }
+
+        private static void RequestShutdown(string reason)
+        {
+            lock (_ShutdownLock)
+            {
+                if (_ShutdownRequested) return;
+
+                _ShutdownRequested = true;
+            }
+
+            LogInfo(_Header + reason + ", initiating shutdown");
+            _ShutdownSignal.TrySetResult(true);
+        }
+
+        private static async Task WaitForShutdownAsync()
+        {
+            await _ShutdownSignal.Task.ConfigureAwait(false);
+        }
+
+        private static async Task CleanupAsync()
+        {
+            lock (_ShutdownLock)
+            {
+                if (_CleanupStarted) return;
+
+                _CleanupStarted = true;
+                _ShutdownRequested = true;
+            }
+
+            _ShutdownSignal.TrySetResult(true);
+            LogInfo(_Header + "starting cleanup");
+
+            TryCleanup("cancellation token source", () =>
+            {
+                if (!_TokenSource.IsCancellationRequested) _TokenSource.Cancel();
+            });
+
+            TryCleanup("REST service", () =>
+            {
+                _RestService?.Dispose();
+                _RestService = null;
+            });
+
+            await TryCleanupAsync("authentication service", async () =>
+            {
+                await DisposeIfNeededAsync(_AuthenticationService).ConfigureAwait(false);
+                _AuthenticationService = null;
+            }).ConfigureAwait(false);
+
+            await TryCleanupAsync("service handler", async () =>
+            {
+                await DisposeIfNeededAsync(_ServiceHandler).ConfigureAwait(false);
+                _ServiceHandler = null;
+            }).ConfigureAwait(false);
+
+            await TryCleanupAsync("LiteGraph client", async () =>
+            {
+                await DisposeIfNeededAsync(_LiteGraph).ConfigureAwait(false);
+                _LiteGraph = null;
+            }).ConfigureAwait(false);
+
+            await TryCleanupAsync("graph repository", async () =>
+            {
+                await DisposeIfNeededAsync(_Repo).ConfigureAwait(false);
+                _Repo = null;
+            }).ConfigureAwait(false);
+
+            LogInfo(_Header + "stopped at " + DateTime.UtcNow);
+
+            TryCleanup("cancellation token source", () =>
+            {
+                _TokenSource?.Dispose();
+            });
+
+            TryCleanup("logging", () =>
+            {
+                if (_Logging is IDisposable disposableLogging) disposableLogging.Dispose();
+                _Logging = null;
+            });
+        }
+
+        private static async Task DisposeIfNeededAsync(object obj)
+        {
+            if (obj is IAsyncDisposable asyncDisposable)
+            {
+                await asyncDisposable.DisposeAsync().ConfigureAwait(false);
+            }
+            else if (obj is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
+        }
+
+        private static void TryCleanup(string component, Action action)
+        {
+            try
+            {
+                action();
+            }
+            catch (Exception e)
+            {
+                LogError(_Header + "error while cleaning up " + component + ": " + e.Message);
+            }
+        }
+
+        private static async Task TryCleanupAsync(string component, Func<Task> action)
+        {
+            try
+            {
+                await action().ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                LogError(_Header + "error while cleaning up " + component + ": " + e.Message);
+            }
+        }
+
+        private static void LogInfo(string msg)
+        {
+            if (_Logging != null) _Logging.Info(msg);
+            else Console.WriteLine(msg);
+        }
+
+        private static void LogError(string msg)
+        {
+            if (_Logging != null) _Logging.Error(msg);
+            else Console.WriteLine(msg);
         }
 
         private static void InitializeSettings()

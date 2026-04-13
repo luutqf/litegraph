@@ -133,6 +133,7 @@
         private CachingSettings _Caching = new CachingSettings();
         private StorageSettings _Storage = new StorageSettings();
         private GraphRepositoryBase _Repo = null;
+        private bool _DisposeRepository = false;
         private GexfWriter _Gexf = new GexfWriter();
 
         private LRUCache<Guid, TenantMetadata> _TenantCache = null;
@@ -154,11 +155,29 @@
             GraphRepositoryBase repo,
             LoggingSettings logging = null,
             CachingSettings caching = null,
-            StorageSettings storage = null)
+            StorageSettings storage = null) : this(repo, logging, caching, storage, true)
+        {
+        }
+
+        /// <summary>
+        /// Instantiate LiteGraph client.
+        /// </summary>
+        /// <param name="repo">Graph repository driver.</param>
+        /// <param name="logging">Logging.</param>
+        /// <param name="caching">Caching settings.</param>
+        /// <param name="storage">Storage settings.</param>
+        /// <param name="disposeRepository">Dispose the repository when this client is disposed.</param>
+        public LiteGraphClient(
+            GraphRepositoryBase repo,
+            LoggingSettings logging,
+            CachingSettings caching,
+            StorageSettings storage,
+            bool disposeRepository)
         {
             if (repo == null) throw new ArgumentNullException(nameof(repo));
 
             _Repo = repo;
+            _DisposeRepository = disposeRepository;
 
             if (logging != null) Logging = logging;
             else Logging = new LoggingSettings();
@@ -218,11 +237,41 @@
 
             if (disposing)
             {
-                Logging = null;
-                _Repo = null;
-            }
+                Exception disposalException = null;
 
-            _Disposed = true;
+                try
+                {
+                    if (_Repo != null)
+                    {
+                        _Repo.Logging = null;
+                        if (_DisposeRepository) _Repo.Dispose();
+                    }
+                }
+                catch (Exception e)
+                {
+                    disposalException = e;
+                }
+                finally
+                {
+                    _TenantCache = null;
+                    _GraphCache = null;
+                    _NodeCache = null;
+                    _EdgeCache = null;
+
+                    _Repo = null;
+                }
+
+                _Disposed = true;
+
+                if (disposalException != null)
+                {
+                    throw new InvalidOperationException("An error occurred while disposing the LiteGraph client.", disposalException);
+                }
+            }
+            else
+            {
+                _Disposed = true;
+            }
         }
 
         /// <summary>

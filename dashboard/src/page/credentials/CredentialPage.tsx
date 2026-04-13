@@ -93,10 +93,12 @@ const CredentialPage = () => {
         <FallBack retry={fetchCredentialsList}>Something went wrong.</FallBack>
       ) : (
         <LitegraphTable
+          hideHorizontalScroll
           loading={isCredentialsLoading || isUsersLoading}
           columns={tableColumns(handleEditCredential, handleDeleteCredential, setJsonViewRecord)}
           dataSource={credentialsListWithUsers}
           rowKey={'GUID'}
+          onRowClick={handleEditCredential}
           pagination={{
             ...tablePaginationConfig,
             total: data?.TotalRecords,

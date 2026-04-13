@@ -444,10 +444,10 @@ describe('AddEditEdge', () => {
       expect(screen.getByTestId('add-edit-edge-modal')).toBeInTheDocument();
     });
 
-    it('does not render when modal is not visible', () => {
+    it('does not render form fields when modal is not visible', () => {
       renderWithRedux(<AddEditEdge {...defaultProps} isAddEditEdgeVisible={false} />);
 
-      expect(screen.queryByTestId('add-edit-edge-modal')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('edge-name-input')).not.toBeInTheDocument();
     });
   });
 

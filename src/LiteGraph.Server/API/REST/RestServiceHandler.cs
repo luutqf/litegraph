@@ -23,7 +23,7 @@
     using WatsonWebserver.Core;
     using WatsonWebserver.Core.OpenApi;
 
-    internal class RestServiceHandler
+    internal class RestServiceHandler : IDisposable
     {
         #region Internal-Members
 
@@ -41,6 +41,7 @@
         private ServiceHandler _ServiceHandler = null;
 
         private Webserver _Webserver = null;
+        private bool _Disposed = false;
 
         private List<string> _Localhost = new List<string>
         {
@@ -151,6 +152,37 @@
 
         #region Internal-Methods
 
+        internal void Stop()
+        {
+            if (_Disposed) return;
+            if (_Webserver == null) return;
+
+            _Logging.Info(_Header + "stopping REST server");
+            _Webserver.Stop();
+        }
+
+        public void Dispose()
+        {
+            if (_Disposed) return;
+
+            try
+            {
+                Stop();
+            }
+            catch (Exception e)
+            {
+                _Logging?.Warn(_Header + "error while stopping REST server: " + e.Message);
+            }
+            finally
+            {
+                if (_Webserver is IDisposable disposableWebserver) disposableWebserver.Dispose();
+
+                _Webserver = null;
+                _Disposed = true;
+                GC.SuppressFinalize(this);
+            }
+        }
+
         internal void InitializeRoutes()
         {
             _Webserver.Routes.PreAuthentication.Static.Add(HttpMethod.HEAD, "/", LoopbackRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Health check", "System"));
@@ -217,7 +249,7 @@
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/credentials/{credentialGuid}", CredentialUpdateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Update credential", "Credentials"));
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/users/{userGuid}/credentials", CredentialDeleteByUserRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete credentials by user", "Credentials"));
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/credentials", CredentialDeleteAllInTenantRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete all credentials in tenant", "Credentials"));
-            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/credentials/{credentialGuid}", CredentialDeleteRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete credential", "Credentials"));            
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/credentials/{credentialGuid}", CredentialDeleteRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete credential", "Credentials"));
 
             #endregion
 

@@ -36,7 +36,7 @@
         {
             get
             {
-                return Filename;
+                return _Filename;
             }
         }
 
@@ -222,6 +222,8 @@
         /// <inheritdoc />
         public override void InitializeRepository()
         {
+            ThrowIfDisposed();
+
             if (_InMemory && File.Exists(_Filename))
             {
                 using (SqliteConnection diskDatabase = new SqliteConnection($"Data Source={_Filename};Pooling=false"))
@@ -239,6 +241,8 @@
         /// </summary>
         public override void Flush()
         {
+            ThrowIfDisposed();
+
             if (_InMemory)
             {
                 // Create a backup first for safety
@@ -278,6 +282,8 @@
 
         internal DataTable ExecuteQuery(string query, bool isTransaction = false)
         {
+            ThrowIfDisposed();
+
             if (String.IsNullOrEmpty(query)) throw new ArgumentNullException(query);
             if (query.Length > MaxStatementLength) throw new ArgumentException("Query exceeds maximum statement length of " + MaxStatementLength + " characters.");
 
@@ -360,6 +366,8 @@
 
         internal async Task<DataTable> ExecuteQueryAsync(string query, bool isTransaction = false, CancellationToken token = default)
         {
+            ThrowIfDisposed();
+
             if (String.IsNullOrEmpty(query)) throw new ArgumentNullException(query);
             if (query.Length > MaxStatementLength) throw new ArgumentException("Query exceeds maximum statement length of " + MaxStatementLength + " characters.");
 
@@ -443,6 +451,8 @@
 
         internal DataTable ExecuteQueries(IEnumerable<string> queries, bool isTransaction = false)
         {
+            ThrowIfDisposed();
+
             if (queries == null || !queries.Any()) throw new ArgumentNullException(nameof(queries));
 
             DataTable result = new DataTable();
@@ -580,7 +590,51 @@
 
         #endregion
 
+        #region Protected-Methods
+
+        /// <inheritdoc />
+        protected override void Dispose(bool disposing)
+        {
+            if (Disposed) return;
+
+            Exception disposalException = null;
+
+            if (disposing)
+            {
+                lock (_QueryLock)
+                {
+                    try
+                    {
+                        if (_InMemory && _SqliteConnection != null) Flush();
+                    }
+                    catch (Exception e)
+                    {
+                        disposalException = e;
+                    }
+                    finally
+                    {
+                        VectorIndexManager?.Dispose();
+                        VectorIndexManager = null;
+
+                        _SqliteConnection?.Close();
+                        _SqliteConnection?.Dispose();
+                        _SqliteConnection = null;
+                    }
+                }
+            }
+
+            base.Dispose(disposing);
+
+            if (disposalException != null)
+            {
+                throw new InvalidOperationException("An error occurred while disposing the SQLite graph repository.", disposalException);
+            }
+        }
+
+        #endregion
+
         #region Private-Methods
+
         private void ApplyPerformanceSettings(SqliteConnection conn)
         {
             using (SqliteCommand cmd = conn.CreateCommand())

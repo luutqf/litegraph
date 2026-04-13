@@ -369,6 +369,20 @@
   }
 }
 
+.litegraph-table-no-horizontal-scroll {
+  max-width: 100%;
+  overflow-x: hidden;
+
+  .ant-table-content {
+    overflow-x: hidden;
+  }
+
+  table {
+    max-width: 100%;
+    table-layout: fixed;
+  }
+}
+
 .form-label-text {
   font-size: 14px;
   font-weight: 500;

@@ -153,6 +153,11 @@
         public static string MaxKeysQuerystring = "max-keys";
 
         /// <summary>
+        /// Alternate max-keys querystring key.
+        /// </summary>
+        public static string MaxKeysQuerystringAlternate = "maxKeys";
+
+        /// <summary>
         /// Force querystring key.
         /// </summary>
         public static string ForceQuerystring = "force";
