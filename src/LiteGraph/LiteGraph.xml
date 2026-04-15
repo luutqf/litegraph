@@ -3559,6 +3559,11 @@
             Vector index methods.
             </summary>
         </member>
+        <member name="P:LiteGraph.GraphRepositories.GraphRepositoryBase.RequestHistory">
+            <summary>
+            Request history methods.
+            </summary>
+        </member>
         <member name="M:LiteGraph.GraphRepositories.GraphRepositoryBase.InitializeRepository">
             <summary>
             Initialize the repository.
@@ -4691,6 +4696,79 @@
             For example, to retrieve the 'Name' property, use '$.Name', OperatorEnum.Equals, '[name here]'.</param>
             <param name="token">Cancellation token.</param>
             <returns>Route details.</returns>
+        </member>
+        <member name="T:LiteGraph.GraphRepositories.Interfaces.IRequestHistoryMethods">
+            <summary>
+            Interface for request history methods.
+            Graph repository base methods are responsible only for primitives, not input validation or cross-cutting.
+            </summary>
+        </member>
+        <member name="M:LiteGraph.GraphRepositories.Interfaces.IRequestHistoryMethods.Insert(LiteGraph.RequestHistoryDetail,System.Threading.CancellationToken)">
+            <summary>
+            Insert a request history record.
+            </summary>
+            <param name="detail">Request detail.</param>
+            <param name="token">Cancellation token.</param>
+            <returns>Task.</returns>
+        </member>
+        <member name="M:LiteGraph.GraphRepositories.Interfaces.IRequestHistoryMethods.ReadByGuid(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Read the metadata entry for a request history record.
+            </summary>
+            <param name="guid">GUID.</param>
+            <param name="token">Cancellation token.</param>
+            <returns>Entry, or null if not found.</returns>
+        </member>
+        <member name="M:LiteGraph.GraphRepositories.Interfaces.IRequestHistoryMethods.ReadDetailByGuid(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Read the full detail (headers and bodies) for a request history record.
+            </summary>
+            <param name="guid">GUID.</param>
+            <param name="token">Cancellation token.</param>
+            <returns>Detail, or null if not found.</returns>
+        </member>
+        <member name="M:LiteGraph.GraphRepositories.Interfaces.IRequestHistoryMethods.Search(LiteGraph.RequestHistorySearchRequest,System.Threading.CancellationToken)">
+            <summary>
+            Search for request history records with filters and pagination.
+            </summary>
+            <param name="search">Search request.</param>
+            <param name="token">Cancellation token.</param>
+            <returns>Search result.</returns>
+        </member>
+        <member name="M:LiteGraph.GraphRepositories.Interfaces.IRequestHistoryMethods.GetSummary(System.Nullable{System.Guid},System.String,System.DateTime,System.DateTime,System.Threading.CancellationToken)">
+            <summary>
+            Get a bucketed summary of request history over a time window.
+            </summary>
+            <param name="tenantGuid">Tenant filter, or null for all tenants.</param>
+            <param name="interval">Bucket interval: minute, 15minute, hour, 6hour, day.</param>
+            <param name="startUtc">Inclusive start of the window.</param>
+            <param name="endUtc">Exclusive end of the window.</param>
+            <param name="token">Cancellation token.</param>
+            <returns>Summary.</returns>
+        </member>
+        <member name="M:LiteGraph.GraphRepositories.Interfaces.IRequestHistoryMethods.DeleteByGuid(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Delete a single request history record.
+            </summary>
+            <param name="guid">GUID.</param>
+            <param name="token">Cancellation token.</param>
+            <returns>Task.</returns>
+        </member>
+        <member name="M:LiteGraph.GraphRepositories.Interfaces.IRequestHistoryMethods.DeleteMany(LiteGraph.RequestHistorySearchRequest,System.Threading.CancellationToken)">
+            <summary>
+            Delete multiple request history records matching the search.
+            </summary>
+            <param name="search">Search filters.</param>
+            <param name="token">Cancellation token.</param>
+            <returns>Number of rows deleted.</returns>
+        </member>
+        <member name="M:LiteGraph.GraphRepositories.Interfaces.IRequestHistoryMethods.DeleteOlderThan(System.DateTime,System.Threading.CancellationToken)">
+            <summary>
+            Delete records older than the specified UTC timestamp.
+            </summary>
+            <param name="cutoffUtc">Cutoff.</param>
+            <param name="token">Cancellation token.</param>
+            <returns>Number of rows deleted.</returns>
         </member>
         <member name="T:LiteGraph.GraphRepositories.Interfaces.ITagMethods">
             <summary>
@@ -5837,6 +5915,42 @@
         <member name="M:LiteGraph.GraphRepositories.Sqlite.Implementations.NodeMethods.ReadRoutes(LiteGraph.SearchTypeEnum,System.Guid,System.Guid,System.Guid,System.Guid,ExpressionTree.Expr,ExpressionTree.Expr,System.Threading.CancellationToken)">
             <inheritdoc />
         </member>
+        <member name="T:LiteGraph.GraphRepositories.Sqlite.Implementations.RequestHistoryMethods">
+            <summary>
+            Request history methods.
+            Graph repository base methods are responsible only for primitives, not input validation or cross-cutting.
+            </summary>
+        </member>
+        <member name="M:LiteGraph.GraphRepositories.Sqlite.Implementations.RequestHistoryMethods.#ctor(LiteGraph.GraphRepositories.Sqlite.SqliteGraphRepository)">
+            <summary>
+            Request history methods.
+            </summary>
+            <param name="repo">Graph repository.</param>
+        </member>
+        <member name="M:LiteGraph.GraphRepositories.Sqlite.Implementations.RequestHistoryMethods.Insert(LiteGraph.RequestHistoryDetail,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:LiteGraph.GraphRepositories.Sqlite.Implementations.RequestHistoryMethods.ReadByGuid(System.Guid,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:LiteGraph.GraphRepositories.Sqlite.Implementations.RequestHistoryMethods.ReadDetailByGuid(System.Guid,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:LiteGraph.GraphRepositories.Sqlite.Implementations.RequestHistoryMethods.Search(LiteGraph.RequestHistorySearchRequest,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:LiteGraph.GraphRepositories.Sqlite.Implementations.RequestHistoryMethods.GetSummary(System.Nullable{System.Guid},System.String,System.DateTime,System.DateTime,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:LiteGraph.GraphRepositories.Sqlite.Implementations.RequestHistoryMethods.DeleteByGuid(System.Guid,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:LiteGraph.GraphRepositories.Sqlite.Implementations.RequestHistoryMethods.DeleteMany(LiteGraph.RequestHistorySearchRequest,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:LiteGraph.GraphRepositories.Sqlite.Implementations.RequestHistoryMethods.DeleteOlderThan(System.DateTime,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
         <member name="T:LiteGraph.GraphRepositories.Sqlite.Implementations.TagMethods">
             <summary>
             Tag methods.
@@ -6273,6 +6387,9 @@
             </summary>
         </member>
         <member name="P:LiteGraph.GraphRepositories.Sqlite.SqliteGraphRepository.VectorIndex">
+            <inheritdoc />
+        </member>
+        <member name="P:LiteGraph.GraphRepositories.Sqlite.SqliteGraphRepository.RequestHistory">
             <inheritdoc />
         </member>
         <member name="P:LiteGraph.GraphRepositories.Sqlite.SqliteGraphRepository.VectorIndexManager">
@@ -7123,6 +7240,11 @@
         <member name="P:LiteGraph.LiteGraphClient.VectorIndex">
             <inheritdoc />
         </member>
+        <member name="P:LiteGraph.LiteGraphClient.RequestHistory">
+            <summary>
+            Request history methods.
+            </summary>
+        </member>
         <member name="M:LiteGraph.LiteGraphClient.#ctor(LiteGraph.GraphRepositories.GraphRepositoryBase,LiteGraph.LoggingSettings,LiteGraph.CachingSettings,LiteGraph.StorageSettings)">
             <summary>
             Instantiate LiteGraph client.
@@ -7345,6 +7467,301 @@
         <member name="M:LiteGraph.Node.#ctor">
             <summary>
             Instantiate the object.
+            </summary>
+        </member>
+        <member name="T:LiteGraph.RequestHistoryDetail">
+            <summary>
+            Request history detail, including headers and bodies.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistoryDetail.RequestHeaders">
+            <summary>
+            Request headers.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistoryDetail.ResponseHeaders">
+            <summary>
+            Response headers.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistoryDetail.RequestBody">
+            <summary>
+            Request body (decoded).
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistoryDetail.ResponseBody">
+            <summary>
+            Response body (decoded).
+            </summary>
+        </member>
+        <member name="M:LiteGraph.RequestHistoryDetail.#ctor">
+            <summary>
+            Instantiate.
+            </summary>
+        </member>
+        <member name="T:LiteGraph.RequestHistoryEntry">
+            <summary>
+            Request history entry metadata (no bodies or headers).
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistoryEntry.GUID">
+            <summary>
+            GUID of the request.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistoryEntry.CreatedUtc">
+            <summary>
+            Timestamp when the request was received, in UTC.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistoryEntry.CompletedUtc">
+            <summary>
+            Timestamp when the request finished processing, in UTC.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistoryEntry.Method">
+            <summary>
+            HTTP method.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistoryEntry.Path">
+            <summary>
+            Request path without query string.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistoryEntry.Url">
+            <summary>
+            Full request URL with query string.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistoryEntry.SourceIp">
+            <summary>
+            Source IP address.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistoryEntry.TenantGUID">
+            <summary>
+            Tenant GUID associated with the request, if any.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistoryEntry.UserGUID">
+            <summary>
+            User GUID associated with the request, if any.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistoryEntry.StatusCode">
+            <summary>
+            HTTP response status code.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistoryEntry.Success">
+            <summary>
+            Whether the request completed successfully (2xx or 3xx).
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistoryEntry.ProcessingTimeMs">
+            <summary>
+            Total processing time, in milliseconds.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistoryEntry.RequestBodyLength">
+            <summary>
+            Request body size, in bytes.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistoryEntry.ResponseBodyLength">
+            <summary>
+            Response body size, in bytes.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistoryEntry.RequestBodyTruncated">
+            <summary>
+            Whether the captured request body was truncated.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistoryEntry.ResponseBodyTruncated">
+            <summary>
+            Whether the captured response body was truncated.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistoryEntry.RequestContentType">
+            <summary>
+            Request content type.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistoryEntry.ResponseContentType">
+            <summary>
+            Response content type.
+            </summary>
+        </member>
+        <member name="M:LiteGraph.RequestHistoryEntry.#ctor">
+            <summary>
+            Instantiate.
+            </summary>
+        </member>
+        <member name="T:LiteGraph.RequestHistorySearchRequest">
+            <summary>
+            Search/filter parameters for request history listing.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistorySearchRequest.TenantGUID">
+            <summary>
+            Tenant GUID filter (null means all tenants when admin).
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistorySearchRequest.Method">
+            <summary>
+            HTTP method filter.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistorySearchRequest.StatusCode">
+            <summary>
+            HTTP status code filter.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistorySearchRequest.Path">
+            <summary>
+            Path substring filter.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistorySearchRequest.SourceIp">
+            <summary>
+            Source IP filter.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistorySearchRequest.FromUtc">
+            <summary>
+            Inclusive lower bound on createdutc.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistorySearchRequest.ToUtc">
+            <summary>
+            Exclusive upper bound on createdutc.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistorySearchRequest.Page">
+            <summary>
+            Zero-based page index.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistorySearchRequest.PageSize">
+            <summary>
+            Page size.
+            </summary>
+        </member>
+        <member name="M:LiteGraph.RequestHistorySearchRequest.#ctor">
+            <summary>
+            Instantiate.
+            </summary>
+        </member>
+        <member name="T:LiteGraph.RequestHistorySearchResult">
+            <summary>
+            Paginated result of a request history search.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistorySearchResult.Objects">
+            <summary>
+            Objects on the current page.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistorySearchResult.TotalCount">
+            <summary>
+            Total number of matching records.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistorySearchResult.Page">
+            <summary>
+            Page index.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistorySearchResult.PageSize">
+            <summary>
+            Page size.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistorySearchResult.TotalPages">
+            <summary>
+            Total number of pages.
+            </summary>
+        </member>
+        <member name="M:LiteGraph.RequestHistorySearchResult.#ctor">
+            <summary>
+            Instantiate.
+            </summary>
+        </member>
+        <member name="T:LiteGraph.RequestHistorySummary">
+            <summary>
+            Bucketed summary of request history over a time window.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistorySummary.StartUtc">
+            <summary>
+            Start of the window, in UTC.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistorySummary.EndUtc">
+            <summary>
+            End of the window, in UTC.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistorySummary.Interval">
+            <summary>
+            Bucket interval (minute, 15minute, hour, 6hour, day).
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistorySummary.TotalSuccess">
+            <summary>
+            Total number of successful requests.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistorySummary.TotalFailure">
+            <summary>
+            Total number of failed requests.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistorySummary.TotalRequests">
+            <summary>
+            Total number of requests.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistorySummary.Data">
+            <summary>
+            Bucketed data.
+            </summary>
+        </member>
+        <member name="M:LiteGraph.RequestHistorySummary.#ctor">
+            <summary>
+            Instantiate.
+            </summary>
+        </member>
+        <member name="T:LiteGraph.RequestHistorySummaryBucket">
+            <summary>
+            Single bucket of request history summary data.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistorySummaryBucket.TimestampUtc">
+            <summary>
+            Start of the bucket, in UTC.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistorySummaryBucket.SuccessCount">
+            <summary>
+            Number of successful requests in this bucket.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistorySummaryBucket.FailureCount">
+            <summary>
+            Number of failed requests in this bucket.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.RequestHistorySummaryBucket.TotalCount">
+            <summary>
+            Total number of requests in this bucket.
+            </summary>
+        </member>
+        <member name="M:LiteGraph.RequestHistorySummaryBucket.#ctor">
+            <summary>
+            Instantiate.
             </summary>
         </member>
         <member name="T:LiteGraph.RouteDetail">

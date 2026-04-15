@@ -39,6 +39,7 @@
 
         private static ServiceHandler _ServiceHandler = null;
         private static AuthenticationService _AuthenticationService = null;
+        private static RequestHistoryService _RequestHistoryService = null;
         private static RestServiceHandler _RestService = null;
 
         private static CancellationTokenSource _TokenSource = new CancellationTokenSource();
@@ -164,6 +165,12 @@
             {
                 _RestService?.Dispose();
                 _RestService = null;
+            });
+
+            TryCleanup("request history service", () =>
+            {
+                _RequestHistoryService?.Dispose();
+                _RequestHistoryService = null;
             });
 
             await TryCleanupAsync("authentication service", async () =>
@@ -371,11 +378,16 @@
                 _Repo);
 
             _ServiceHandler = new ServiceHandler(
-                _Settings, 
-                _Logging, 
-                _LiteGraph, 
-                _Serializer, 
+                _Settings,
+                _Logging,
+                _LiteGraph,
+                _Serializer,
                 _AuthenticationService);
+
+            _RequestHistoryService = new RequestHistoryService(
+                _Settings,
+                _Logging,
+                _Repo);
 
             _RestService = new RestServiceHandler(
                 _Settings,
@@ -383,7 +395,8 @@
                 _LiteGraph,
                 _Serializer,
                 _AuthenticationService,
-                _ServiceHandler);
+                _ServiceHandler,
+                _RequestHistoryService);
 
             #endregion
         }

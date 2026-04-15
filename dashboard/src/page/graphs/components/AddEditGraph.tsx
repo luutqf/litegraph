@@ -6,7 +6,7 @@ import LitegraphFormItem from '@/components/base/form/FormItem';
 import { useEffect, useState } from 'react';
 import LitegraphInput from '@/components/base/input/Input';
 import { validationRules } from './constant';
-import { JsonEditor } from 'jsoneditor-react';
+import DataJsonEditor from '@/components/inputs/data-json-editor/DataJsonEditor';
 import { v4 } from 'uuid';
 import toast from 'react-hot-toast';
 import LabelInput from '@/components/inputs/label-input/LabelInput';
@@ -218,17 +218,7 @@ const AddEditGraph = ({
             name="data"
             tooltip="Arbitrary JSON data attached to this graph"
           >
-            <JsonEditor
-              key={uniqueKey}
-              value={form.getFieldValue('data') || {}}
-              onChange={(json: any) => {
-                form.setFieldsValue({ data: json });
-              }}
-              mode="code"
-              enableSort={false}
-              enableTransform={false}
-              data-testid="graph-data-input"
-            />
+            <DataJsonEditor uniqueKey={uniqueKey} mode="code" />
           </LitegraphFormItem>
         </Form>
       )}

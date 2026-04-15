@@ -4,7 +4,7 @@ import LitegraphModal from '@/components/base/modal/Modal';
 import LitegraphFormItem from '@/components/base/form/FormItem';
 import { Dispatch, SetStateAction, useEffect, useState } from 'react';
 import LitegraphInput from '@/components/base/input/Input';
-import { JsonEditor } from 'jsoneditor-react';
+import DataJsonEditor from '@/components/inputs/data-json-editor/DataJsonEditor';
 import { v4 } from 'uuid';
 import { validationRules } from './constant';
 import { NodeType } from '@/types/types';
@@ -354,20 +354,7 @@ const AddEditNode = ({
               </LitegraphFlex>
             }
           >
-            <JsonEditor
-              key={uniqueKey}
-              value={form.getFieldValue('data') || {}}
-              onChange={(json: any) => {
-                form.setFieldsValue({ data: json });
-              }}
-              mode={readonly ? 'view' : 'code'}
-              enableSort={false}
-              enableTransform={false}
-              mainMenuBar={!readonly}
-              statusBar={!readonly}
-              navigationBar={!readonly}
-              data-testid="node-data-input"
-            />
+            <DataJsonEditor uniqueKey={uniqueKey} readonly={readonly} />
           </LitegraphFormItem>
         </Form>
       )}

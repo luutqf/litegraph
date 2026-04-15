@@ -26,6 +26,10 @@ export const paths = {
   users: `/admin/dashboard/users`,
   tenants: `/admin/dashboard/tenants`,
   backups: `/admin/dashboard/backups`,
+  adminRequestHistory: `/admin/dashboard/request-history`,
+  adminApiExplorer: `/admin/dashboard/api-explorer`,
+  requestHistory: `/dashboard/${dynamicSlugs.tenantId}/request-history`,
+  apiExplorer: `/dashboard/${dynamicSlugs.tenantId}/api-explorer`,
 };
 
 export const keepUnusedDataFor = 900; //15mins

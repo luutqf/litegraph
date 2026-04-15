@@ -263,6 +263,43 @@
 
             #endregion
 
+            #region Request-History
+
+            sql.AppendLine(
+                "CREATE TABLE IF NOT EXISTS 'requesthistory' ("
+                + "guid VARCHAR(64) NOT NULL UNIQUE, "
+                + "createdutc VARCHAR(64) NOT NULL, "
+                + "completedutc VARCHAR(64), "
+                + "method VARCHAR(16) NOT NULL, "
+                + "path TEXT NOT NULL, "
+                + "url TEXT NOT NULL, "
+                + "sourceip VARCHAR(64), "
+                + "tenantguid VARCHAR(64), "
+                + "userguid VARCHAR(64), "
+                + "statuscode INT NOT NULL, "
+                + "success INT NOT NULL, "
+                + "processingtimems REAL NOT NULL DEFAULT 0, "
+                + "requestbodylength INT NOT NULL DEFAULT 0, "
+                + "responsebodylength INT NOT NULL DEFAULT 0, "
+                + "requestbodytruncated INT NOT NULL DEFAULT 0, "
+                + "responsebodytruncated INT NOT NULL DEFAULT 0, "
+                + "requestcontenttype TEXT, "
+                + "responsecontenttype TEXT, "
+                + "requestheadersjson TEXT, "
+                + "requestbodyb64 TEXT, "
+                + "responseheadersjson TEXT, "
+                + "responsebodyb64 TEXT "
+                + ");");
+
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_requesthistory_guid' ON 'requesthistory' (guid ASC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_requesthistory_createdutc' ON 'requesthistory' (createdutc DESC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_requesthistory_tenantguid_createdutc' ON 'requesthistory' (tenantguid ASC, createdutc DESC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_requesthistory_method_createdutc' ON 'requesthistory' (method ASC, createdutc DESC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_requesthistory_statuscode_createdutc' ON 'requesthistory' (statuscode ASC, createdutc DESC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_requesthistory_success_createdutc' ON 'requesthistory' (success ASC, createdutc DESC);");
+
+            #endregion
+
             return sql.ToString();
         }
     }

@@ -39,6 +39,7 @@
         private Serializer _Serializer = null;
         private AuthenticationService _Authentication = null;
         private ServiceHandler _ServiceHandler = null;
+        private RequestHistoryService _RequestHistory = null;
 
         private Webserver _Webserver = null;
         private bool _Disposed = false;
@@ -60,7 +61,8 @@
             LiteGraphClient litegraph,
             Serializer serializer,
             AuthenticationService auth,
-            ServiceHandler service)
+            ServiceHandler service,
+            RequestHistoryService requestHistory)
         {
             _Settings = settings ?? throw new ArgumentNullException(nameof(settings));
             _Logging = logging ?? throw new ArgumentNullException(nameof(logging));
@@ -68,6 +70,7 @@
             _Serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
             _Authentication = auth ?? throw new ArgumentNullException(nameof(auth));
             _ServiceHandler = service ?? throw new ArgumentNullException(nameof(service));
+            _RequestHistory = requestHistory ?? throw new ArgumentNullException(nameof(requestHistory));
 
             _Webserver = new Webserver(_Settings.Rest, DefaultRoute);
             _Webserver.Routes.PreRouting = PreRoutingHandler;
@@ -109,6 +112,7 @@
                 openApi.Tags.Add(new OpenApiTag { Name = "Labels", Description = "Label management for graphs, nodes, and edges" });
                 openApi.Tags.Add(new OpenApiTag { Name = "Tags", Description = "Key-value tag management for graphs, nodes, and edges" });
                 openApi.Tags.Add(new OpenApiTag { Name = "Vectors", Description = "Vector embedding storage, search, and management" });
+                openApi.Tags.Add(new OpenApiTag { Name = "RequestHistory", Description = "HTTP request history capture, search, and retention" });
 
                 openApi.SecuritySchemes["BearerToken"] = new OpenApiSecurityScheme
                 {
@@ -424,6 +428,17 @@
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/routes", GetRoutesRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Find routes between nodes", "Routes"));
 
             #endregion
+
+            #region Request-History
+
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/requesthistory", RequestHistoryListRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("List request history", "RequestHistory"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/requesthistory/summary", RequestHistorySummaryRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Get request history summary", "RequestHistory"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/requesthistory/{requestGuid}", RequestHistoryReadRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read request history entry", "RequestHistory"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/requesthistory/{requestGuid}/detail", RequestHistoryDetailRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read request history detail", "RequestHistory"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/requesthistory/bulk", RequestHistoryDeleteManyRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Bulk delete request history", "RequestHistory"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/requesthistory/{requestGuid}", RequestHistoryDeleteRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete request history entry", "RequestHistory"));
+
+            #endregion
         }
 
         internal async Task OptionsHandler(HttpContextBase ctx)
@@ -582,6 +597,8 @@
 
         internal async Task PostRoutingHandler(HttpContextBase ctx)
         {
+            ctx.Timestamp.End = DateTime.UtcNow;
+
             string msg =
                 _Header
                 + ctx.Request.Method.ToString() + " " + ctx.Request.Url.RawWithQuery + " "
@@ -591,8 +608,78 @@
             if (ctx.Response.StatusCode > 299 && _Settings.Debug.Requests)
                 msg += Environment.NewLine + ctx.Response.DataAsString;
 
-            ctx.Timestamp.End = DateTime.UtcNow;
             _Logging.Debug(msg);
+
+            CaptureRequestHistory(ctx);
+            await Task.CompletedTask;
+        }
+
+        private void CaptureRequestHistory(HttpContextBase ctx)
+        {
+            try
+            {
+                if (_RequestHistory == null || !_Settings.RequestHistory.Enable) return;
+                string path = ctx.Request.Url.RawWithoutQuery;
+                if (_RequestHistory.ShouldSkip(path)) return;
+
+                RequestContext req = ctx.Metadata as RequestContext;
+
+                int statusCode = ctx.Response.StatusCode;
+                bool success = statusCode >= 100 && statusCode < 400;
+
+                byte[] reqBytes = ctx.Request.DataAsBytes;
+                long reqLen = reqBytes != null ? reqBytes.LongLength : 0L;
+                string reqBody = _RequestHistory.CaptureBody(reqBytes, _Settings.RequestHistory.MaxRequestBodyBytes, out bool reqTrunc);
+
+                string responseText = ctx.Response.DataAsString;
+                byte[] respBytes = string.IsNullOrEmpty(responseText) ? null : System.Text.Encoding.UTF8.GetBytes(responseText);
+                long respLen = respBytes != null ? respBytes.LongLength : 0L;
+                string respBody = _RequestHistory.CaptureBody(respBytes, _Settings.RequestHistory.MaxResponseBodyBytes, out bool respTrunc);
+
+                Guid? tenantGuid = null;
+                Guid? userGuid = null;
+                if (req != null)
+                {
+                    if (req.Authentication != null)
+                    {
+                        tenantGuid = req.Authentication.TenantGUID;
+                        userGuid = req.Authentication.UserGUID;
+                    }
+                    if (tenantGuid == null) tenantGuid = req.TenantGUID;
+                }
+
+                RequestHistoryDetail detail = new RequestHistoryDetail
+                {
+                    GUID = req?.RequestGuid ?? Guid.NewGuid(),
+                    CreatedUtc = ctx.Timestamp.Start,
+                    CompletedUtc = ctx.Timestamp.End,
+                    Method = ctx.Request.Method.ToString(),
+                    Path = path,
+                    Url = ctx.Request.Url.RawWithQuery,
+                    SourceIp = ctx.Request.Source?.IpAddress,
+                    TenantGUID = tenantGuid,
+                    UserGUID = userGuid,
+                    StatusCode = statusCode,
+                    Success = success,
+                    ProcessingTimeMs = ctx.Timestamp.TotalMs ?? 0,
+                    RequestBodyLength = reqLen,
+                    ResponseBodyLength = respLen,
+                    RequestBodyTruncated = reqTrunc,
+                    ResponseBodyTruncated = respTrunc,
+                    RequestContentType = ctx.Request.ContentType,
+                    ResponseContentType = ctx.Response.ContentType,
+                    RequestHeaders = _RequestHistory.RedactHeaders(ctx.Request.Headers),
+                    ResponseHeaders = _RequestHistory.RedactHeaders(ctx.Response.Headers),
+                    RequestBody = reqBody,
+                    ResponseBody = respBody
+                };
+
+                _RequestHistory.Capture(detail);
+            }
+            catch (Exception e)
+            {
+                _Logging.Warn(_Header + "request history capture error: " + e.Message);
+            }
         }
 
         internal async Task ExceptionHandler(HttpContextBase @base, Exception exception)
@@ -2449,6 +2536,165 @@
                 IncludeSubordinates = req.IncludeSubordinates,
                 ContinuationToken = (!String.IsNullOrEmpty(req.ContinuationToken) ? Guid.Parse(req.ContinuationToken) : null)
             };
+        }
+
+        #endregion
+
+        #region Request-History-Routes
+
+        private Guid? TenantScopeForRequestHistory(RequestContext req, NameValueCollection query)
+        {
+            if (req.Authentication.IsAdmin)
+            {
+                string q = query?["tenantGuid"];
+                if (!string.IsNullOrEmpty(q) && Guid.TryParse(q, out Guid tg)) return tg;
+                return null;
+            }
+            return req.Authentication.TenantGUID;
+        }
+
+        private RequestHistorySearchRequest BuildRequestHistorySearch(RequestContext req)
+        {
+            NameValueCollection q = req.Query;
+            RequestHistorySearchRequest search = new RequestHistorySearchRequest();
+
+            search.TenantGUID = TenantScopeForRequestHistory(req, q);
+
+            if (!string.IsNullOrEmpty(q?["method"])) search.Method = q["method"];
+            if (!string.IsNullOrEmpty(q?["path"])) search.Path = q["path"];
+            if (!string.IsNullOrEmpty(q?["sourceIp"])) search.SourceIp = q["sourceIp"];
+            if (!string.IsNullOrEmpty(q?["statusCode"]) && int.TryParse(q["statusCode"], out int sc)) search.StatusCode = sc;
+            if (!string.IsNullOrEmpty(q?["fromUtc"]) && DateTime.TryParse(q["fromUtc"], null, System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal, out DateTime from))
+                search.FromUtc = from;
+            if (!string.IsNullOrEmpty(q?["toUtc"]) && DateTime.TryParse(q["toUtc"], null, System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal, out DateTime to))
+                search.ToUtc = to;
+            if (!string.IsNullOrEmpty(q?["page"]) && int.TryParse(q["page"], out int page) && page >= 0) search.Page = page;
+            if (!string.IsNullOrEmpty(q?["pageSize"]) && int.TryParse(q["pageSize"], out int pageSize) && pageSize >= 1 && pageSize <= 1000) search.PageSize = pageSize;
+
+            return search;
+        }
+
+        private async Task RequestHistoryListRoute(HttpContextBase ctx)
+        {
+            RequestContext req = (RequestContext)ctx.Metadata;
+            RequestHistorySearchRequest search = BuildRequestHistorySearch(req);
+            RequestHistorySearchResult result = await _LiteGraph.RequestHistory.Search(search, CancellationToken.None).ConfigureAwait(false);
+            ctx.Response.StatusCode = 200;
+            await ctx.Response.Send(_Serializer.SerializeJson(result, true));
+        }
+
+        private async Task RequestHistorySummaryRoute(HttpContextBase ctx)
+        {
+            RequestContext req = (RequestContext)ctx.Metadata;
+            NameValueCollection q = req.Query;
+
+            string interval = q?["interval"];
+            if (string.IsNullOrEmpty(interval)) interval = "hour";
+
+            DateTime end = DateTime.UtcNow;
+            DateTime start = end.AddDays(-1);
+            if (!string.IsNullOrEmpty(q?["startUtc"]) && DateTime.TryParse(q["startUtc"], null, System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal, out DateTime s)) start = s;
+            if (!string.IsNullOrEmpty(q?["endUtc"]) && DateTime.TryParse(q["endUtc"], null, System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal, out DateTime e)) end = e;
+
+            Guid? tenantGuid = TenantScopeForRequestHistory(req, q);
+
+            RequestHistorySummary summary = await _LiteGraph.RequestHistory.GetSummary(tenantGuid, interval, start, end, CancellationToken.None).ConfigureAwait(false);
+            ctx.Response.StatusCode = 200;
+            await ctx.Response.Send(_Serializer.SerializeJson(summary, true));
+        }
+
+        private async Task RequestHistoryReadRoute(HttpContextBase ctx)
+        {
+            RequestContext req = (RequestContext)ctx.Metadata;
+            Guid id = ParseRequestHistoryGuid(req);
+            RequestHistoryEntry entry = await _LiteGraph.RequestHistory.ReadByGuid(id, CancellationToken.None).ConfigureAwait(false);
+            if (entry == null)
+            {
+                ctx.Response.StatusCode = 404;
+                await ctx.Response.Send(_Serializer.SerializeJson(new ApiErrorResponse(ApiErrorEnum.NotFound), true));
+                return;
+            }
+            if (!CanViewRequestHistoryRow(req, entry.TenantGUID))
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.Send(_Serializer.SerializeJson(new ApiErrorResponse(ApiErrorEnum.AuthorizationFailed), true));
+                return;
+            }
+            ctx.Response.StatusCode = 200;
+            await ctx.Response.Send(_Serializer.SerializeJson(entry, true));
+        }
+
+        private async Task RequestHistoryDetailRoute(HttpContextBase ctx)
+        {
+            RequestContext req = (RequestContext)ctx.Metadata;
+            Guid id = ParseRequestHistoryGuid(req);
+            RequestHistoryDetail detail = await _LiteGraph.RequestHistory.ReadDetailByGuid(id, CancellationToken.None).ConfigureAwait(false);
+            if (detail == null)
+            {
+                ctx.Response.StatusCode = 404;
+                await ctx.Response.Send(_Serializer.SerializeJson(new ApiErrorResponse(ApiErrorEnum.NotFound), true));
+                return;
+            }
+            if (!CanViewRequestHistoryRow(req, detail.TenantGUID))
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.Send(_Serializer.SerializeJson(new ApiErrorResponse(ApiErrorEnum.AuthorizationFailed), true));
+                return;
+            }
+            ctx.Response.StatusCode = 200;
+            await ctx.Response.Send(_Serializer.SerializeJson(detail, true));
+        }
+
+        private async Task RequestHistoryDeleteRoute(HttpContextBase ctx)
+        {
+            RequestContext req = (RequestContext)ctx.Metadata;
+            Guid id = ParseRequestHistoryGuid(req);
+            RequestHistoryEntry entry = await _LiteGraph.RequestHistory.ReadByGuid(id, CancellationToken.None).ConfigureAwait(false);
+            if (entry == null)
+            {
+                ctx.Response.StatusCode = 404;
+                await ctx.Response.Send(_Serializer.SerializeJson(new ApiErrorResponse(ApiErrorEnum.NotFound), true));
+                return;
+            }
+            if (!CanViewRequestHistoryRow(req, entry.TenantGUID))
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.Send(_Serializer.SerializeJson(new ApiErrorResponse(ApiErrorEnum.AuthorizationFailed), true));
+                return;
+            }
+            await _LiteGraph.RequestHistory.DeleteByGuid(id, CancellationToken.None).ConfigureAwait(false);
+            ctx.Response.StatusCode = 204;
+            await ctx.Response.Send();
+        }
+
+        private async Task RequestHistoryDeleteManyRoute(HttpContextBase ctx)
+        {
+            RequestContext req = (RequestContext)ctx.Metadata;
+            RequestHistorySearchRequest search = BuildRequestHistorySearch(req);
+
+            // Non-admins can only bulk-delete within their own tenant scope.
+            if (!req.Authentication.IsAdmin)
+            {
+                search.TenantGUID = req.Authentication.TenantGUID;
+            }
+
+            int deleted = await _LiteGraph.RequestHistory.DeleteMany(search, CancellationToken.None).ConfigureAwait(false);
+            ctx.Response.StatusCode = 200;
+            await ctx.Response.Send(_Serializer.SerializeJson(new { Deleted = deleted }, true));
+        }
+
+        private Guid ParseRequestHistoryGuid(RequestContext req)
+        {
+            string val = req.Http?.Request?.Url?.Parameters?.Get("requestGuid");
+            if (string.IsNullOrEmpty(val)) throw new ArgumentException("requestGuid parameter is required");
+            return Guid.Parse(val);
+        }
+
+        private bool CanViewRequestHistoryRow(RequestContext req, Guid? rowTenant)
+        {
+            if (req.Authentication.IsAdmin) return true;
+            if (rowTenant == null) return false;
+            return rowTenant.Value == req.Authentication.TenantGUID.GetValueOrDefault();
         }
 
         #endregion

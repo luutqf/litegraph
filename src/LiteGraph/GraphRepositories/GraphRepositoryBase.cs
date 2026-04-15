@@ -113,6 +113,11 @@
         /// </summary>
         public abstract IVectorIndexMethods VectorIndex { get; }
 
+        /// <summary>
+        /// Request history methods.
+        /// </summary>
+        public abstract IRequestHistoryMethods RequestHistory { get; }
+
         #endregion
 
         #region Private-Members

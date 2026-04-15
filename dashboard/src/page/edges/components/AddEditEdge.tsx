@@ -4,7 +4,7 @@ import LitegraphModal from '@/components/base/modal/Modal';
 import LitegraphFormItem from '@/components/base/form/FormItem';
 import { Dispatch, SetStateAction, useEffect, useState } from 'react';
 import LitegraphInput from '@/components/base/input/Input';
-import { JsonEditor } from 'jsoneditor-react';
+import DataJsonEditor from '@/components/inputs/data-json-editor/DataJsonEditor';
 import { v4 } from 'uuid';
 import { validationRules } from './constant';
 import { EdgeType } from '@/types/types';
@@ -468,18 +468,7 @@ const AddEditEdge = ({
               </LitegraphFlex>
             }
           >
-            <JsonEditor
-              key={uniqueKey}
-              value={form.getFieldValue('data') || {}}
-              onChange={(json: any) => form.setFieldsValue({ data: json })}
-              mode={readonly ? 'view' : 'code'}
-              enableSort={false}
-              enableTransform={false}
-              mainMenuBar={!readonly} // Hide the menu bar
-              statusBar={!readonly} // Hide the status bar
-              navigationBar={!readonly} // Hide the navigation bar
-              data-testid="edge-data-input"
-            />
+            <DataJsonEditor uniqueKey={uniqueKey} readonly={readonly} />
           </LitegraphFormItem>
         </Form>
       )}

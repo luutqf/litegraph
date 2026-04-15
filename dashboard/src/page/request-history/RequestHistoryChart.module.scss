@@ -1,0 +1,167 @@
+.wrapper {
+  background: var(--ant-color-bg-container);
+  border: 1px solid var(--ant-color-border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.headerTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ant-color-text);
+}
+
+.timeTabs {
+  display: flex;
+  border: 1px solid var(--ant-color-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.timeTab {
+  padding: 6px 12px;
+  font-size: 13px;
+  background: var(--ant-color-bg-container);
+  color: var(--ant-color-text-secondary);
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+
+  &:not(:last-child) {
+    border-right: 1px solid var(--ant-color-border);
+  }
+
+  &:hover {
+    background: var(--ant-color-fill-tertiary);
+  }
+}
+
+.timeTabActive {
+  background: var(--ant-color-primary) !important;
+  color: #ffffff !important;
+}
+
+.statsRow {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 96px;
+}
+
+.statLabel {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--ant-color-text-secondary);
+}
+
+.statValue {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--ant-color-text);
+}
+
+.statValueSuccess {
+  color: var(--ant-color-primary);
+}
+
+.statValueFailure {
+  color: #ef4444;
+}
+
+.chartArea {
+  position: relative;
+  width: 100%;
+}
+
+.chartSvg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.tooltip {
+  position: absolute;
+  top: 0;
+  transform: translate(-50%, -100%);
+  background: var(--ant-color-bg-elevated);
+  border: 1px solid var(--ant-color-border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  pointer-events: none;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  white-space: nowrap;
+  color: var(--ant-color-text);
+}
+
+.tooltipTitle {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.tooltipSuccess {
+  color: var(--ant-color-primary);
+}
+
+.tooltipFailure {
+  color: #ef4444;
+}
+
+.legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--ant-color-text-secondary);
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legendSwatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.refreshBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: var(--ant-color-bg-container);
+  border: 1px solid var(--ant-color-border);
+  color: var(--ant-color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: var(--ant-color-fill-tertiary);
+    color: var(--ant-color-text);
+  }
+}

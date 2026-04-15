@@ -127,6 +127,22 @@
             }
         }
 
+        /// <summary>
+        /// Request history settings.
+        /// </summary>
+        public RequestHistorySettings RequestHistory
+        {
+            get
+            {
+                return _RequestHistory;
+            }
+            set
+            {
+                if (value == null) throw new ArgumentNullException(nameof(RequestHistory));
+                _RequestHistory = value;
+            }
+        }
+
         #endregion
 
         #region Private-Members
@@ -138,6 +154,7 @@
         private EncryptionSettings _Encryption = new EncryptionSettings();
         private StorageSettings _Storage = new StorageSettings();
         private DebugSettings _Debug = new DebugSettings();
+        private RequestHistorySettings _RequestHistory = new RequestHistorySettings();
 
         #endregion
 

@@ -11,6 +11,8 @@ import {
   RadarChartOutlined,
   LockOutlined,
   SaveOutlined,
+  HistoryOutlined,
+  ApiOutlined,
 } from '@ant-design/icons';
 import { MenuItemProps } from '@/components/menu-item/types';
 
@@ -65,6 +67,20 @@ export const tenantDashboardRoutes: MenuItemProps[] = [
     title: 'Manage vector embeddings',
     path: paths.vectors,
   },
+  {
+    key: '/request-history',
+    icon: <HistoryOutlined />,
+    label: 'Requests',
+    title: 'HTTP request history',
+    path: paths.requestHistory,
+  },
+  {
+    key: '/api-explorer',
+    icon: <ApiOutlined />,
+    label: 'API Explorer',
+    title: 'Explore and invoke API endpoints',
+    path: paths.apiExplorer,
+  },
 ];
 
 export const adminDashboardRoutes: MenuItemProps[] = [
@@ -95,5 +111,19 @@ export const adminDashboardRoutes: MenuItemProps[] = [
     label: 'Backups',
     title: 'Manage database backups',
     path: paths.backups,
+  },
+  {
+    key: '/request-history',
+    icon: <HistoryOutlined />,
+    label: 'Requests',
+    title: 'HTTP request history (all tenants)',
+    path: paths.adminRequestHistory,
+  },
+  {
+    key: '/api-explorer',
+    icon: <ApiOutlined />,
+    label: 'API Explorer',
+    title: 'Explore and invoke API endpoints',
+    path: paths.adminApiExplorer,
   },
 ];

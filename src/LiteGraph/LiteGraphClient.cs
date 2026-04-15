@@ -125,6 +125,17 @@
         /// <inheritdoc />
         public IVectorIndexMethods VectorIndex { get; }
 
+        /// <summary>
+        /// Request history methods.
+        /// </summary>
+        public LiteGraph.GraphRepositories.Interfaces.IRequestHistoryMethods RequestHistory
+        {
+            get
+            {
+                return _Repo?.RequestHistory;
+            }
+        }
+
         #endregion
 
         #region Private-Members
