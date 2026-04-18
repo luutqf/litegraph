@@ -234,17 +234,8 @@ describe('CredentialsPage', () => {
     expect(container.querySelector('.ant-table-tbody')).toBeInTheDocument();
   });
 
-  it('should handle pagination correctly', async () => {
+  it('should render the table pagination controls', async () => {
     const initialState = createMockInitialState();
-
-    // Mock data with enough records to trigger pagination
-    // Assuming default page size is 10, we'll mock 25 records
-    const mockCredentialsWithPagination = Array.from({ length: 25 }, (_, i) => ({
-      ...mockCredentialData[0],
-      GUID: `credential-guid-${i}`,
-      Name: `Test Credential ${i + 1}`,
-      UserGUID: mockUserData[0].GUID,
-    }));
 
     renderWithRedux(<CredentialPage />, initialState, undefined, true);
 
@@ -258,26 +249,20 @@ describe('CredentialsPage', () => {
       expect(table).toBeInTheDocument();
     });
 
-    // Check if pagination controls are present
-    await waitFor(
-      () => {
-        const pagination = document.querySelector('.ant-pagination');
-        expect(pagination).toBeInTheDocument();
-      },
-      { timeout: 5000 }
-    );
-
-    // Check for pagination items (page numbers)
-    const paginationItems = document.querySelectorAll('.ant-pagination-item');
-    expect(paginationItems.length).toBeGreaterThan(0);
-
-    // Check if next button exists
-    const nextButton = document.querySelector('.ant-pagination-next');
-    expect(nextButton).toBeInTheDocument();
-
-    // Check if previous button exists
-    const prevButton = document.querySelector('.ant-pagination-prev');
-    expect(prevButton).toBeInTheDocument();
+    expect(screen.getByTestId('litegraph-table-pagination-bar')).toBeInTheDocument();
+    expect(screen.getByTestId('litegraph-table-refresh')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('litegraph-table-total-records')).toHaveTextContent(
+        'Total records: 2'
+      );
+      expect(screen.getByTestId('litegraph-table-total-pages')).toHaveTextContent('Total pages: 1');
+    });
+    expect(screen.getByTestId('litegraph-table-first-page')).toBeInTheDocument();
+    expect(screen.getByTestId('litegraph-table-previous-page')).toBeInTheDocument();
+    expect(screen.getByTestId('litegraph-table-page-jump')).toBeInTheDocument();
+    expect(screen.getByTestId('litegraph-table-next-page')).toBeInTheDocument();
+    expect(screen.getByTestId('litegraph-table-last-page')).toBeInTheDocument();
+    expect(screen.getByTestId('litegraph-table-page-size')).toBeInTheDocument();
   });
 
   it('should handle user data loading for credentials mapping', async () => {

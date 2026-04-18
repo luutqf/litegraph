@@ -1,4 +1,4 @@
-﻿namespace LiteGraph.Server
+namespace LiteGraph.Server
 {
     using System;
     using System.Collections.Generic;
@@ -7,7 +7,6 @@
     using System.Threading;
     using System.Threading.Tasks;
     using LiteGraph.GraphRepositories;
-    using LiteGraph.GraphRepositories.Sqlite;
     using LiteGraph.Serialization;
     using LiteGraph.Server.API.Agnostic;
     using LiteGraph.Server.API.REST;
@@ -40,6 +39,7 @@
         private static ServiceHandler _ServiceHandler = null;
         private static AuthenticationService _AuthenticationService = null;
         private static RequestHistoryService _RequestHistoryService = null;
+        private static ObservabilityService _ObservabilityService = null;
         private static RestServiceHandler _RestService = null;
 
         private static CancellationTokenSource _TokenSource = new CancellationTokenSource();
@@ -173,6 +173,12 @@
                 _RequestHistoryService = null;
             });
 
+            TryCleanup("observability service", () =>
+            {
+                _ObservabilityService?.Dispose();
+                _ObservabilityService = null;
+            });
+
             await TryCleanupAsync("authentication service", async () =>
             {
                 await DisposeIfNeededAsync(_AuthenticationService).ConfigureAwait(false);
@@ -276,6 +282,141 @@
             }
         }
 
+        private static void ApplyDatabaseEnvironmentVariables()
+        {
+            string dbType = Environment.GetEnvironmentVariable(Constants.DatabaseTypeEnvironmentVariable);
+            if (!String.IsNullOrEmpty(dbType))
+            {
+                if (Enum.TryParse<LiteGraph.DatabaseTypeEnum>(dbType, true, out LiteGraph.DatabaseTypeEnum parsed))
+                {
+                    _Settings.LiteGraph.Database.Type = parsed;
+                }
+                else
+                {
+                    Console.WriteLine("Invalid database type detected in environment variable " + Constants.DatabaseTypeEnvironmentVariable);
+                }
+            }
+
+            string dbFilename = Environment.GetEnvironmentVariable(Constants.DatabaseFilenameEnvironmentVariable);
+            if (String.IsNullOrEmpty(dbFilename))
+                dbFilename = Environment.GetEnvironmentVariable(Constants.DatabaseFilenameEnvironmentVariableAlternate);
+            if (!String.IsNullOrEmpty(dbFilename)) _Settings.LiteGraph.GraphRepositoryFilename = dbFilename;
+
+            string dbHostname = Environment.GetEnvironmentVariable(Constants.DatabaseHostnameEnvironmentVariable);
+            if (!String.IsNullOrEmpty(dbHostname)) _Settings.LiteGraph.Database.Hostname = dbHostname;
+
+            string dbPort = Environment.GetEnvironmentVariable(Constants.DatabasePortEnvironmentVariable);
+            if (!String.IsNullOrEmpty(dbPort))
+            {
+                if (Int32.TryParse(dbPort, out int parsedPort) && parsedPort >= 0 && parsedPort <= 65535)
+                    _Settings.LiteGraph.Database.Port = parsedPort;
+                else
+                    Console.WriteLine("Invalid database port detected in environment variable " + Constants.DatabasePortEnvironmentVariable);
+            }
+
+            string dbName = Environment.GetEnvironmentVariable(Constants.DatabaseNameEnvironmentVariable);
+            if (!String.IsNullOrEmpty(dbName)) _Settings.LiteGraph.Database.DatabaseName = dbName;
+
+            string dbUsername = Environment.GetEnvironmentVariable(Constants.DatabaseUsernameEnvironmentVariable);
+            if (!String.IsNullOrEmpty(dbUsername)) _Settings.LiteGraph.Database.Username = dbUsername;
+
+            string dbPassword = Environment.GetEnvironmentVariable(Constants.DatabasePasswordEnvironmentVariable);
+            if (!String.IsNullOrEmpty(dbPassword)) _Settings.LiteGraph.Database.Password = dbPassword;
+
+            string dbSchema = Environment.GetEnvironmentVariable(Constants.DatabaseSchemaEnvironmentVariable);
+            if (!String.IsNullOrEmpty(dbSchema)) _Settings.LiteGraph.Database.Schema = dbSchema;
+
+            string dbConnectionString = Environment.GetEnvironmentVariable(Constants.DatabaseConnectionStringEnvironmentVariable);
+            if (!String.IsNullOrEmpty(dbConnectionString)) _Settings.LiteGraph.Database.ConnectionString = dbConnectionString;
+
+            string dbMaxConnections = Environment.GetEnvironmentVariable(Constants.DatabaseMaxConnectionsEnvironmentVariable);
+            if (!String.IsNullOrEmpty(dbMaxConnections))
+            {
+                if (Int32.TryParse(dbMaxConnections, out int parsedMaxConnections) && parsedMaxConnections > 0)
+                    _Settings.LiteGraph.Database.MaxConnections = parsedMaxConnections;
+                else
+                    Console.WriteLine("Invalid database max connections detected in environment variable " + Constants.DatabaseMaxConnectionsEnvironmentVariable);
+            }
+
+            string dbCommandTimeout = Environment.GetEnvironmentVariable(Constants.DatabaseCommandTimeoutEnvironmentVariable);
+            if (!String.IsNullOrEmpty(dbCommandTimeout))
+            {
+                if (Int32.TryParse(dbCommandTimeout, out int parsedCommandTimeout) && parsedCommandTimeout > 0)
+                    _Settings.LiteGraph.Database.CommandTimeoutSeconds = parsedCommandTimeout;
+                else
+                    Console.WriteLine("Invalid database command timeout detected in environment variable " + Constants.DatabaseCommandTimeoutEnvironmentVariable);
+            }
+        }
+
+        private static void ApplyObservabilityEnvironmentVariables()
+        {
+            string serviceName = Environment.GetEnvironmentVariable(Constants.OTelServiceNameEnvironmentVariable);
+            if (!String.IsNullOrEmpty(serviceName)) _Settings.Observability.ServiceName = serviceName;
+
+            string enableOtlp = Environment.GetEnvironmentVariable(Constants.OtlpExporterEnableEnvironmentVariable);
+            if (!String.IsNullOrEmpty(enableOtlp))
+            {
+                if (TryParseBoolean(enableOtlp, out bool enabled))
+                    _Settings.Observability.EnableOtlpExporter = enabled;
+                else
+                    Console.WriteLine("Invalid OTLP exporter enable value detected in environment variable " + Constants.OtlpExporterEnableEnvironmentVariable);
+            }
+
+            string endpoint = Environment.GetEnvironmentVariable(Constants.OtlpEndpointEnvironmentVariable);
+            if (String.IsNullOrEmpty(endpoint))
+                endpoint = Environment.GetEnvironmentVariable(Constants.OTelOtlpEndpointEnvironmentVariable);
+            if (!String.IsNullOrEmpty(endpoint)) _Settings.Observability.OtlpEndpoint = endpoint;
+
+            string protocol = Environment.GetEnvironmentVariable(Constants.OtlpProtocolEnvironmentVariable);
+            if (String.IsNullOrEmpty(protocol))
+                protocol = Environment.GetEnvironmentVariable(Constants.OTelOtlpProtocolEnvironmentVariable);
+            if (!String.IsNullOrEmpty(protocol)) _Settings.Observability.OtlpProtocol = protocol;
+
+            string headers = Environment.GetEnvironmentVariable(Constants.OtlpHeadersEnvironmentVariable);
+            if (String.IsNullOrEmpty(headers))
+                headers = Environment.GetEnvironmentVariable(Constants.OTelOtlpHeadersEnvironmentVariable);
+            if (!String.IsNullOrEmpty(headers)) _Settings.Observability.OtlpHeaders = headers;
+
+            string timeout = Environment.GetEnvironmentVariable(Constants.OtlpTimeoutEnvironmentVariable);
+            if (String.IsNullOrEmpty(timeout))
+                timeout = Environment.GetEnvironmentVariable(Constants.OTelOtlpTimeoutEnvironmentVariable);
+            if (!String.IsNullOrEmpty(timeout))
+            {
+                if (Int32.TryParse(timeout, out int parsedTimeout) && parsedTimeout > 0)
+                    _Settings.Observability.OtlpTimeoutMilliseconds = parsedTimeout;
+                else
+                    Console.WriteLine("Invalid OTLP timeout detected in environment variable " + Constants.OtlpTimeoutEnvironmentVariable);
+            }
+        }
+
+        private static bool TryParseBoolean(string value, out bool parsed)
+        {
+            parsed = false;
+            if (String.IsNullOrWhiteSpace(value)) return false;
+
+            string normalized = value.Trim();
+            if (Boolean.TryParse(normalized, out parsed)) return true;
+            if (String.Equals(normalized, "1", StringComparison.Ordinal)
+                || String.Equals(normalized, "yes", StringComparison.OrdinalIgnoreCase)
+                || String.Equals(normalized, "y", StringComparison.OrdinalIgnoreCase)
+                || String.Equals(normalized, "on", StringComparison.OrdinalIgnoreCase))
+            {
+                parsed = true;
+                return true;
+            }
+
+            if (String.Equals(normalized, "0", StringComparison.Ordinal)
+                || String.Equals(normalized, "no", StringComparison.OrdinalIgnoreCase)
+                || String.Equals(normalized, "n", StringComparison.OrdinalIgnoreCase)
+                || String.Equals(normalized, "off", StringComparison.OrdinalIgnoreCase))
+            {
+                parsed = false;
+                return true;
+            }
+
+            return false;
+        }
+
         private static async Task InitializeGlobals()
         {
             #region General-and-Environment
@@ -295,8 +436,17 @@
                 }
             }
 
-            string dbFilename = Environment.GetEnvironmentVariable(Constants.DatabaseFilenameEnvironmentVariable);
-            if (!String.IsNullOrEmpty(dbFilename)) _Settings.LiteGraph.GraphRepositoryFilename = dbFilename;
+            string requestTimeoutStr = Environment.GetEnvironmentVariable(Constants.RequestTimeoutEnvironmentVariable);
+            if (!String.IsNullOrEmpty(requestTimeoutStr))
+            {
+                if (Int32.TryParse(requestTimeoutStr, out int requestTimeout) && requestTimeout > 0)
+                    _Settings.RequestTimeoutSeconds = requestTimeout;
+                else
+                    Console.WriteLine("Invalid request timeout detected in environment variable " + Constants.RequestTimeoutEnvironmentVariable);
+            }
+
+            ApplyDatabaseEnvironmentVariables();
+            ApplyObservabilityEnvironmentVariables();
 
             #endregion
 
@@ -345,7 +495,8 @@
 
             #region Repositories
 
-            _Repo = new SqliteGraphRepository(_Settings.LiteGraph.GraphRepositoryFilename);
+            _Logging.Info(_Header + "initializing graph repository: " + _Settings.LiteGraph.Database.ToSafeString());
+            _Repo = GraphRepositoryFactory.Create(_Settings.LiteGraph.Database);
             _Repo.InitializeRepository();
 
             #endregion
@@ -389,6 +540,15 @@
                 _Logging,
                 _Repo);
 
+            _ObservabilityService = new ObservabilityService(_Settings.Observability);
+            _ObservabilityService.RecordStorageBackend(
+                _Settings.LiteGraph.Database.Type.ToString(),
+                _Settings.LiteGraph.Database.Type == DatabaseTypeEnum.Postgresql);
+            _ObservabilityService.RecordStorageConnectionPool(
+                _Settings.LiteGraph.Database.Type.ToString(),
+                _Settings.LiteGraph.Database.MaxConnections,
+                _Settings.LiteGraph.Database.CommandTimeoutSeconds);
+
             _RestService = new RestServiceHandler(
                 _Settings,
                 _Logging,
@@ -396,7 +556,8 @@
                 _Serializer,
                 _AuthenticationService,
                 _ServiceHandler,
-                _RequestHistoryService);
+                _RequestHistoryService,
+                _ObservabilityService);
 
             #endregion
         }
@@ -433,7 +594,7 @@
         {
             #region Metadata-Records
 
-            Console.WriteLine("Creating default records in database " + _Settings.LiteGraph.GraphRepositoryFilename);
+            Console.WriteLine("Creating default records in database " + _Settings.LiteGraph.Database.ToSafeString());
 
             TenantMetadata tenant = new TenantMetadata
             {
@@ -464,7 +625,7 @@
             if (!await _Repo.User.ExistsByGuid(tenant.GUID, user.GUID, CancellationToken.None).ConfigureAwait(false))
             {
                 user = await _Repo.User.Create(user, CancellationToken.None).ConfigureAwait(false);
-                Console.WriteLine("| Created user       : " + user.GUID + " email: " + user.Email + " pass: " + user.Password);
+                Console.WriteLine("| Created user       : " + user.GUID + " email: " + user.Email + " pass: " + OperationalLogRedactor.RedactValue(user.Password));
             }
 
             Credential cred = new Credential
@@ -481,7 +642,7 @@
             if (!await _Repo.Credential.ExistsByGuid(cred.TenantGUID, cred.GUID, CancellationToken.None).ConfigureAwait(false))
             {
                 cred = await _Repo.Credential.Create(cred, CancellationToken.None).ConfigureAwait(false);
-                Console.WriteLine("| Created credential : " + cred.GUID + " bearer token: " + cred.BearerToken);
+                Console.WriteLine("| Created credential : " + cred.GUID + " bearer token: " + OperationalLogRedactor.RedactValue(cred.BearerToken));
             }
 
             Graph graph = new Graph

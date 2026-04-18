@@ -44,8 +44,8 @@
         /// <param name="token">Cancellation token.</param>
         /// <returns>Nodes.</returns>
         IAsyncEnumerable<Node> ReadAllInTenant(
-            Guid tenantGuid, 
-            EnumerationOrderEnum order = EnumerationOrderEnum.CreatedDescending, 
+            Guid tenantGuid,
+            EnumerationOrderEnum order = EnumerationOrderEnum.CreatedDescending,
             int skip = 0,
             bool includeData = false,
             bool includeSubordinates = false,
@@ -80,9 +80,9 @@
         /// <param name="labels">Labels.</param>
         /// <param name="tags">Tags.</param>
         /// <param name="nodeFilter">
-        /// Node filter expression for Data JSON body.  
-        /// Expression left terms must follow the form of Sqlite JSON paths.
-        /// For example, to retrieve the 'Name' property, use '$.Name', OperatorEnum.Equals, '[name here]'.</param>
+        /// Node filter expression for Data JSON body.
+        /// Expression left terms use LiteGraph JSON data paths relative to the Data object.
+        /// For example, to retrieve the 'Name' property, use 'Name', OperatorEnum.Equals, '[name here]'.</param>
         /// <param name="order">Enumeration order.</param>
         /// <param name="includeData">Boolean indicating whether the object's data property should be included.</param>
         /// <param name="includeSubordinates">Boolean indicating whether the object's subordinate properties (labels, tags, vectors) should be included.</param>
@@ -109,9 +109,9 @@
         /// <param name="labels">Labels.</param>
         /// <param name="tags">Tags.</param>
         /// <param name="nodeFilter">
-        /// Node filter expression for Data JSON body.  
-        /// Expression left terms must follow the form of Sqlite JSON paths.
-        /// For example, to retrieve the 'Name' property, use '$.Name', OperatorEnum.Equals, '[name here]'.</param>
+        /// Node filter expression for Data JSON body.
+        /// Expression left terms use LiteGraph JSON data paths relative to the Data object.
+        /// For example, to retrieve the 'Name' property, use 'Name', OperatorEnum.Equals, '[name here]'.</param>
         /// <param name="order">Enumeration order.</param>
         /// <param name="skip">The number of records to skip.</param>
         /// <param name="includeData">Boolean indicating whether the object's data property should be included.</param>
@@ -139,9 +139,9 @@
         /// <param name="labels">Labels.</param>
         /// <param name="tags">Tags.</param>
         /// <param name="nodeFilter">
-        /// Node filter expression for Data JSON body.  
-        /// Expression left terms must follow the form of Sqlite JSON paths.
-        /// For example, to retrieve the 'Name' property, use '$.Name', OperatorEnum.Equals, '[name here]'.</param>
+        /// Node filter expression for Data JSON body.
+        /// Expression left terms use LiteGraph JSON data paths relative to the Data object.
+        /// For example, to retrieve the 'Name' property, use 'Name', OperatorEnum.Equals, '[name here]'.</param>
         /// <param name="skip">The number of records to skip.</param>
         /// <param name="includeData">Boolean indicating whether the object's data property should be included.</param>
         /// <param name="includeSubordinates">Boolean indicating whether the object's subordinate properties (labels, tags, vectors) should be included.</param>
@@ -166,9 +166,9 @@
         /// <param name="labels">Labels.</param>
         /// <param name="tags">Tags.</param>
         /// <param name="nodeFilter">
-        /// Node filter expression for Data JSON body.  
-        /// Expression left terms must follow the form of Sqlite JSON paths.
-        /// For example, to retrieve the 'Name' property, use '$.Name', OperatorEnum.Equals, '[name here]'.</param>
+        /// Node filter expression for Data JSON body.
+        /// Expression left terms use LiteGraph JSON data paths relative to the Data object.
+        /// For example, to retrieve the 'Name' property, use 'Name', OperatorEnum.Equals, '[name here]'.</param>
         /// <param name="skip">The number of records to skip.</param>
         /// <param name="includeData">Boolean indicating whether the object's data property should be included.</param>
         /// <param name="includeSubordinates">Boolean indicating whether the object's subordinate properties (labels, tags, vectors) should be included.</param>
@@ -196,8 +196,8 @@
         /// <param name="token">Cancellation token.</param>
         /// <returns>Node.</returns>
         Task<Node> ReadByGuid(
-            Guid tenantGuid, 
-            Guid graphGuid, 
+            Guid tenantGuid,
+            Guid graphGuid,
             Guid nodeGuid,
             bool includeData = false,
             bool includeSubordinates = false,
@@ -213,7 +213,7 @@
         /// <param name="token">Cancellation token.</param>
         /// <returns>Nodes.</returns>
         IAsyncEnumerable<Node> ReadByGuids(
-            Guid tenantGuid, 
+            Guid tenantGuid,
             List<Guid> guids,
             bool includeData = false,
             bool includeSubordinates = false,
@@ -341,12 +341,12 @@
         /// <param name="toNodeGuid">To node GUID.</param>
         /// <param name="edgeFilter">
         /// Edge filter expression for Data JSON body.
-        /// Expression left terms must follow the form of Sqlite JSON paths.
-        /// For example, to retrieve the 'Name' property, use '$.Name', OperatorEnum.Equals, '[name here]'.</param>
+        /// Expression left terms use LiteGraph JSON data paths relative to the Data object.
+        /// For example, to retrieve the 'Name' property, use 'Name', OperatorEnum.Equals, '[name here]'.</param>
         /// <param name="nodeFilter">
         /// Node filter expression for Data JSON body.
-        /// Expression left terms must follow the form of Sqlite JSON paths.
-        /// For example, to retrieve the 'Name' property, use '$.Name', OperatorEnum.Equals, '[name here]'.</param>
+        /// Expression left terms use LiteGraph JSON data paths relative to the Data object.
+        /// For example, to retrieve the 'Name' property, use 'Name', OperatorEnum.Equals, '[name here]'.</param>
         /// <param name="token">Cancellation token.</param>
         /// <returns>Route details.</returns>
         IAsyncEnumerable<RouteDetail> ReadRoutes(

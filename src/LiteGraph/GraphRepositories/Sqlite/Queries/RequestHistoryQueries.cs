@@ -21,13 +21,16 @@ namespace LiteGraph.GraphRepositories.Sqlite.Queries
 
             StringBuilder sb = new StringBuilder();
             sb.Append("INSERT INTO 'requesthistory' (");
-            sb.Append("guid, createdutc, completedutc, method, path, url, sourceip, ");
+            sb.Append("guid, requestid, correlationid, traceid, createdutc, completedutc, method, path, url, sourceip, ");
             sb.Append("tenantguid, userguid, statuscode, success, processingtimems, ");
             sb.Append("requestbodylength, responsebodylength, requestbodytruncated, responsebodytruncated, ");
             sb.Append("requestcontenttype, responsecontenttype, requestheadersjson, requestbodyb64, ");
             sb.Append("responseheadersjson, responsebodyb64");
             sb.Append(") VALUES (");
             sb.Append("'").Append(detail.GUID).Append("', ");
+            sb.Append(StringOrNull(detail.RequestId)).Append(", ");
+            sb.Append(StringOrNull(detail.CorrelationId)).Append(", ");
+            sb.Append(StringOrNull(detail.TraceId)).Append(", ");
             sb.Append("'").Append(detail.CreatedUtc.ToString(TimestampFormat)).Append("', ");
             sb.Append(detail.CompletedUtc.HasValue ? ("'" + detail.CompletedUtc.Value.ToString(TimestampFormat) + "'") : "NULL").Append(", ");
             sb.Append("'").Append(Sanitizer.Sanitize(detail.Method ?? "")).Append("', ");
@@ -64,7 +67,7 @@ namespace LiteGraph.GraphRepositories.Sqlite.Queries
             if (countOnly)
                 sb.Append("SELECT COUNT(*) AS record_count FROM 'requesthistory' WHERE 1=1 ");
             else
-                sb.Append("SELECT guid, createdutc, completedutc, method, path, url, sourceip, tenantguid, userguid, statuscode, success, processingtimems, requestbodylength, responsebodylength, requestbodytruncated, responsebodytruncated, requestcontenttype, responsecontenttype FROM 'requesthistory' WHERE 1=1 ");
+                sb.Append("SELECT guid, requestid, correlationid, traceid, createdutc, completedutc, method, path, url, sourceip, tenantguid, userguid, statuscode, success, processingtimems, requestbodylength, responsebodylength, requestbodytruncated, responsebodytruncated, requestcontenttype, responsecontenttype FROM 'requesthistory' WHERE 1=1 ");
 
             AppendFilters(sb, search);
 
@@ -132,11 +135,23 @@ namespace LiteGraph.GraphRepositories.Sqlite.Queries
             if (search.TenantGUID.HasValue)
                 sb.Append("AND tenantguid = '").Append(search.TenantGUID.Value).Append("' ");
 
+            if (!string.IsNullOrEmpty(search.RequestId))
+                sb.Append("AND requestid = '").Append(EscapeQuotes(search.RequestId)).Append("' ");
+
+            if (!string.IsNullOrEmpty(search.CorrelationId))
+                sb.Append("AND correlationid = '").Append(EscapeQuotes(search.CorrelationId)).Append("' ");
+
+            if (!string.IsNullOrEmpty(search.TraceId))
+                sb.Append("AND traceid = '").Append(EscapeQuotes(search.TraceId)).Append("' ");
+
             if (!string.IsNullOrEmpty(search.Method))
                 sb.Append("AND method = '").Append(Sanitizer.Sanitize(search.Method)).Append("' ");
 
             if (search.StatusCode.HasValue)
                 sb.Append("AND statuscode = ").Append(search.StatusCode.Value).Append(" ");
+
+            if (search.Success.HasValue)
+                sb.Append("AND success = ").Append(search.Success.Value ? "1" : "0").Append(" ");
 
             if (!string.IsNullOrEmpty(search.Path))
                 sb.Append("AND path LIKE '%").Append(EscapeQuotes(search.Path)).Append("%' ");

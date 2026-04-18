@@ -4,6 +4,13 @@ import { render, screen } from '@testing-library/react';
 import { tableColumns } from '@/page/graphs/constant';
 import { GraphData } from '@/types/types';
 
+const getColumnTitleText = (title: any): string => {
+  if (!React.isValidElement(title)) return title;
+  const tooltipChild = title.props.children;
+  if (React.isValidElement(tooltipChild)) return tooltipChild.props.children;
+  return tooltipChild;
+};
+
 // Mock dependencies
 jest.mock('@/utils/dateUtils', () => ({
   formatDateTime: jest.fn((date) => `formatted-${date}`),
@@ -104,7 +111,7 @@ describe('Graphs Constants', () => {
 
       const nameColumn = columns.find((col) => col.key === 'name');
       expect(nameColumn).toBeDefined();
-      expect(nameColumn?.title).toBe('Name');
+      expect(getColumnTitleText(nameColumn?.title)).toBe('Name');
       expect(nameColumn?.dataIndex).toBe('Name');
     });
 
@@ -123,7 +130,7 @@ describe('Graphs Constants', () => {
 
       const guidColumn = columns.find((col) => col.key === 'GUID');
       expect(guidColumn).toBeDefined();
-      expect(guidColumn?.title).toBe('GUID');
+      expect(getColumnTitleText(guidColumn?.title)).toBe('GUID');
       expect(guidColumn?.dataIndex).toBe('GUID');
     });
 
@@ -142,7 +149,7 @@ describe('Graphs Constants', () => {
 
       const labelsColumn = columns.find((col) => col.key === 'labels');
       expect(labelsColumn).toBeDefined();
-      expect(labelsColumn?.title).toBe('Labels');
+      expect(getColumnTitleText(labelsColumn?.title)).toBe('Labels');
       expect(labelsColumn?.dataIndex).toBe('Labels');
       expect(labelsColumn?.filterDropdown).toBeDefined();
       expect(labelsColumn?.onFilter).toBeDefined();
@@ -163,7 +170,7 @@ describe('Graphs Constants', () => {
 
       const tagsColumn = columns.find((col) => col.key === 'tags');
       expect(tagsColumn).toBeDefined();
-      expect(tagsColumn?.title).toBe('Tags');
+      expect(getColumnTitleText(tagsColumn?.title)).toBe('Tags');
       expect(tagsColumn?.dataIndex).toBe('Tags');
       expect(tagsColumn?.filterDropdown).toBeDefined();
       expect(tagsColumn?.onFilter).toBeDefined();
@@ -184,7 +191,7 @@ describe('Graphs Constants', () => {
 
       const vectorsColumn = columns.find((col) => col.key === 'Vectors');
       expect(vectorsColumn).toBeDefined();
-      expect(vectorsColumn?.title).toBe('Vectors');
+      expect(getColumnTitleText(vectorsColumn?.title)).toBe('Vectors');
       expect(vectorsColumn?.dataIndex).toBe('Vectors');
     });
 
@@ -203,7 +210,7 @@ describe('Graphs Constants', () => {
 
       const createdColumn = columns.find((col) => col.key === 'CreatedUtc');
       expect(createdColumn).toBeDefined();
-      expect(createdColumn?.title).toBe('Created UTC');
+      expect(getColumnTitleText(createdColumn?.title)).toBe('Created UTC');
       expect(createdColumn?.dataIndex).toBe('CreatedUtc');
       expect(createdColumn?.sorter).toBeDefined();
     });
@@ -223,7 +230,7 @@ describe('Graphs Constants', () => {
 
       const actionsColumn = columns.find((col) => col.key === 'actions');
       expect(actionsColumn).toBeDefined();
-      expect(actionsColumn?.title).toBe('Actions');
+      expect(getColumnTitleText(actionsColumn?.title)).toBe('Actions');
       expect(actionsColumn?.render).toBeDefined();
     });
 
@@ -242,7 +249,7 @@ describe('Graphs Constants', () => {
 
       const scoreColumn = columns.find((col) => col.key === 'Score');
       expect(scoreColumn).toBeDefined();
-      expect(scoreColumn?.title).toBe('Score');
+      expect(getColumnTitleText(scoreColumn?.title)).toBe('Score');
       expect(scoreColumn?.dataIndex).toBe('Score');
       expect(scoreColumn?.render).toBeDefined();
     });
@@ -262,7 +269,7 @@ describe('Graphs Constants', () => {
 
       const distanceColumn = columns.find((col) => col.key === 'Distance');
       expect(distanceColumn).toBeDefined();
-      expect(distanceColumn?.title).toBe('Distance');
+      expect(getColumnTitleText(distanceColumn?.title)).toBe('Distance');
       expect(distanceColumn?.dataIndex).toBe('Distance');
       expect(distanceColumn?.render).toBeDefined();
     });

@@ -7,13 +7,13 @@ import { setupServer } from 'msw/node';
 import { handlers } from './handler';
 import { commonHandlers } from '@/tests/handler';
 import { setTenant } from '@/lib/sdk/litegraph.service';
-import { mockGraphData, mockGraphGUID, mockTenantGUID } from '../mockData';
+import { mockGraphData, mockTenantGUID } from '../mockData';
 import EdgePage from '@/app/dashboard/[tenantId]/edges/page';
-import { mockEndpoint } from '@/tests/config';
 import AddEditEdge from '@/page/edges/components/AddEditEdge';
 import React from 'react';
 import { NodeData, EdgeData, HoveredElement, Point } from '@/lib/graph/types';
 import { applyForceLayout } from '@/lib/graph/layout';
+import { sdk } from '@/lib/sdk/litegraph.service';
 
 const server = setupServer(...handlers, ...commonHandlers);
 
@@ -223,17 +223,9 @@ describe('EdgePage with Mock API', () => {
   }, 8000);
 
   it('renders fallback on error', async () => {
-    server.use(
-      ...handlers,
-      require('msw').http.get(
-        `${mockEndpoint}v1.0/tenants/${mockTenantGUID}/graphs/${mockGraphGUID}/edges`,
-        () => {
-          return require('msw').HttpResponse.error();
-        }
-      )
-    );
+    jest.spyOn(sdk.Edge, 'enumerateAndSearch').mockRejectedValueOnce(new Error('Mock error'));
 
-    const wrapper = renderWithRedux(<EdgePage />, initialState, true);
+    const wrapper = renderWithRedux(<EdgePage />, initialState, undefined, true);
     await waitFor(() => {
       expect(screen.getByText('Something went wrong.')).toBeInTheDocument();
     });

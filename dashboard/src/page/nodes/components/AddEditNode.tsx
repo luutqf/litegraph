@@ -26,6 +26,7 @@ import {
 import { Node, NodeCreateRequest } from 'litegraphdb/dist/types/types';
 import PageLoading from '@/components/base/loading/PageLoading';
 import { getCreateEditViewModelTitle } from '@/utils/appUtils';
+import { tagsToFormList, toPlainJson, vectorsToFormList } from '@/utils/formValueUtils';
 
 const initialValues = {
   graphName: '',
@@ -224,27 +225,27 @@ const AddEditNode = ({
   };
 
   useEffect(() => {
+    const graphName = typeof graph?.Name === 'string' ? graph.Name : '';
+
     if (node && nodeWithOldData?.GUID) {
       // Reset the form and set values for the new node
       form.resetFields();
       // Ensure form values are updated when editing
       form.setFieldsValue({
+        graphName,
         name: node.Name || '',
-        data: node.Data || {},
-        labels: node.Labels || [],
-        tags: Object.entries(node.Tags || {}).map(([key, value]) => ({
-          key,
-          value,
-        })),
-        vectors: node.Vectors || [],
+        data: toPlainJson<Record<string, unknown>>(node.Data, {}),
+        labels: toPlainJson<string[]>(node.Labels, []),
+        tags: tagsToFormList(node.Tags),
+        vectors: vectorsToFormList(node.Vectors),
       });
       setUniqueKey(v4());
     } else if (!nodeWithOldData?.GUID) {
       form.resetFields();
+      form.setFieldsValue({ ...initialValues, graphName });
       setUniqueKey(v4());
     }
-    graph?.Name && form.setFieldValue('graphName', graph.Name);
-  }, [node, nodeWithOldData?.GUID, selectedGraph, graph?.Name]);
+  }, [node, nodeWithOldData?.GUID, selectedGraph, graph?.Name, form]);
 
   useEffect(() => {
     // Trigger initial validation
@@ -256,7 +257,6 @@ const AddEditNode = ({
 
   return (
     <LitegraphModal
-      maskClosable={false}
       title={getCreateEditViewModelTitle(
         'Node',
         isGraphLoading || isNodeLoading,

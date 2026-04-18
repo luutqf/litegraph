@@ -8,7 +8,7 @@ services:
 
   litegraph:
     container_name: 'litegraph'
-    image: 'jchristn77/litegraph:v5.0.0'
+    image: 'jchristn77/litegraph:v6.0.0'
     network_mode: 'host'
     stdin_open: true
     tty: true
@@ -28,7 +28,7 @@ services:
 
   litegraph-mcp:
     container_name: 'litegraph-mcp'
-    image: 'jchristn77/litegraph-mcp:v5.0.0'
+    image: 'jchristn77/litegraph-mcp:v6.0.0'
     network_mode: 'host'
     stdin_open: true
     tty: true
@@ -41,3 +41,52 @@ services:
       - ./backups/litegraph-mcp/:/app/backups/
     healthcheck:
       test: curl --fail http://localhost:8200
+
+  #
+  # Prometheus
+  # Scrapes LiteGraph metrics from http://localhost:8701/metrics.
+  #
+
+  prometheus:
+    container_name: 'litegraph-prometheus'
+    image: 'prom/prometheus:latest'
+    network_mode: 'host'
+    stdin_open: true
+    tty: true
+    depends_on:
+      litegraph:
+        condition: service_healthy
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+
+  #
+  # Grafana OSS
+  # Preconfigured with Prometheus and the LiteGraph dashboard.
+  #
+
+  grafana:
+    container_name: 'litegraph-grafana'
+    image: 'grafana/grafana-oss:latest'
+    network_mode: 'host'
+    stdin_open: true
+    tty: true
+    depends_on:
+      prometheus:
+        condition: service_started
+    environment:
+      GF_SECURITY_ADMIN_USER: 'admin'
+      GF_SECURITY_ADMIN_PASSWORD: 'admin'
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ../assets/grafana:/var/lib/grafana/dashboards/litegraph:ro
+
+volumes:
+  prometheus-data:
+  grafana-storage:

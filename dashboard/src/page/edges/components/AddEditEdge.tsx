@@ -28,6 +28,7 @@ import { getCreateEditViewModelTitle } from '@/utils/appUtils';
 import PageLoading from '@/components/base/loading/PageLoading';
 import NodeSelector from '@/components/node-selector/NodeSelector';
 import { useWatch } from 'antd/es/form/Form';
+import { tagsToFormList, toPlainJson, vectorsToFormList } from '@/utils/formValueUtils';
 
 const initialValues = {
   graphName: '',
@@ -109,58 +110,54 @@ const AddEditEdge = ({
   useEffect(() => {
     // Check if this is an existing edge (either API edge with GUID or local edge with id)
     const isExistingEdge = edgeWithOldData?.GUID;
+    const graphName = typeof graph?.Name === 'string' ? graph.Name : '';
 
     if (edge && edgeWithOldData?.GUID && !(edgeWithOldData as any)?.isLocal) {
       // API edge - use API data
       form.resetFields();
       form.setFieldsValue({
+        graphName,
         name: edge.Name,
         from: edge.From,
         to: edge.To,
         cost: edge.Cost,
-        data: edge.Data,
-        labels: edge.Labels,
-        tags: Object.entries(edge.Tags || {}).map(([key, value]) => ({
-          key,
-          value,
-        })),
-        vectors: edge.Vectors,
+        data: toPlainJson<Record<string, unknown>>(edge.Data, {}),
+        labels: toPlainJson<string[]>(edge.Labels, []),
+        tags: tagsToFormList(edge.Tags),
+        vectors: vectorsToFormList(edge.Vectors),
       });
       setUniqueKey(v4());
     } else if (isExistingEdge && (edgeWithOldData as any)?.isLocal) {
       // Local edge - use local data
       form.resetFields();
+      const localData =
+        (edgeWithOldData as any).Data ||
+        ((edgeWithOldData as any).data ? JSON.parse((edgeWithOldData as any).data) : {});
       form.setFieldsValue({
+        graphName,
         name: (edgeWithOldData as any).Name || (edgeWithOldData as any).label || '',
         from: (edgeWithOldData as any).From || (edgeWithOldData as any).source || '',
         to: (edgeWithOldData as any).To || (edgeWithOldData as any).target || '',
         cost: (edgeWithOldData as any).Cost || (edgeWithOldData as any).cost || 0,
-        data:
-          (edgeWithOldData as any).Data ||
-          ((edgeWithOldData as any).data ? JSON.parse((edgeWithOldData as any).data) : {}),
-        labels: (edgeWithOldData as any).Labels || [],
-        tags: Object.entries((edgeWithOldData as any).Tags || {}).map(([key, value]) => ({
-          key,
-          value,
-        })),
-        vectors: (edgeWithOldData as any).Vectors || [],
+        data: toPlainJson<Record<string, unknown>>(localData, {}),
+        labels: toPlainJson<string[]>((edgeWithOldData as any).Labels, []),
+        tags: tagsToFormList((edgeWithOldData as any).Tags),
+        vectors: vectorsToFormList((edgeWithOldData as any).Vectors),
       });
       setUniqueKey(v4());
     } else if (!isExistingEdge) {
       // New edge
       form.resetFields();
-      form.setFieldsValue({ from: undefined, to: undefined });
-      fromNodeGUID && form.setFieldsValue({ from: fromNodeGUID, data: {} });
+      form.setFieldsValue({ graphName, from: fromNodeGUID || undefined, to: undefined, data: {} });
       setUniqueKey(v4());
     }
-    graph && form.setFieldValue('graphName', graph.Name);
 
     // Trigger initial validation
     form
       .validateFields({ validateOnly: true })
       .then(() => setFormValid(true))
       .catch(() => setFormValid(false));
-  }, [edge, selectedGraph, fromNodeGUID, form, edgeWithOldData?.GUID]);
+  }, [edge, selectedGraph, fromNodeGUID, form, edgeWithOldData?.GUID, graph?.Name]);
 
   const handleSubmit = async () => {
     try {
@@ -306,7 +303,6 @@ const AddEditEdge = ({
 
   return (
     <LitegraphModal
-      maskClosable={false}
       title={getCreateEditViewModelTitle(
         'Edge',
         isEdgeLoading,

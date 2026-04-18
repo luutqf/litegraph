@@ -6,7 +6,7 @@ import { renderWithRedux } from '@/tests/store/utils';
 import { getServer } from '@/tests/server';
 
 import { commonHandlers } from '@/tests/handler';
-import { mockGraphData, mockTenantData } from '@/tests/pages/mockData';
+import { mockGraphData, mockTenantData, mockUserData } from '@/tests/pages/mockData';
 
 // Import the component
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -91,7 +91,7 @@ describe('DashboardLayout', () => {
     });
   });
 
-  it('should show logout button when noProfile is true', () => {
+  it('should show icon-only logout button when noProfile is true', () => {
     const mockLogout = jest.fn();
     const { useLogout } = require('@/hooks/authHooks');
     const { useGetAllGraphsQuery, useGetAllTenantsQuery } = require('@/lib/store/slice/slice');
@@ -113,11 +113,47 @@ describe('DashboardLayout', () => {
     const initialState = createMockInitialState();
     renderWithRedux(<DashboardLayout {...defaultProps} noProfile={true} />, initialState);
 
-    const logoutButton = screen.getByText('Logout');
+    const logoutButton = screen.getByLabelText('Logout');
     expect(logoutButton).toBeInTheDocument();
+    expect(screen.queryByText('Logout')).not.toBeInTheDocument();
 
     fireEvent.click(logoutButton);
     expect(mockLogout).toHaveBeenCalled();
+  });
+
+  it('shows GitHub link and icon-only logout for signed-in users', () => {
+    const mockLogout = jest.fn();
+    const { useLogout } = require('@/hooks/authHooks');
+    const { useGetAllGraphsQuery, useGetAllTenantsQuery } = require('@/lib/store/slice/slice');
+
+    useLogout.mockReturnValue(mockLogout);
+    useGetAllGraphsQuery.mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
+    });
+    useGetAllTenantsQuery.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+      refetch: jest.fn(),
+    });
+
+    const initialState = createMockInitialState();
+    initialState.liteGraph.user = mockUserData[0] as any;
+
+    renderWithRedux(<DashboardLayout {...defaultProps} />, initialState);
+
+    expect(screen.getByLabelText('LiteGraph GitHub repository')).toHaveAttribute(
+      'href',
+      'https://github.com/litegraphdb/litegraph'
+    );
+    expect(screen.queryByText('Logout')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText('Logout'));
+
+    expect(mockLogout).toHaveBeenCalledTimes(1);
   });
 
   it('should show loading state for graphs', () => {

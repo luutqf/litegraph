@@ -3,11 +3,12 @@
 exports[`AdminLoginPage should render the AdminLoginPage with form fields: initial table state 1`] = `
 <div>
   <div
-    class="userLoginPage ant-flex css-dev-only-do-not-override-98ntnt ant-flex-align-stretch ant-flex-vertical"
+    class="userLoginPage ant-flex css-dev-only-do-not-override-mncuj7 ant-flex-align-stretch ant-flex-vertical"
     style="gap: 20px;"
   >
     <div
-      class="userLoginPageHeader mb pb pt pr pl ant-flex css-dev-only-do-not-override-98ntnt ant-flex-align-center ant-flex-justify-space-between"
+      class="userLoginPageHeader ant-flex css-dev-only-do-not-override-mncuj7 ant-flex-align-center ant-flex-justify-space-between"
+      style="padding: 16px 24px;"
     >
       <img
         alt="Litegraph Logo"
@@ -15,7 +16,7 @@ exports[`AdminLoginPage should render the AdminLoginPage with form fields: initi
         src="/favicon.png"
       />
       <div
-        class="ant-flex css-dev-only-do-not-override-98ntnt ant-flex-align-center"
+        class="ant-flex css-dev-only-do-not-override-mncuj7 ant-flex-align-center"
         style="gap: 10px;"
       >
         <svg
@@ -110,7 +111,7 @@ exports[`AdminLoginPage should render the AdminLoginPage with form fields: initi
           href="/login"
         >
           <span
-            class="ant-typography css-dev-only-do-not-override-98ntnt"
+            class="ant-typography css-dev-only-do-not-override-mncuj7"
           >
             Login as User
           </span>
@@ -121,13 +122,13 @@ exports[`AdminLoginPage should render the AdminLoginPage with form fields: initi
       class="loginTitle"
     >
       <h1
-        class="ant-typography headingCommonStyles css-dev-only-do-not-override-98ntnt"
+        class="ant-typography headingCommonStyles css-dev-only-do-not-override-mncuj7"
         style="font-weight: 600; font-size: 22px;"
       >
         Admin Login
       </h1>
       <div
-        class="ant-typography loginDescription css-dev-only-do-not-override-98ntnt"
+        class="ant-typography loginDescription css-dev-only-do-not-override-mncuj7"
       >
         Please enter your access key to login
       </div>
@@ -137,16 +138,16 @@ exports[`AdminLoginPage should render the AdminLoginPage with form fields: initi
     >
       <form
         autocomplete="off"
-        class="ant-form ant-form-vertical css-dev-only-do-not-override-98ntnt"
+        class="ant-form ant-form-vertical css-dev-only-do-not-override-mncuj7"
       >
         <div
-          class="ant-form-item css-dev-only-do-not-override-98ntnt"
+          class="ant-form-item css-dev-only-do-not-override-mncuj7 ant-form-item-vertical"
         >
           <div
-            class="ant-row ant-form-item-row css-dev-only-do-not-override-98ntnt"
+            class="ant-row ant-form-item-row css-dev-only-do-not-override-mncuj7"
           >
             <div
-              class="ant-col ant-form-item-label css-dev-only-do-not-override-98ntnt"
+              class="ant-col ant-form-item-label css-dev-only-do-not-override-mncuj7"
             >
               <label
                 class="ant-form-item-required"
@@ -157,7 +158,7 @@ exports[`AdminLoginPage should render the AdminLoginPage with form fields: initi
               </label>
             </div>
             <div
-              class="ant-col ant-form-item-control css-dev-only-do-not-override-98ntnt"
+              class="ant-col ant-form-item-control css-dev-only-do-not-override-mncuj7"
             >
               <div
                 class="ant-form-item-control-input"
@@ -167,7 +168,7 @@ exports[`AdminLoginPage should render the AdminLoginPage with form fields: initi
                 >
                   <input
                     aria-required="true"
-                    class="ant-input css-dev-only-do-not-override-98ntnt ant-input-outlined"
+                    class="ant-input css-dev-only-do-not-override-mncuj7 ant-input-outlined"
                     id="url"
                     placeholder="https://your-litegraph-server.com"
                     type="text"
@@ -179,13 +180,13 @@ exports[`AdminLoginPage should render the AdminLoginPage with form fields: initi
           </div>
         </div>
         <div
-          class="ant-form-item css-dev-only-do-not-override-98ntnt"
+          class="ant-form-item css-dev-only-do-not-override-mncuj7 ant-form-item-vertical"
         >
           <div
-            class="ant-row ant-form-item-row css-dev-only-do-not-override-98ntnt"
+            class="ant-row ant-form-item-row css-dev-only-do-not-override-mncuj7"
           >
             <div
-              class="ant-col ant-form-item-label css-dev-only-do-not-override-98ntnt"
+              class="ant-col ant-form-item-label css-dev-only-do-not-override-mncuj7"
             >
               <label
                 class="ant-form-item-required"
@@ -196,7 +197,7 @@ exports[`AdminLoginPage should render the AdminLoginPage with form fields: initi
               </label>
             </div>
             <div
-              class="ant-col ant-form-item-control css-dev-only-do-not-override-98ntnt"
+              class="ant-col ant-form-item-control css-dev-only-do-not-override-mncuj7"
             >
               <div
                 class="ant-form-item-control-input"
@@ -205,11 +206,11 @@ exports[`AdminLoginPage should render the AdminLoginPage with form fields: initi
                   class="ant-form-item-control-input-content"
                 >
                   <span
-                    class="ant-input-affix-wrapper ant-input-disabled ant-input-affix-wrapper-disabled css-dev-only-do-not-override-98ntnt ant-input-outlined ant-input-password"
+                    class="ant-input-affix-wrapper ant-input-disabled ant-input-affix-wrapper-disabled css-dev-only-do-not-override-mncuj7 ant-input-outlined ant-input-password"
                   >
                     <input
                       aria-required="true"
-                      class="ant-input ant-input-disabled css-dev-only-do-not-override-98ntnt"
+                      class="ant-input ant-input-disabled css-dev-only-do-not-override-mncuj7"
                       disabled=""
                       id="accessKey"
                       placeholder="Enter your access key"
@@ -250,13 +251,13 @@ exports[`AdminLoginPage should render the AdminLoginPage with form fields: initi
           </div>
         </div>
         <div
-          class="ant-form-item css-dev-only-do-not-override-98ntnt"
+          class="ant-form-item css-dev-only-do-not-override-mncuj7 ant-form-item-vertical"
         >
           <div
-            class="ant-row ant-form-item-row css-dev-only-do-not-override-98ntnt"
+            class="ant-row ant-form-item-row css-dev-only-do-not-override-mncuj7"
           >
             <div
-              class="ant-col ant-form-item-control css-dev-only-do-not-override-98ntnt"
+              class="ant-col ant-form-item-control css-dev-only-do-not-override-mncuj7"
             >
               <div
                 class="ant-form-item-control-input"
@@ -265,7 +266,7 @@ exports[`AdminLoginPage should render the AdminLoginPage with form fields: initi
                   class="ant-form-item-control-input-content"
                 >
                   <button
-                    class="ant-btn css-dev-only-do-not-override-98ntnt ant-btn-primary w-100"
+                    class="ant-btn css-dev-only-do-not-override-mncuj7 ant-btn-primary ant-btn-color-primary ant-btn-variant-solid w-100"
                     type="submit"
                   >
                     <span>

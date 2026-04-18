@@ -1,4 +1,4 @@
-﻿namespace LiteGraph.GraphRepositories.Sqlite.Implementations
+namespace LiteGraph.GraphRepositories.Sqlite.Implementations
 {
     using System;
     using System.Collections.Generic;
@@ -379,6 +379,9 @@
 
             // Apply configuration to the graph object
             configuration.ApplyToGraph(graph);
+            graph.VectorIndexDirty = false;
+            graph.VectorIndexDirtyUtc = null;
+            graph.VectorIndexDirtyReason = null;
 
             // Get all existing vectors in the graph before enabling indexing
             List<VectorMetadata> existingVectors = new List<VectorMetadata>();
@@ -393,7 +396,8 @@
             // If there are existing vectors, populate the index
             if (existingVectors.Count > 0)
             {
-                await _Repo.VectorIndexManager.RebuildIndexAsync(graph, existingVectors).ConfigureAwait(false);
+                List<VectorIndexEntry> existingEntries = await VectorMethodsIndexExtensions.BuildNodeIndexEntriesAsync(_Repo, graph, existingVectors, token).ConfigureAwait(false);
+                await _Repo.VectorIndexManager.RebuildIndexAsync(graph, existingEntries, token).ConfigureAwait(false);
             }
 
             // Update the graph in the database with all configuration values
@@ -418,6 +422,9 @@
             // Apply disabled configuration to clear all vector index settings
             VectorIndexConfiguration disabledConfig = VectorIndexConfiguration.CreateDisabled();
             disabledConfig.ApplyToGraph(graph);
+            graph.VectorIndexDirty = false;
+            graph.VectorIndexDirtyUtc = null;
+            graph.VectorIndexDirtyReason = null;
 
             // Update graph in database
             await _Repo.ExecuteQueryAsync(GraphQueries.Update(graph), true, token).ConfigureAwait(false);
@@ -445,7 +452,9 @@
             }
 
             // Rebuild the index
-            await _Repo.VectorIndexManager.RebuildIndexAsync(graph, vectors).ConfigureAwait(false);
+            List<VectorIndexEntry> entries = await VectorMethodsIndexExtensions.BuildNodeIndexEntriesAsync(_Repo, graph, vectors, token).ConfigureAwait(false);
+            await _Repo.VectorIndexManager.RebuildIndexAsync(graph, entries, token).ConfigureAwait(false);
+            await ClearVectorIndexDirtyAsync(tenantGuid, graphGuid, token).ConfigureAwait(false);
         }
 
         /// <inheritdoc />
@@ -459,7 +468,52 @@
             if (graph == null)
                 throw new KeyNotFoundException($"Graph {graphGuid} not found.");
 
-            return _Repo.VectorIndexManager.GetStatistics(graphGuid);
+            if (!graph.VectorIndexType.HasValue || graph.VectorIndexType == VectorIndexTypeEnum.None)
+                return null;
+
+            VectorIndexStatistics stats = _Repo.VectorIndexManager.GetStatistics(graphGuid);
+            if (stats == null)
+            {
+                stats = new VectorIndexStatistics
+                {
+                    VectorCount = 0,
+                    Dimensions = graph.VectorDimensionality ?? 0,
+                    IndexType = graph.VectorIndexType ?? VectorIndexTypeEnum.None,
+                    M = graph.VectorIndexM ?? 16,
+                    EfConstruction = graph.VectorIndexEfConstruction ?? 200,
+                    DefaultEf = graph.VectorIndexEf ?? 50,
+                    IndexFile = graph.VectorIndexFile,
+                    IsLoaded = false,
+                    DistanceMetric = "Cosine"
+                };
+            }
+
+            stats.IsDirty = graph.VectorIndexDirty;
+            stats.DirtySinceUtc = graph.VectorIndexDirtyUtc;
+            stats.DirtyReason = graph.VectorIndexDirtyReason;
+
+            return stats;
+        }
+
+        /// <inheritdoc />
+        public async Task MarkVectorIndexDirtyAsync(
+            Guid tenantGuid,
+            Guid graphGuid,
+            string reason,
+            CancellationToken token = default)
+        {
+            token.ThrowIfCancellationRequested();
+            await _Repo.ExecuteQueryAsync(GraphQueries.SetVectorIndexDirty(tenantGuid, graphGuid, true, reason), true, token).ConfigureAwait(false);
+        }
+
+        /// <inheritdoc />
+        public async Task ClearVectorIndexDirtyAsync(
+            Guid tenantGuid,
+            Guid graphGuid,
+            CancellationToken token = default)
+        {
+            token.ThrowIfCancellationRequested();
+            await _Repo.ExecuteQueryAsync(GraphQueries.SetVectorIndexDirty(tenantGuid, graphGuid, false), true, token).ConfigureAwait(false);
         }
 
         /// <inheritdoc />

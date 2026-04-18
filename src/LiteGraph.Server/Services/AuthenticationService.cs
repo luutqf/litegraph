@@ -1,4 +1,4 @@
-﻿namespace LiteGraph.Server.Services
+namespace LiteGraph.Server.Services
 {
     using System;
     using System.IO;
@@ -24,6 +24,7 @@
         private LoggingModule _Logging = null;
         private Serializer _Serializer = new Serializer();
         private GraphRepositoryBase _Repo = null;
+        private AuthorizationService _Authorization = null;
 
         #endregion
 
@@ -37,8 +38,8 @@
         /// <param name="serializer">Serializer.</param>
         /// <param name="repo">Graph repository driver.</param>
         public AuthenticationService(
-            Settings settings, 
-            LoggingModule logging, 
+            Settings settings,
+            LoggingModule logging,
             Serializer serializer,
             GraphRepositoryBase repo)
         {
@@ -46,6 +47,7 @@
             _Logging = logging ?? throw new ArgumentNullException(nameof(logging));
             _Serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
             _Repo = repo ?? throw new ArgumentNullException(nameof(repo));
+            _Authorization = new AuthorizationService(_Logging, _Repo);
         }
 
         #endregion
@@ -70,13 +72,13 @@
                         _Header + "authenticating and authorizing using the following materials:" + Environment.NewLine +
                         "| Tenant GUID    : " + req.Authentication.TenantGUID + Environment.NewLine +
                         "| Email          : " + req.Authentication.Email + Environment.NewLine +
-                        "| Password       : " + Helpers.StringHelpers.RedactTail(req.Authentication.Password, "*", 4) + Environment.NewLine +
-                        "| Bearer token   : " + Helpers.StringHelpers.RedactTail(req.Authentication.BearerToken, "*", 4) + Environment.NewLine +
-                        "| Security token : " + Helpers.StringHelpers.RedactTail(req.Authentication.SecurityToken, "*", 4));
+                        "| Password       : " + OperationalLogRedactor.RedactValue(req.Authentication.Password) + Environment.NewLine +
+                        "| Bearer token   : " + OperationalLogRedactor.RedactValue(req.Authentication.BearerToken) + Environment.NewLine +
+                        "| Security token : " + OperationalLogRedactor.RedactValue(req.Authentication.SecurityToken));
                 }
 
                 await Authenticate(req, token).ConfigureAwait(false);
-                Authorize(req);
+                await _Authorization.Authorize(req, token).ConfigureAwait(false);
 
                 if (_Settings.Debug.Authentication)
                 {
@@ -135,6 +137,24 @@
 
             authToken.Random = null;
             return authToken;
+        }
+
+        /// <summary>
+        /// Authorize a request against an already-classified scope/resource pair.
+        /// </summary>
+        /// <param name="req">Request context.</param>
+        /// <param name="requiredScope">Required scope.</param>
+        /// <param name="resourceType">Resource type.</param>
+        /// <param name="token">Cancellation token.</param>
+        /// <returns>Authorization decision.</returns>
+        internal async Task<AuthorizationDecision> AuthorizeRequestScope(
+            RequestContext req,
+            string requiredScope,
+            AuthorizationResourceTypeEnum resourceType,
+            CancellationToken token = default)
+        {
+            if (req == null) throw new ArgumentNullException(nameof(req));
+            return await _Authorization.EvaluateRequestAccess(req, requiredScope, resourceType, token).ConfigureAwait(false);
         }
 
 
@@ -222,7 +242,7 @@
                     req.Authentication.Credential = await _Repo.Credential.ReadByBearerToken(req.Authentication.BearerToken, cancellationToken).ConfigureAwait(false);
                     if (req.Authentication.Credential == null)
                     {
-                        _Logging.Warn(_Header + "unable to find bearer token " + req.Authentication.BearerToken);
+                        _Logging.Warn(_Header + "unable to find bearer token " + OperationalLogRedactor.RedactValue(req.Authentication.BearerToken));
                         req.Authentication.Result = AuthenticationResultEnum.NotFound;
                         return;
                     }
@@ -357,25 +377,6 @@
                 req.Authentication.Result = AuthenticationResultEnum.NotFound;
                 return;
             }
-        }
-
-        private void Authorize(RequestContext req)
-        {
-            if (!req.Authentication.IsAdmin)
-            {
-                if (req.TenantGUID != null)
-                {
-                    if (!req.TenantGUID.Equals(req.Authentication.TenantGUID))
-                    {
-                        _Logging.Warn(_Header + "attempt to access tenant " + req.TenantGUID + " from tenant " + req.Authentication.TenantGUID);
-                        req.Authorization.Result = AuthorizationResultEnum.Denied;
-                        return;
-                    }
-                }
-            }
-
-            req.Authorization.Result = AuthorizationResultEnum.Permitted;
-            return;
         }
 
         private string GenerateSecurityTokenString(AuthenticationToken token)

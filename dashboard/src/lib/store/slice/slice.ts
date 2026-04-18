@@ -34,6 +34,27 @@ import {
   ReadSubGraphResponse,
 } from 'litegraphdb/dist/types/types';
 import { sdk } from '@/lib/sdk/litegraph.service';
+import {
+  AuthorizationEffectivePermissionsResult,
+  AuthorizationListParams,
+  AuthorizationRole,
+  AuthorizationSearchResult,
+  CredentialScopeAssignment,
+  RoleListParams,
+  UserRoleAssignment,
+  createAuthorizationRole,
+  createCredentialScopeAssignment,
+  createUserRoleAssignment,
+  deleteAuthorizationRole,
+  deleteCredentialScopeAssignment,
+  deleteUserRoleAssignment,
+  getCredentialEffectivePermissions,
+  getUserEffectivePermissions,
+  listAuthorizationRoles,
+  listCredentialScopeAssignments,
+  listUserRoleAssignments,
+  updateAuthorizationRole,
+} from '@/lib/sdk/authorization';
 
 const enhancedSdk = sdkSlice.enhanceEndpoints({
   addTagTypes: [
@@ -47,6 +68,7 @@ const enhancedSdk = sdkSlice.enhanceEndpoints({
     SliceTags.VECTOR,
     SliceTags.CREDENTIAL,
     SliceTags.BACKUP,
+    SliceTags.AUTHORIZATION,
     SliceTags.RESET,
   ],
 });
@@ -623,6 +645,127 @@ const graphSlice = enhancedSdk.injectEndpoints({
         callback: () => sdk.Graph.readSubGraph(graphGuid, nodeGuid, options),
       }),
     }),
+
+    //endregion
+    //region Authorization
+    listAuthorizationRoles: build.query<
+      AuthorizationSearchResult<AuthorizationRole>,
+      { tenantGuid: string; params?: RoleListParams }
+    >({
+      query: ({ tenantGuid, params }) => ({
+        callback: () => listAuthorizationRoles(tenantGuid, params),
+      }),
+      providesTags: [SliceTags.AUTHORIZATION],
+    }),
+    createAuthorizationRole: build.mutation<
+      AuthorizationRole,
+      { tenantGuid: string; role: Partial<AuthorizationRole> }
+    >({
+      query: ({ tenantGuid, role }) => ({
+        callback: () => createAuthorizationRole(tenantGuid, role),
+      }),
+      invalidatesTags: [SliceTags.AUTHORIZATION],
+    }),
+    updateAuthorizationRole: build.mutation<
+      AuthorizationRole,
+      { tenantGuid: string; role: AuthorizationRole }
+    >({
+      query: ({ tenantGuid, role }) => ({
+        callback: () => updateAuthorizationRole(tenantGuid, role),
+      }),
+      invalidatesTags: [SliceTags.AUTHORIZATION],
+    }),
+    deleteAuthorizationRole: build.mutation<boolean, { tenantGuid: string; roleGuid: string }>({
+      query: ({ tenantGuid, roleGuid }) => ({
+        callback: async () => {
+          await deleteAuthorizationRole(tenantGuid, roleGuid);
+          return true;
+        },
+      }),
+      invalidatesTags: [SliceTags.AUTHORIZATION],
+    }),
+    listUserRoleAssignments: build.query<
+      AuthorizationSearchResult<UserRoleAssignment>,
+      { tenantGuid: string; userGuid: string; params?: AuthorizationListParams }
+    >({
+      query: ({ tenantGuid, userGuid, params }) => ({
+        callback: () => listUserRoleAssignments(tenantGuid, userGuid, params),
+      }),
+      providesTags: [SliceTags.AUTHORIZATION],
+    }),
+    createUserRoleAssignment: build.mutation<
+      UserRoleAssignment,
+      { tenantGuid: string; userGuid: string; assignment: Partial<UserRoleAssignment> }
+    >({
+      query: ({ tenantGuid, userGuid, assignment }) => ({
+        callback: () => createUserRoleAssignment(tenantGuid, userGuid, assignment),
+      }),
+      invalidatesTags: [SliceTags.AUTHORIZATION],
+    }),
+    deleteUserRoleAssignment: build.mutation<
+      boolean,
+      { tenantGuid: string; userGuid: string; assignmentGuid: string }
+    >({
+      query: ({ tenantGuid, userGuid, assignmentGuid }) => ({
+        callback: async () => {
+          await deleteUserRoleAssignment(tenantGuid, userGuid, assignmentGuid);
+          return true;
+        },
+      }),
+      invalidatesTags: [SliceTags.AUTHORIZATION],
+    }),
+    listCredentialScopeAssignments: build.query<
+      AuthorizationSearchResult<CredentialScopeAssignment>,
+      { tenantGuid: string; credentialGuid: string; params?: AuthorizationListParams }
+    >({
+      query: ({ tenantGuid, credentialGuid, params }) => ({
+        callback: () => listCredentialScopeAssignments(tenantGuid, credentialGuid, params),
+      }),
+      providesTags: [SliceTags.AUTHORIZATION],
+    }),
+    createCredentialScopeAssignment: build.mutation<
+      CredentialScopeAssignment,
+      {
+        tenantGuid: string;
+        credentialGuid: string;
+        assignment: Partial<CredentialScopeAssignment>;
+      }
+    >({
+      query: ({ tenantGuid, credentialGuid, assignment }) => ({
+        callback: () => createCredentialScopeAssignment(tenantGuid, credentialGuid, assignment),
+      }),
+      invalidatesTags: [SliceTags.AUTHORIZATION],
+    }),
+    deleteCredentialScopeAssignment: build.mutation<
+      boolean,
+      { tenantGuid: string; credentialGuid: string; assignmentGuid: string }
+    >({
+      query: ({ tenantGuid, credentialGuid, assignmentGuid }) => ({
+        callback: async () => {
+          await deleteCredentialScopeAssignment(tenantGuid, credentialGuid, assignmentGuid);
+          return true;
+        },
+      }),
+      invalidatesTags: [SliceTags.AUTHORIZATION],
+    }),
+    getUserEffectivePermissions: build.query<
+      AuthorizationEffectivePermissionsResult,
+      { tenantGuid: string; userGuid: string; graphGuid?: string }
+    >({
+      query: ({ tenantGuid, userGuid, graphGuid }) => ({
+        callback: () => getUserEffectivePermissions(tenantGuid, userGuid, graphGuid),
+      }),
+      providesTags: [SliceTags.AUTHORIZATION],
+    }),
+    getCredentialEffectivePermissions: build.query<
+      AuthorizationEffectivePermissionsResult,
+      { tenantGuid: string; credentialGuid: string; graphGuid?: string }
+    >({
+      query: ({ tenantGuid, credentialGuid, graphGuid }) => ({
+        callback: () => getCredentialEffectivePermissions(tenantGuid, credentialGuid, graphGuid),
+      }),
+      providesTags: [SliceTags.AUTHORIZATION],
+    }),
   }),
   overrideExisting: true,
 });
@@ -701,4 +844,16 @@ export const {
   useRebuildVectorIndexMutation,
   useDeleteVectorIndexMutation,
   useGetSubGraphsMutation,
+  useListAuthorizationRolesQuery,
+  useCreateAuthorizationRoleMutation,
+  useUpdateAuthorizationRoleMutation,
+  useDeleteAuthorizationRoleMutation,
+  useListUserRoleAssignmentsQuery,
+  useCreateUserRoleAssignmentMutation,
+  useDeleteUserRoleAssignmentMutation,
+  useListCredentialScopeAssignmentsQuery,
+  useCreateCredentialScopeAssignmentMutation,
+  useDeleteCredentialScopeAssignmentMutation,
+  useGetUserEffectivePermissionsQuery,
+  useGetCredentialEffectivePermissionsQuery,
 } = graphSlice;

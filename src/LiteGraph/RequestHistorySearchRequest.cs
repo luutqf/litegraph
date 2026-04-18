@@ -15,6 +15,21 @@ namespace LiteGraph
         public Guid? TenantGUID { get; set; } = null;
 
         /// <summary>
+        /// Request ID filter.
+        /// </summary>
+        public string RequestId { get; set; } = null;
+
+        /// <summary>
+        /// Correlation ID filter.
+        /// </summary>
+        public string CorrelationId { get; set; } = null;
+
+        /// <summary>
+        /// Trace ID filter.
+        /// </summary>
+        public string TraceId { get; set; } = null;
+
+        /// <summary>
         /// HTTP method filter.
         /// </summary>
         public string Method { get; set; } = null;
@@ -23,6 +38,11 @@ namespace LiteGraph
         /// HTTP status code filter.
         /// </summary>
         public int? StatusCode { get; set; } = null;
+
+        /// <summary>
+        /// Success filter.
+        /// </summary>
+        public bool? Success { get; set; } = null;
 
         /// <summary>
         /// Path substring filter.

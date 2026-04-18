@@ -12,7 +12,6 @@
     using ExpressionTree;
     using LiteGraph;
     using LiteGraph.Serialization;
-    using Microsoft.Data.Sqlite;
 
     /// <summary>
     /// Interface for vector methods.
@@ -100,7 +99,7 @@
         /// <param name="token">Cancellation token.</param>
         /// <returns>Vectors.</returns>
         IAsyncEnumerable<VectorMetadata> ReadManyGraph(
-            Guid tenantGuid, 
+            Guid tenantGuid,
             Guid graphGuid,
             EnumerationOrderEnum order = EnumerationOrderEnum.CreatedDescending,
             int skip = 0,
@@ -117,8 +116,8 @@
         /// <param name="token">Cancellation token.</param>
         /// <returns>Vectors.</returns>
         IAsyncEnumerable<VectorMetadata> ReadManyNode(
-            Guid tenantGuid, 
-            Guid graphGuid, 
+            Guid tenantGuid,
+            Guid graphGuid,
             Guid nodeGuid,
             EnumerationOrderEnum order = EnumerationOrderEnum.CreatedDescending,
             int skip = 0,
@@ -135,8 +134,8 @@
         /// <param name="token">Cancellation token.</param>
         /// <returns>Vectors.</returns>
         IAsyncEnumerable<VectorMetadata> ReadManyEdge(
-            Guid tenantGuid, 
-            Guid graphGuid, 
+            Guid tenantGuid,
+            Guid graphGuid,
             Guid edgeGuid,
             EnumerationOrderEnum order = EnumerationOrderEnum.CreatedDescending,
             int skip = 0,
@@ -349,7 +348,7 @@
             Guid graphGuid,
             List<string> labels = null,
             NameValueCollection tags = null,
-            Expr filter = null, 
+            Expr filter = null,
             int? topK = 100,
             float? minScore = 0.0f,
             float? maxDistance = 1.0f,

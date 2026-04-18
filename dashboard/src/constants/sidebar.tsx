@@ -13,6 +13,7 @@ import {
   SaveOutlined,
   HistoryOutlined,
   ApiOutlined,
+  SafetyCertificateOutlined,
 } from '@ant-design/icons';
 import { MenuItemProps } from '@/components/menu-item/types';
 
@@ -104,6 +105,13 @@ export const adminDashboardRoutes: MenuItemProps[] = [
     label: 'Credentials',
     title: 'Manage API credentials',
     path: paths.credentials,
+  },
+  {
+    key: '/authorization',
+    icon: <SafetyCertificateOutlined />,
+    label: 'Authorization',
+    title: 'Manage roles and credential scopes',
+    path: paths.authorization,
   },
   {
     key: '/backups',

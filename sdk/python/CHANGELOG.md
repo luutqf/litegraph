@@ -2,10 +2,17 @@
 
 ## Current Version
 
-v1.0.0
+v6.0.0
 
-- Initial release, compatibility with LiteGraph v3.1.0
+- Added v6 REST coverage for native graph queries, graph transactions, authorization, and request history
+- Added v6 request/response models for query, transaction, and authorization workflows
+- Updated SDK documentation for LiteGraph v6.0.0
+
 
 ## Previous Versions
 
 Notes from previous versions will be shown here.
+
+v1.0.0
+
+- Initial release, compatibility with LiteGraph v3.1.0

@@ -1,4 +1,4 @@
-﻿namespace LiteGraph.GraphRepositories.Sqlite.Implementations
+namespace LiteGraph.GraphRepositories.Sqlite.Implementations
 {
     using System;
     using System.Collections.Generic;
@@ -100,7 +100,8 @@
                 await _Repo.ExecuteQueryAsync(VectorQueries.Delete(tenantGuid, guid), true, token).ConfigureAwait(false);
 
                 // Update vector index asynchronously
-                await VectorMethodsIndexExtensions.UpdateIndexForDeleteAsync(_Repo, tenantGuid, guid, vector.GraphGUID).ConfigureAwait(false);
+                if (vector.NodeGUID.HasValue)
+                    await VectorMethodsIndexExtensions.UpdateIndexForDeleteAsync(_Repo, tenantGuid, vector.NodeGUID.Value, vector.GraphGUID).ConfigureAwait(false);
             }
         }
 
@@ -109,27 +110,72 @@
         {
             token.ThrowIfCancellationRequested();
             await _Repo.ExecuteQueryAsync(VectorQueries.DeleteMany(tenantGuid, graphGuid, nodeGuids, edgeGuids), token: token).ConfigureAwait(false);
+
+            if (graphGuid.HasValue && nodeGuids != null && nodeGuids.Count > 0)
+                await VectorMethodsIndexExtensions.UpdateIndexForDeleteManyAsync(_Repo, tenantGuid, nodeGuids, graphGuid.Value).ConfigureAwait(false);
         }
 
         /// <inheritdoc />
         public async Task DeleteMany(Guid tenantGuid, List<Guid> guids, CancellationToken token = default)
         {
             token.ThrowIfCancellationRequested();
+            Dictionary<Guid, List<Guid>> nodeGuidsByGraph = new Dictionary<Guid, List<Guid>>();
+            await foreach (VectorMetadata vector in ReadByGuids(tenantGuid, guids, token).WithCancellation(token).ConfigureAwait(false))
+            {
+                if (vector.NodeGUID.HasValue)
+                {
+                    if (!nodeGuidsByGraph.ContainsKey(vector.GraphGUID))
+                        nodeGuidsByGraph[vector.GraphGUID] = new List<Guid>();
+
+                    nodeGuidsByGraph[vector.GraphGUID].Add(vector.NodeGUID.Value);
+                }
+            }
+
             await _Repo.ExecuteQueryAsync(VectorQueries.DeleteMany(tenantGuid, guids), false, token).ConfigureAwait(false);
+
+            foreach (KeyValuePair<Guid, List<Guid>> kvp in nodeGuidsByGraph)
+            {
+                await VectorMethodsIndexExtensions.UpdateIndexForDeleteManyAsync(_Repo, tenantGuid, kvp.Value, kvp.Key).ConfigureAwait(false);
+            }
         }
 
         /// <inheritdoc />
         public async Task DeleteAllInTenant(Guid tenantGuid, CancellationToken token = default)
         {
             token.ThrowIfCancellationRequested();
+            List<Graph> indexedGraphs = new List<Graph>();
+            await foreach (Graph graph in _Repo.Graph.ReadAllInTenant(tenantGuid, token: token).WithCancellation(token).ConfigureAwait(false))
+            {
+                if (graph.VectorIndexType.HasValue && graph.VectorIndexType != VectorIndexTypeEnum.None)
+                    indexedGraphs.Add(graph);
+            }
+
             await _Repo.ExecuteQueryAsync(VectorQueries.DeleteAllInTenant(tenantGuid), false, token).ConfigureAwait(false);
+
+            foreach (Graph graph in indexedGraphs)
+            {
+                await _Repo.Graph.MarkVectorIndexDirtyAsync(
+                    tenantGuid,
+                    graph.GUID,
+                    "Vector tenant delete removed persisted vectors outside the vector index").ConfigureAwait(false);
+            }
         }
 
         /// <inheritdoc />
         public async Task DeleteAllInGraph(Guid tenantGuid, Guid graphGuid, CancellationToken token = default)
         {
             token.ThrowIfCancellationRequested();
+            Graph graph = await _Repo.Graph.ReadByGuid(tenantGuid, graphGuid, token).ConfigureAwait(false);
             await _Repo.ExecuteQueryAsync(VectorQueries.DeleteAllInGraph(tenantGuid, graphGuid), false, token).ConfigureAwait(false);
+
+            if (graph != null && graph.VectorIndexType.HasValue && graph.VectorIndexType != VectorIndexTypeEnum.None)
+            {
+                await _Repo.Graph.MarkVectorIndexDirtyAsync(
+                    tenantGuid,
+                    graphGuid,
+                    "Vector graph delete removed persisted vectors outside the vector index",
+                    token).ConfigureAwait(false);
+            }
         }
 
         /// <inheritdoc />

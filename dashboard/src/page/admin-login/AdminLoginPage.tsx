@@ -30,9 +30,12 @@ const AdminLoginPage = () => {
   const { validateConnectivity, isLoading: isValidating } = useValidateConnectivity();
   const serverUrl = useCurrentlyHostedDomainAsServerUrl();
 
-  const handleValidateServerUrl = async () => {
-    const url = form.getFieldValue('url');
-    if (!url) return;
+  const handleValidateServerUrl = async (urlOverride?: unknown) => {
+    const url = typeof urlOverride === 'string' ? urlOverride : form.getFieldValue('url');
+    if (!url) {
+      setIsServerValid(false);
+      return;
+    }
     setEndpoint(url);
     const isValid = await validateConnectivity();
     setIsServerValid(!!isValid);
@@ -55,7 +58,7 @@ const AdminLoginPage = () => {
   useEffect(() => {
     if (!serverUrl) return;
     form.setFieldValue('url', serverUrl);
-    handleValidateServerUrl();
+    void handleValidateServerUrl(serverUrl);
   }, [serverUrl]);
 
   return (

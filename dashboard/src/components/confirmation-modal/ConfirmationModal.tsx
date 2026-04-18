@@ -24,6 +24,7 @@ const ConfirmationModal = ({
       title={title}
       okButtonProps={{ loading }}
       cancelButtonProps={{ disabled: loading }}
+      maskClosable
     >
       {content}
     </Modal>

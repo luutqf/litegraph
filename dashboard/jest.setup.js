@@ -1,9 +1,78 @@
 import '@testing-library/jest-dom';
-import { Table } from 'antd';
-import { LiteGraphSdk } from 'litegraphdb';
 
 // Mock the antd React 19 patch since tests mock antd without unstableSetRender
 jest.mock('@ant-design/v5-patch-for-react-19', () => ({}));
+
+jest.mock('litegraphdb', () => {
+  const mockData = require('./src/tests/pages/mockData');
+
+  const enumerate = (objects) => ({
+    Success: true,
+    Timestamp: {
+      Start: '2025-01-01T00:00:00Z',
+      End: '2025-01-01T00:00:00Z',
+      TotalMs: 0,
+      Messages: {},
+    },
+    ContinuationToken: undefined,
+    MaxResults: 10,
+    EndOfResults: true,
+    TotalRecords: objects.length,
+    RecordsRemaining: 0,
+    Objects: objects,
+  });
+
+  const resource = (objects) => ({
+    readAll: jest.fn().mockResolvedValue(objects),
+    enumerate: jest.fn().mockImplementation(() => Promise.resolve(enumerate(objects))),
+    enumerateAndSearch: jest.fn().mockImplementation(() => Promise.resolve(enumerate(objects))),
+    read: jest.fn().mockImplementation(() => Promise.resolve(objects[0] || null)),
+    readMany: jest.fn().mockResolvedValue(objects),
+    search: jest.fn().mockResolvedValue(objects),
+    create: jest.fn().mockImplementation((value) => Promise.resolve(value || objects[0] || {})),
+    update: jest.fn().mockImplementation((value) => Promise.resolve(value || objects[0] || {})),
+    delete: jest.fn().mockResolvedValue(true),
+  });
+
+  class LiteGraphSdk {
+    constructor(endpoint) {
+      this.config = { endpoint: endpoint || 'http://localhost:8701/' };
+      this.Tenant = resource(mockData.mockTenantData);
+      this.User = resource(mockData.mockUserData);
+      this.Credential = resource(mockData.mockCredentialData);
+      this.Graph = {
+        ...resource(mockData.mockGraphData),
+        exportGexf: jest.fn().mockResolvedValue(mockData.mockGraphData[0]?.gexfContent || ''),
+        enableVectorIndex: jest.fn().mockResolvedValue(true),
+        readVectorIndexConfig: jest.fn().mockResolvedValue({ VectorIndexType: 'HnswSqlite' }),
+        readVectorIndexStats: jest.fn().mockResolvedValue({ VectorCount: 0, Dimensionality: 0 }),
+        rebuildVectorIndex: jest.fn().mockResolvedValue(true),
+        deleteVectorIndex: jest.fn().mockResolvedValue(true),
+        readSubGraph: jest.fn().mockResolvedValue({ Nodes: [], Edges: [] }),
+      };
+      this.Node = resource(mockData.mockNodeData);
+      this.Edge = resource(mockData.mockEdgeData);
+      this.Tag = resource(mockData.mockTagData.allTags);
+      this.Label = resource(mockData.mockLabelData);
+      this.Vector = resource(mockData.mockVectorData);
+      this.Backup = resource(mockData.mockBackupData);
+      this.Admin = {
+        flush: jest.fn().mockResolvedValue(true),
+      };
+      this.Authentication = {
+        getTenantsForEmail: jest.fn().mockResolvedValue(mockData.mockTenantData),
+        generateToken: jest.fn().mockResolvedValue(mockData.mockToken),
+        getTokenDetails: jest.fn().mockResolvedValue(mockData.mockToken),
+      };
+    }
+
+    validateConnectivity() {
+      return Promise.resolve(true);
+    }
+  }
+
+  return { LiteGraphSdk };
+});
 
 // Mock msw and msw/node to avoid ESM import issues
 jest.mock('msw', () => ({

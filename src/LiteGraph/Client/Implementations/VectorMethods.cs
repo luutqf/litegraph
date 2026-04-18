@@ -1,9 +1,10 @@
-﻿namespace LiteGraph.Client.Implementations
+namespace LiteGraph.Client.Implementations
 {
     using System;
     using System.Collections.Generic;
     using System.Collections.Specialized;
     using System.Data;
+    using System.Diagnostics;
     using System.Linq;
     using System.Numerics;
     using System.Runtime.CompilerServices;
@@ -85,7 +86,7 @@
                 if (vector.Vectors == null || vector.Vectors.Count < 1) throw new ArgumentException("The supplied vector object must contain one or more vectors.");
 
                 vector.TenantGUID = tenantGuid;
-                
+
                 await _Client.ValidateGraphExists(vector.TenantGUID, vector.GraphGUID, token).ConfigureAwait(false);
                 if (vector.NodeGUID != null) await _Client.ValidateNodeExists(vector.TenantGUID, vector.NodeGUID.Value, token).ConfigureAwait(false);
                 if (vector.EdgeGUID != null) await _Client.ValidateEdgeExists(vector.TenantGUID, vector.EdgeGUID.Value, token).ConfigureAwait(false);
@@ -96,13 +97,13 @@
 
         /// <inheritdoc />
         public async IAsyncEnumerable<VectorMetadata> ReadAllInTenant(
-            Guid tenantGuid, 
-            EnumerationOrderEnum order = EnumerationOrderEnum.CreatedDescending, 
+            Guid tenantGuid,
+            EnumerationOrderEnum order = EnumerationOrderEnum.CreatedDescending,
             int skip = 0,
             [EnumeratorCancellation] CancellationToken token = default)
         {
             await _Client.ValidateTenantExists(tenantGuid, token).ConfigureAwait(false);
-            
+
             await foreach (VectorMetadata vector in _Repo.Vector.ReadAllInTenant(tenantGuid, order, skip, token).WithCancellation(token).ConfigureAwait(false))
             {
                 yield return vector;
@@ -111,8 +112,8 @@
 
         /// <inheritdoc />
         public async IAsyncEnumerable<VectorMetadata> ReadAllInGraph(
-            Guid tenantGuid, 
-            Guid graphGuid, 
+            Guid tenantGuid,
+            Guid graphGuid,
             EnumerationOrderEnum order = EnumerationOrderEnum.CreatedDescending,
             int skip = 0,
             [EnumeratorCancellation] CancellationToken token = default)
@@ -164,7 +165,7 @@
 
         /// <inheritdoc />
         public async IAsyncEnumerable<VectorMetadata> ReadManyGraph(
-            Guid tenantGuid, 
+            Guid tenantGuid,
             Guid graphGuid,
             EnumerationOrderEnum order = EnumerationOrderEnum.CreatedDescending,
             int skip = 0,
@@ -178,8 +179,8 @@
 
         /// <inheritdoc />
         public async IAsyncEnumerable<VectorMetadata> ReadManyNode(
-            Guid tenantGuid, 
-            Guid graphGuid, 
+            Guid tenantGuid,
+            Guid graphGuid,
             Guid nodeGuid,
             EnumerationOrderEnum order = EnumerationOrderEnum.CreatedDescending,
             int skip = 0,
@@ -193,8 +194,8 @@
 
         /// <inheritdoc />
         public async IAsyncEnumerable<VectorMetadata> ReadManyEdge(
-            Guid tenantGuid, 
-            Guid graphGuid, 
+            Guid tenantGuid,
+            Guid graphGuid,
             Guid edgeGuid,
             EnumerationOrderEnum order = EnumerationOrderEnum.CreatedDescending,
             int skip = 0,
@@ -373,117 +374,170 @@
             if (vectors == null || vectors.Count < 1) throw new ArgumentException("The supplied vector list must include at least one value.");
             token.ThrowIfCancellationRequested();
 
-            if (domain == VectorSearchDomainEnum.Graph)
+            using Activity activity = LiteGraphTelemetry.ActivitySource.StartActivity(LiteGraphTelemetry.VectorSearchActivityName, ActivityKind.Internal);
+            SetVectorSearchActivityTags(activity, domain, searchType, vectors, tenantGuid, graphGuid, labels, tags, filter, topK);
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            int resultCount = 0;
+            bool success = false;
+
+            try
             {
-                await foreach (VectorSearchResult result in _Repo.Vector.SearchGraph(
-                    searchType, 
-                    vectors, 
-                    tenantGuid, 
-                    labels, 
-                    tags, 
-                    filter,
-                    topK,
-                    minScore,
-                    maxDistance,
-                    minInnerProduct,
-                    token).WithCancellation(token).ConfigureAwait(false))
+                if (domain == VectorSearchDomainEnum.Graph)
                 {
-                    token.ThrowIfCancellationRequested();
-                    List<LabelMetadata> graphLabels = new List<LabelMetadata>();
-                    await foreach (LabelMetadata label in _Repo.Label.ReadMany(tenantGuid, result.Graph.GUID, null, null, null, token: token).WithCancellation(token).ConfigureAwait(false))
+                    await foreach (VectorSearchResult result in _Repo.Vector.SearchGraph(
+                        searchType,
+                        vectors,
+                        tenantGuid,
+                        labels,
+                        tags,
+                        filter,
+                        topK,
+                        minScore,
+                        maxDistance,
+                        minInnerProduct,
+                        token).WithCancellation(token).ConfigureAwait(false))
                     {
-                        graphLabels.Add(label);
+                        token.ThrowIfCancellationRequested();
+                        List<LabelMetadata> graphLabels = new List<LabelMetadata>();
+                        await foreach (LabelMetadata label in _Repo.Label.ReadMany(tenantGuid, result.Graph.GUID, null, null, null, token: token).WithCancellation(token).ConfigureAwait(false))
+                        {
+                            graphLabels.Add(label);
+                        }
+                        result.Graph.Labels = LabelMetadata.ToListString(graphLabels);
+
+                        List<TagMetadata> graphTags = new List<TagMetadata>();
+                        await foreach (TagMetadata tag in _Repo.Tag.ReadMany(tenantGuid, result.Graph.GUID, null, null, null, null, token: token).WithCancellation(token).ConfigureAwait(false))
+                        {
+                            graphTags.Add(tag);
+                        }
+                        result.Graph.Tags = TagMetadata.ToNameValueCollection(graphTags);
+                        resultCount++;
+                        yield return result;
                     }
-                    result.Graph.Labels = LabelMetadata.ToListString(graphLabels);
-                    
-                    List<TagMetadata> graphTags = new List<TagMetadata>();
-                    await foreach (TagMetadata tag in _Repo.Tag.ReadMany(tenantGuid, result.Graph.GUID, null, null, null, null, token: token).WithCancellation(token).ConfigureAwait(false))
-                    {
-                        graphTags.Add(tag);
-                    }
-                    result.Graph.Tags = TagMetadata.ToNameValueCollection(graphTags);
-                    yield return result;
                 }
-            }
-            else if (domain == VectorSearchDomainEnum.Node)
-            {
-                if (graphGuid == null) throw new ArgumentException("Graph GUID must be supplied when performing a node vector search.");
-                
-                await foreach (VectorSearchResult result in _Repo.Vector.SearchNode(
-                    searchType, 
-                    vectors, 
-                    tenantGuid, 
-                    graphGuid.Value, 
-                    labels, 
-                    tags, 
-                    filter,
-                    topK,
-                    minScore,
-                    maxDistance,
-                    minInnerProduct,
-                    token).WithCancellation(token).ConfigureAwait(false))
+                else if (domain == VectorSearchDomainEnum.Node)
                 {
-                    token.ThrowIfCancellationRequested();
-                    List<LabelMetadata> nodeLabels = new List<LabelMetadata>();
-                    await foreach (LabelMetadata label in _Repo.Label.ReadMany(tenantGuid, result.Node.GraphGUID, result.Node.GUID, null, null, token: token).WithCancellation(token).ConfigureAwait(false))
+                    if (graphGuid == null) throw new ArgumentException("Graph GUID must be supplied when performing a node vector search.");
+
+                    await foreach (VectorSearchResult result in _Repo.Vector.SearchNode(
+                        searchType,
+                        vectors,
+                        tenantGuid,
+                        graphGuid.Value,
+                        labels,
+                        tags,
+                        filter,
+                        topK,
+                        minScore,
+                        maxDistance,
+                        minInnerProduct,
+                        token).WithCancellation(token).ConfigureAwait(false))
                     {
-                        nodeLabels.Add(label);
+                        token.ThrowIfCancellationRequested();
+                        List<LabelMetadata> nodeLabels = new List<LabelMetadata>();
+                        await foreach (LabelMetadata label in _Repo.Label.ReadMany(tenantGuid, result.Node.GraphGUID, result.Node.GUID, null, null, token: token).WithCancellation(token).ConfigureAwait(false))
+                        {
+                            nodeLabels.Add(label);
+                        }
+                        result.Node.Labels = LabelMetadata.ToListString(nodeLabels);
+
+                        List<TagMetadata> nodeTags = new List<TagMetadata>();
+                        await foreach (TagMetadata tag in _Repo.Tag.ReadMany(tenantGuid, result.Node.GraphGUID, result.Node.GUID, null, null, null, token: token).WithCancellation(token).ConfigureAwait(false))
+                        {
+                            nodeTags.Add(tag);
+                        }
+                        result.Node.Tags = TagMetadata.ToNameValueCollection(nodeTags);
+                        resultCount++;
+                        yield return result;
                     }
-                    result.Node.Labels = LabelMetadata.ToListString(nodeLabels);
-                    
-                    List<TagMetadata> nodeTags = new List<TagMetadata>();
-                    await foreach (TagMetadata tag in _Repo.Tag.ReadMany(tenantGuid, result.Node.GraphGUID, result.Node.GUID, null, null, null, token: token).WithCancellation(token).ConfigureAwait(false))
-                    {
-                        nodeTags.Add(tag);
-                    }
-                    result.Node.Tags = TagMetadata.ToNameValueCollection(nodeTags);
-                    yield return result;
                 }
-            }
-            else if (domain == VectorSearchDomainEnum.Edge)
-            {
-                if (graphGuid == null) throw new ArgumentException("Graph GUID must be supplied when performing an edge vector search.");
-                
-                await foreach (VectorSearchResult result in _Repo.Vector.SearchEdge(
-                    searchType, 
-                    vectors, 
-                    tenantGuid, 
-                    graphGuid.Value, 
-                    labels,
-                    tags, 
-                    filter,
-                    topK,
-                    minScore,
-                    maxDistance,
-                    minInnerProduct,
-                    token).WithCancellation(token).ConfigureAwait(false))
+                else if (domain == VectorSearchDomainEnum.Edge)
                 {
-                    token.ThrowIfCancellationRequested();
-                    List<LabelMetadata> edgeLabels = new List<LabelMetadata>();
-                    await foreach (LabelMetadata label in _Repo.Label.ReadMany(tenantGuid, result.Edge.GraphGUID, null, result.Edge.GUID, null, token: token).WithCancellation(token).ConfigureAwait(false))
+                    if (graphGuid == null) throw new ArgumentException("Graph GUID must be supplied when performing an edge vector search.");
+
+                    await foreach (VectorSearchResult result in _Repo.Vector.SearchEdge(
+                        searchType,
+                        vectors,
+                        tenantGuid,
+                        graphGuid.Value,
+                        labels,
+                        tags,
+                        filter,
+                        topK,
+                        minScore,
+                        maxDistance,
+                        minInnerProduct,
+                        token).WithCancellation(token).ConfigureAwait(false))
                     {
-                        edgeLabels.Add(label);
+                        token.ThrowIfCancellationRequested();
+                        List<LabelMetadata> edgeLabels = new List<LabelMetadata>();
+                        await foreach (LabelMetadata label in _Repo.Label.ReadMany(tenantGuid, result.Edge.GraphGUID, null, result.Edge.GUID, null, token: token).WithCancellation(token).ConfigureAwait(false))
+                        {
+                            edgeLabels.Add(label);
+                        }
+                        result.Edge.Labels = LabelMetadata.ToListString(edgeLabels);
+
+                        List<TagMetadata> edgeTags = new List<TagMetadata>();
+                        await foreach (TagMetadata tag in _Repo.Tag.ReadMany(tenantGuid, result.Edge.GraphGUID, null, result.Edge.GUID, null, null, token: token).WithCancellation(token).ConfigureAwait(false))
+                        {
+                            edgeTags.Add(tag);
+                        }
+                        result.Edge.Tags = TagMetadata.ToNameValueCollection(edgeTags);
+                        resultCount++;
+                        yield return result;
                     }
-                    result.Edge.Labels = LabelMetadata.ToListString(edgeLabels);
-                    
-                    List<TagMetadata> edgeTags = new List<TagMetadata>();
-                    await foreach (TagMetadata tag in _Repo.Tag.ReadMany(tenantGuid, result.Edge.GraphGUID, null, result.Edge.GUID, null, null, token: token).WithCancellation(token).ConfigureAwait(false))
-                    {
-                        edgeTags.Add(tag);
-                    }
-                    result.Edge.Tags = TagMetadata.ToNameValueCollection(edgeTags);
-                    yield return result;
                 }
+                else
+                {
+                    throw new ArgumentException("Unknown vector search domain '" + domain.ToString() + "'.");
+                }
+
+                success = true;
             }
-            else
+            finally
             {
-                throw new ArgumentException("Unknown vector search domain '" + domain.ToString() + "'.");
+                stopwatch.Stop();
+                activity?.SetTag("litegraph.vector.results", resultCount);
+                activity?.SetTag("litegraph.vector.duration_ms", stopwatch.Elapsed.TotalMilliseconds);
+                activity?.SetTag("litegraph.vector.success", success);
+                if (success) LiteGraphTelemetry.SetActivityOk(activity);
+                LiteGraphTelemetry.RecordVectorSearch(new VectorSearchTelemetryEventArgs(
+                    domain.ToString(),
+                    success,
+                    resultCount,
+                    stopwatch.Elapsed.TotalMilliseconds));
             }
         }
 
         #endregion
 
         #region Private-Methods
+
+        private static void SetVectorSearchActivityTags(
+            Activity activity,
+            VectorSearchDomainEnum domain,
+            VectorSearchTypeEnum searchType,
+            List<float> vectors,
+            Guid tenantGuid,
+            Guid? graphGuid,
+            List<string> labels,
+            NameValueCollection tags,
+            Expr filter,
+            int? topK)
+        {
+            if (activity == null) return;
+
+            activity.SetTag("db.system", "litegraph");
+            activity.SetTag("litegraph.tenant_guid", tenantGuid.ToString("D"));
+            if (graphGuid != null) activity.SetTag("litegraph.graph_guid", graphGuid.Value.ToString("D"));
+            activity.SetTag("litegraph.vector.domain", domain.ToString());
+            activity.SetTag("litegraph.vector.search_type", searchType.ToString());
+            activity.SetTag("litegraph.vector.dimensions", vectors?.Count ?? 0);
+            activity.SetTag("litegraph.vector.top_k", topK ?? 0);
+            activity.SetTag("litegraph.vector.has_labels", labels != null && labels.Count > 0);
+            activity.SetTag("litegraph.vector.has_tags", tags != null && tags.Count > 0);
+            activity.SetTag("litegraph.vector.has_filter", filter != null);
+        }
 
         private void CompareVectors(
             VectorSearchTypeEnum searchType,

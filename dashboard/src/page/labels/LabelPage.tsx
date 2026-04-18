@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { LoadingOutlined, PlusSquareOutlined, RedoOutlined } from '@ant-design/icons';
+import { PlusSquareOutlined } from '@ant-design/icons';
 import LitegraphTable from '@/components/base/table/Table';
 import LitegraphButton from '@/components/base/button/Button';
 import FallBack from '@/components/base/fallback/FallBack';
@@ -21,8 +21,6 @@ import { usePagination } from '@/hooks/appHooks';
 import { tablePaginationConfig } from '@/constants/pagination';
 import { LabelMetadata } from 'litegraphdb/dist/types/types';
 import { getNodeAndEdgeGUIDsByEntityList } from '@/utils/dataUtils';
-import LitegraphFlex from '@/components/base/flex/Flex';
-import LitegraphText from '@/components/base/typograpghy/Text';
 import LitegraphTooltip from '@/components/base/tooltip/Tooltip';
 import ViewJsonModal from '@/components/base/view-json-modal/ViewJsonModal';
 
@@ -118,18 +116,7 @@ const LabelPage = () => {
   return (
     <PageContainer
       id="labels"
-      pageTitle={
-        <LitegraphFlex align="center" gap={10}>
-          <LitegraphText>Labels</LitegraphText>
-          {isLabelsLoading ? (
-            <LoadingOutlined className="loading-icon" />
-          ) : (
-            <LitegraphTooltip title="Refresh Data" placement="right">
-              <RedoOutlined className="cursor-pointer" onClick={fetchLabelsList} />
-            </LitegraphTooltip>
-          )}
-        </LitegraphFlex>
-      }
+      pageTitle="Labels"
       pageTitleRightContent={
         <>
           {selectedGraphRedux && (
@@ -162,6 +149,8 @@ const LabelPage = () => {
           dataSource={transformedLabelsList}
           rowKey={'GUID'}
           onRowClick={handleEditLabel}
+          onRefresh={fetchLabelsList}
+          isRefreshing={isLabelsLoading}
           pagination={{
             ...tablePaginationConfig,
             total: labelsList?.TotalRecords,

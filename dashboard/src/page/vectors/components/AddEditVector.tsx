@@ -7,7 +7,7 @@ import LitegraphFormItem from '@/components/base/form/FormItem';
 import LitegraphInput from '@/components/base/input/Input';
 import toast from 'react-hot-toast';
 import { v4 } from 'uuid';
-import { JsonEditor } from 'jsoneditor-react';
+import JsonEditorWithAce from '@/components/inputs/json-editor/JsonEditorWithAce';
 import { useCreateVectorMutation, useUpdateVectorMutation } from '@/lib/store/slice/slice';
 import { VectorMetadata, VectorCreateRequest } from 'litegraphdb/dist/types/types';
 import NodeSelector from '@/components/node-selector/NodeSelector';
@@ -174,7 +174,7 @@ const AddEditVector = ({
           tooltip="Vector embedding values as JSON array"
           rules={[{ required: true, message: 'Please input Vectors!' }]}
         >
-          <JsonEditor
+          <JsonEditorWithAce
             key={uniqueKey}
             value={form.getFieldValue('Vectors') || []}
             onChange={(json: any) => {

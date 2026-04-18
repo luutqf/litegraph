@@ -48,6 +48,9 @@ describe('AdminLoginPage', () => {
     const initialState = createMockInitialState();
     renderWithRedux(<AdminLoginPage />, initialState, undefined, true);
 
+    const urlInput = screen.getByPlaceholderText('https://your-litegraph-server.com');
+    fireEvent.change(urlInput, { target: { value: '' } });
+
     const submitButton = screen.getByRole('button', { name: /login/i });
     fireEvent.click(submitButton);
 
@@ -246,6 +249,12 @@ describe('AdminLoginPage', () => {
     renderWithRedux(<AdminLoginPage />, initialState, undefined, true);
 
     const urlInput = screen.getByPlaceholderText('https://your-litegraph-server.com');
+    await waitFor(() => {
+      expect(mockValidateConnectivity).toHaveBeenCalled();
+    });
+
+    mockValidateConnectivity.mockClear();
+    fireEvent.change(urlInput, { target: { value: '' } });
     fireEvent.blur(urlInput);
 
     expect(mockValidateConnectivity).not.toHaveBeenCalled();

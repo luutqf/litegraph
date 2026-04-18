@@ -1,4 +1,4 @@
-﻿namespace LiteGraph.GraphRepositories.Sqlite
+namespace LiteGraph.GraphRepositories.Sqlite
 {
     using System;
     using System.Collections;
@@ -37,6 +37,13 @@
             return null;
         }
 
+        internal static List<T> GetDataRowJsonListValue<T>(DataRow row, string column)
+        {
+            string json = GetDataRowStringValue(row, column);
+            if (String.IsNullOrEmpty(json)) return null;
+            return Serializer.DeserializeJson<List<T>>(json);
+        }
+
         internal static int GetDataRowIntValue(DataRow row, string column)
         {
             if (row.Table.Columns.Contains(column))
@@ -58,6 +65,33 @@
                 {
                     if (Int32.TryParse(row[column].ToString(), out int val))
                         return val;
+                }
+            }
+            return null;
+        }
+
+        internal static bool GetDataRowBooleanValue(DataRow row, string column)
+        {
+            if (row.Table.Columns.Contains(column))
+            {
+                if (row[column] != null && row[column] != DBNull.Value)
+                {
+                    string value = row[column].ToString();
+                    if (Int32.TryParse(value, out int intValue)) return intValue != 0;
+                    if (Boolean.TryParse(value, out bool boolValue)) return boolValue;
+                }
+            }
+            return false;
+        }
+
+        internal static DateTime? GetDataRowNullableDateTimeValue(DataRow row, string column)
+        {
+            if (row.Table.Columns.Contains(column))
+            {
+                if (row[column] != null && row[column] != DBNull.Value)
+                {
+                    if (DateTime.TryParse(row[column].ToString(), out DateTime value))
+                        return DateTime.SpecifyKind(value, DateTimeKind.Utc);
                 }
             }
             return null;
@@ -651,7 +685,7 @@
                 CreatedUtc = DateTime.Parse(row["createdutc"].ToString()),
                 LastUpdateUtc = DateTime.Parse(row["lastupdateutc"].ToString())
             };
-        }  
+        }
 
         internal static List<UserMaster> UsersFromDataTable(DataTable table)
         {
@@ -677,6 +711,8 @@
                 Name = GetDataRowStringValue(row, "name"),
                 BearerToken = GetDataRowStringValue(row, "bearertoken"),
                 Active = (Convert.ToInt32(GetDataRowStringValue(row, "active")) > 0 ? true : false),
+                Scopes = GetDataRowJsonListValue<string>(row, "scopes"),
+                GraphGUIDs = GetDataRowJsonListValue<Guid>(row, "graphguids"),
                 CreatedUtc = DateTime.Parse(row["createdutc"].ToString()),
                 LastUpdateUtc = DateTime.Parse(row["lastupdateutc"].ToString())
             };
@@ -828,32 +864,41 @@
                 CreatedUtc = DateTime.Parse(row["createdutc"].ToString()),
                 LastUpdateUtc = DateTime.Parse(row["lastupdateutc"].ToString())
             };
-            
+
             // Vector index fields
             if (row.Table.Columns.Contains("vectorindextype") && row["vectorindextype"] != DBNull.Value)
             {
                 if (Enum.TryParse<Indexing.Vector.VectorIndexTypeEnum>(row["vectorindextype"].ToString(), out Indexing.Vector.VectorIndexTypeEnum indexType))
                     graph.VectorIndexType = indexType;
             }
-            
+
             if (row.Table.Columns.Contains("vectorindexfile"))
                 graph.VectorIndexFile = GetDataRowStringValue(row, "vectorindexfile");
-            
+
             if (row.Table.Columns.Contains("vectorindexthreshold"))
                 graph.VectorIndexThreshold = GetDataRowNullableIntValue(row, "vectorindexthreshold");
-            
+
             if (row.Table.Columns.Contains("vectordimensionality"))
                 graph.VectorDimensionality = GetDataRowNullableIntValue(row, "vectordimensionality");
-            
+
             if (row.Table.Columns.Contains("vectorindexm"))
                 graph.VectorIndexM = GetDataRowNullableIntValue(row, "vectorindexm");
-            
+
             if (row.Table.Columns.Contains("vectorindexef"))
                 graph.VectorIndexEf = GetDataRowNullableIntValue(row, "vectorindexef");
-            
+
             if (row.Table.Columns.Contains("vectorindexefconstruction"))
                 graph.VectorIndexEfConstruction = GetDataRowNullableIntValue(row, "vectorindexefconstruction");
-            
+
+            if (row.Table.Columns.Contains("vectorindexdirty"))
+                graph.VectorIndexDirty = GetDataRowBooleanValue(row, "vectorindexdirty");
+
+            if (row.Table.Columns.Contains("vectorindexdirtyutc"))
+                graph.VectorIndexDirtyUtc = GetDataRowNullableDateTimeValue(row, "vectorindexdirtyutc");
+
+            if (row.Table.Columns.Contains("vectorindexdirtyreason"))
+                graph.VectorIndexDirtyReason = GetDataRowStringValue(row, "vectorindexdirtyreason");
+
             return graph;
         }
 

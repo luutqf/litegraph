@@ -7,7 +7,7 @@ import { CloseCircleFilled, CopyOutlined, ExpandOutlined } from '@ant-design/ico
 import { defaultNodeTooltip } from './constant';
 import LitegraphText from '@/components/base/typograpghy/Text';
 import LitegraphFlex from '@/components/base/flex/Flex';
-import { JsonEditor } from 'jsoneditor-react';
+import JsonEditorWithAce from '@/components/inputs/json-editor/JsonEditorWithAce';
 import FallBack from '@/components/base/fallback/FallBack';
 import PageLoading from '@/components/base/loading/PageLoading';
 import LitegraphButton from '@/components/base/button/Button';
@@ -273,7 +273,7 @@ const NodeToolTip = ({
                     const tagKeys = Object.keys(tags);
 
                     return tagKeys.length > 0 ? (
-                      <JsonEditor
+                      <JsonEditorWithAce
                         key={JSON.stringify(tags)}
                         value={tags}
                         mode="view" // Use 'view' mode to make it read-only
@@ -302,7 +302,7 @@ const NodeToolTip = ({
                     />
                   </LitegraphTooltip>
                 </LitegraphFlex>
-                <JsonEditor
+                <JsonEditorWithAce
                   key={JSON.stringify(node?.Data && JSON.parse(JSON.stringify(node.Data)))}
                   value={(node?.Data && JSON.parse(JSON.stringify(node.Data))) || {}}
                   mode="view"

@@ -1,4 +1,4 @@
-﻿namespace LiteGraph.Server.Classes
+namespace LiteGraph.Server.Classes
 {
     using System;
 
@@ -45,6 +45,8 @@
                         return "The requested resource is not empty.";
                     case ApiErrorEnum.NotFound:
                         return "The requested resource was not found.";
+                    case ApiErrorEnum.RequestTimeout:
+                        return "The request timed out before it could be completed.";
                     case ApiErrorEnum.TooLarge:
                         return "The size of your request exceeds the maximum allowed by this server.";
 
@@ -85,6 +87,8 @@
                         return 400;
                     case ApiErrorEnum.NotFound:
                         return 404;
+                    case ApiErrorEnum.RequestTimeout:
+                        return 408;
                     case ApiErrorEnum.TooLarge:
                         return 413;
 
@@ -126,7 +130,7 @@
         /// <param name="error">Error code.</param>
         /// <param name="context">Context.</param>
         /// <param name="description">Description.</param>
-        /// 
+        ///
         public ApiErrorResponse(ApiErrorEnum error, object context = null, string description = null)
         {
             Error = error;

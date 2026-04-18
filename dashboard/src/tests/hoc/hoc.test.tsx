@@ -176,7 +176,7 @@ describe('HOC Components', () => {
       expect(getByTestId('wrapped-component')).toHaveAttribute('data-test-prop', 'admin-test');
     });
 
-    it('renders logout fallback with message when no tenants found', async () => {
+    it('renders wrapped component when the admin key is valid and no tenants exist yet', async () => {
       mockUseAppSelector.mockReturnValue({ adminAccessKey: 'admin-key' });
       mockGetTenants.mockResolvedValue([]);
 
@@ -184,11 +184,8 @@ describe('HOC Components', () => {
       const { getByTestId } = render(<WrappedComponent />);
 
       await waitFor(() => {
-        expect(getByTestId('logout-fallback')).toBeInTheDocument();
+        expect(getByTestId('wrapped-component')).toBeInTheDocument();
       });
-
-      expect(getByTestId('logout-fallback')).toHaveAttribute('data-message', 'No Tenant Found.');
-      expect(getByTestId('logout-fallback')).toHaveAttribute('data-logout-path', '/admin/login');
     });
 
     it('calls logout when getTenants returns null', async () => {

@@ -56,6 +56,7 @@ export type RequestHistorySummary = {
 export type RequestHistoryListParams = {
   method?: string;
   statusCode?: number;
+  success?: boolean;
   path?: string;
   sourceIp?: string;
   tenantGuid?: string;
@@ -76,6 +77,8 @@ const getBaseUrl = (): string => {
   const endpoint = sdk.config.endpoint || '/';
   return endpoint.endsWith('/') ? endpoint.slice(0, -1) : endpoint;
 };
+
+export const getMetricsEndpointUrl = (): string => `${getBaseUrl()}/metrics`;
 
 const buildHeaders = (): Record<string, string> => {
   const headers: Record<string, string> = {
@@ -124,6 +127,10 @@ const request = async <T>(method: string, url: string, body?: unknown): Promise<
 export const listRequestHistory = (params: RequestHistoryListParams = {}) => {
   const url = `${getBaseUrl()}/v1.0/requesthistory${buildQuery(params as Record<string, string | number | boolean | undefined>)}`;
   return request<RequestHistorySearchResult>('GET', url);
+};
+
+export const listRecentRequestErrors = (params: Omit<RequestHistoryListParams, 'success'> = {}) => {
+  return listRequestHistory({ ...params, success: false });
 };
 
 export const getRequestHistorySummary = (params: RequestHistorySummaryParams) => {

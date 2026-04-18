@@ -8,6 +8,15 @@ LiteGraph is a property graph database with support for graph relationships, tag
 
 LiteGraph can be run in-process (using `LiteGraphClient`) or as a standalone RESTful server (using `LiteGraph.Server`). For comprehensive documentation, visit [litegraph.readme.io](https://litegraph.readme.io/).
 
+Operational planning docs in this repository:
+
+- [Storage configuration](STORAGE.md)
+- [Native graph query language](DSL.md)
+- [Graph transactions](TRANSACTIONS.md)
+- [RBAC and scoped credentials](RBAC.md)
+- [Observability](OBSERVABILITY.md)
+- [Upgrade guide](UPGRADE.md)
+
 ## Repository Structure
 
 This monorepo contains the LiteGraph database core, server, dashboard, and client SDKs:
@@ -21,10 +30,37 @@ This monorepo contains the LiteGraph database core, server, dashboard, and clien
 | [`sdk/js/`](sdk/js/) | JavaScript/Node.js SDK for REST API ([npm](https://www.npmjs.com/package/litegraphdb)) |
 | [`docker/`](docker/) | Docker Compose deployment for LiteGraph Server and MCP Server |
 
-## New in v5.0.x
+## New in v6.0.0
 
-- Breaking changes: migrated all APIs to full async/await
-- New MCP (Model Context Protocol) server for AI/LLM integration
+- Native LiteGraph query language for graph reads and mutations
+- Graph-scoped transactions for nodes, edges, tags, labels, and vectors
+- RBAC and scoped credentials for REST and MCP boundaries
+- Provider-neutral storage architecture with SQLite default and PostgreSQL production support
+- Prometheus metrics, OpenTelemetry instrumentation, request history integration, and a Grafana dashboard
+- LiteGraphConsole, an interactive `lg` shell for database files and endpoints
+- Dashboard improvements for authorization, request history, API exploration, and operational monitoring
+
+## Docker Compose Monitoring
+
+The Docker Compose deployment in [`docker/compose.yaml`](docker/compose.yaml) starts LiteGraph, LiteGraph MCP, Prometheus, and Grafana OSS.
+
+Prometheus scrapes LiteGraph at `http://localhost:8701/metrics` using [`docker/prometheus.yml`](docker/prometheus.yml). Grafana is provisioned with a Prometheus datasource and loads the LiteGraph dashboard from [`assets/grafana/litegraph-observability-dashboard.json`](assets/grafana/litegraph-observability-dashboard.json).
+
+```bash
+cd docker
+docker compose up -d
+```
+
+Default endpoints:
+
+- LiteGraph REST: `http://localhost:8701`
+- LiteGraph MCP: `http://localhost:8200`
+- Prometheus: `http://localhost:9090`
+- Grafana OSS: `http://localhost:3000` with `admin` / `admin`
+
+Open Grafana, sign in with the default credentials, and browse to the `LiteGraph` folder to open the provisioned LiteGraph observability dashboard. If a panel is empty, generate LiteGraph traffic and confirm the `litegraph` target is `UP` at `http://localhost:9090/targets`.
+
+For production deployments, change the Grafana admin password and protect the unauthenticated `/metrics` endpoint at the network or reverse-proxy layer.
 
 ## AI Agent Integration
 
@@ -382,7 +418,7 @@ Modify ./litegraph.json to change the REST listener hostname to make externally 
 
 ## Running in Docker
 
-A Docker image is available in [Docker Hub](https://hub.docker.com/r/jchristn77/litegraph) under `jchristn77/litegraph`. Use `docker/compose.yaml` if you wish to run LiteGraph and the MCP server with Docker Compose. Ensure that `docker/litegraph.db`, `docker/litegraph.json`, and `docker/litegraph-mcp.json` are configured for your deployment.
+A Docker image is available in [Docker Hub](https://hub.docker.com/r/jchristn77/litegraph) under `jchristn77/litegraph:v6.0.0`. Use `docker/compose.yaml` if you wish to run LiteGraph, the MCP server, Prometheus, and Grafana OSS with Docker Compose. Ensure that `docker/litegraph.db`, `docker/litegraph.json`, and `docker/litegraph-mcp.json` are configured for your deployment.
 
 ## MCP Server
 
@@ -470,14 +506,14 @@ Configuration can be overridden using environment variables:
 
 ### Running LiteGraph and MCP Server in Docker
 
-Docker images are available at `jchristn77/litegraph` and `jchristn77/litegraph-mcp`. Use the Docker Compose file in the `docker` directory:
+Docker images are available at `jchristn77/litegraph:v6.0.0` and `jchristn77/litegraph-mcp:v6.0.0`. Use the Docker Compose file in the `docker` directory:
 
 ```bash
 cd docker
 docker compose up
 ```
 
-The server uses `docker/litegraph.json`; the MCP server uses `docker/litegraph-mcp.json`.
+The server uses `docker/litegraph.json`; the MCP server uses `docker/litegraph-mcp.json`. The same Compose file also starts Prometheus on `http://localhost:9090` and Grafana OSS on `http://localhost:3000`.
 
 ## Version History
 

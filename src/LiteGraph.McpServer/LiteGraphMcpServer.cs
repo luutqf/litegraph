@@ -344,11 +344,11 @@ namespace LiteGraph.McpServer
             _McpWebsocketServer = new McpWebsocketsServer(_Settings.WebSocket.Hostname, _Settings.WebSocket.Port, "/mcp", includeDefaultMethods: true);
 
             _McpHttpServer.ServerName = "LiteGraph.McpServer";
-            _McpHttpServer.ServerVersion = "1.0.0";
+            _McpHttpServer.ServerVersion = "6.0.0";
             _McpTcpServer.ServerName = "LiteGraph.McpServer";
-            _McpTcpServer.ServerVersion = "1.0.0";
+            _McpTcpServer.ServerVersion = "6.0.0";
             _McpWebsocketServer.ServerName = "LiteGraph.McpServer";
-            _McpWebsocketServer.ServerVersion = "1.0.0";
+            _McpWebsocketServer.ServerVersion = "6.0.0";
 
             _McpHttpServer.ClientConnected += ClientConnected;
             _McpHttpServer.ClientDisconnected += ClientDisconnected;
@@ -402,6 +402,7 @@ namespace LiteGraph.McpServer
                 throw new InvalidOperationException("Servers and SDK have not been initialized");
 
             Registrations.AdminRegistrations.RegisterHttpTools(_McpHttpServer, _McpSdk);
+            Registrations.AuthorizationRegistrations.RegisterHttpTools(_McpHttpServer, _McpSdk);
             Registrations.BatchRegistrations.RegisterHttpTools(_McpHttpServer, _McpSdk);
             Registrations.CredentialRegistrations.RegisterHttpTools(_McpHttpServer, _McpSdk);
             Registrations.TenantRegistrations.RegisterHttpTools(_McpHttpServer, _McpSdk);
@@ -412,9 +413,12 @@ namespace LiteGraph.McpServer
             Registrations.LabelRegistrations.RegisterHttpTools(_McpHttpServer, _McpSdk);
             Registrations.TagRegistrations.RegisterHttpTools(_McpHttpServer, _McpSdk);
             Registrations.VectorRegistrations.RegisterHttpTools(_McpHttpServer, _McpSdk);
+            Registrations.QueryRegistrations.RegisterHttpTools(_McpHttpServer, _McpSdk);
+            Registrations.TransactionRegistrations.RegisterHttpTools(_McpHttpServer, _McpSdk);
             Registrations.UserAuthenticationRegistrations.RegisterHttpTools(_McpHttpServer, _McpSdk);
 
             Registrations.AdminRegistrations.RegisterTcpMethods(_McpTcpServer, _McpSdk);
+            Registrations.AuthorizationRegistrations.RegisterTcpMethods(_McpTcpServer, _McpSdk);
             Registrations.BatchRegistrations.RegisterTcpMethods(_McpTcpServer, _McpSdk);
             Registrations.CredentialRegistrations.RegisterTcpMethods(_McpTcpServer, _McpSdk);
             Registrations.TenantRegistrations.RegisterTcpMethods(_McpTcpServer, _McpSdk);
@@ -425,9 +429,12 @@ namespace LiteGraph.McpServer
             Registrations.LabelRegistrations.RegisterTcpMethods(_McpTcpServer, _McpSdk);
             Registrations.TagRegistrations.RegisterTcpMethods(_McpTcpServer, _McpSdk);
             Registrations.VectorRegistrations.RegisterTcpMethods(_McpTcpServer, _McpSdk);
+            Registrations.QueryRegistrations.RegisterTcpMethods(_McpTcpServer, _McpSdk);
+            Registrations.TransactionRegistrations.RegisterTcpMethods(_McpTcpServer, _McpSdk);
             Registrations.UserAuthenticationRegistrations.RegisterTcpMethods(_McpTcpServer, _McpSdk);
 
             Registrations.AdminRegistrations.RegisterWebSocketMethods(_McpWebsocketServer, _McpSdk);
+            Registrations.AuthorizationRegistrations.RegisterWebSocketMethods(_McpWebsocketServer, _McpSdk);
             Registrations.BatchRegistrations.RegisterWebSocketMethods(_McpWebsocketServer, _McpSdk);
             Registrations.CredentialRegistrations.RegisterWebSocketMethods(_McpWebsocketServer, _McpSdk);
             Registrations.TenantRegistrations.RegisterWebSocketMethods(_McpWebsocketServer, _McpSdk);
@@ -438,6 +445,8 @@ namespace LiteGraph.McpServer
             Registrations.LabelRegistrations.RegisterWebSocketMethods(_McpWebsocketServer, _McpSdk);
             Registrations.TagRegistrations.RegisterWebSocketMethods(_McpWebsocketServer, _McpSdk);
             Registrations.VectorRegistrations.RegisterWebSocketMethods(_McpWebsocketServer, _McpSdk);
+            Registrations.QueryRegistrations.RegisterWebSocketMethods(_McpWebsocketServer, _McpSdk);
+            Registrations.TransactionRegistrations.RegisterWebSocketMethods(_McpWebsocketServer, _McpSdk);
             Registrations.UserAuthenticationRegistrations.RegisterWebSocketMethods(_McpWebsocketServer, _McpSdk);
         }
 

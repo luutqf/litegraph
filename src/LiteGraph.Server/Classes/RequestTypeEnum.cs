@@ -214,6 +214,96 @@
 
         #endregion
 
+        #region Authorization
+
+        /// <summary>
+        /// AuthorizationRoleCreate
+        /// </summary>
+        [EnumMember(Value = "AuthorizationRoleCreate")]
+        AuthorizationRoleCreate,
+        /// <summary>
+        /// AuthorizationRoleDelete
+        /// </summary>
+        [EnumMember(Value = "AuthorizationRoleDelete")]
+        AuthorizationRoleDelete,
+        /// <summary>
+        /// AuthorizationRoleRead
+        /// </summary>
+        [EnumMember(Value = "AuthorizationRoleRead")]
+        AuthorizationRoleRead,
+        /// <summary>
+        /// AuthorizationRoleReadAll
+        /// </summary>
+        [EnumMember(Value = "AuthorizationRoleReadAll")]
+        AuthorizationRoleReadAll,
+        /// <summary>
+        /// AuthorizationRoleUpdate
+        /// </summary>
+        [EnumMember(Value = "AuthorizationRoleUpdate")]
+        AuthorizationRoleUpdate,
+        /// <summary>
+        /// UserRoleAssignmentCreate
+        /// </summary>
+        [EnumMember(Value = "UserRoleAssignmentCreate")]
+        UserRoleAssignmentCreate,
+        /// <summary>
+        /// UserRoleAssignmentDelete
+        /// </summary>
+        [EnumMember(Value = "UserRoleAssignmentDelete")]
+        UserRoleAssignmentDelete,
+        /// <summary>
+        /// UserRoleAssignmentRead
+        /// </summary>
+        [EnumMember(Value = "UserRoleAssignmentRead")]
+        UserRoleAssignmentRead,
+        /// <summary>
+        /// UserRoleAssignmentReadAll
+        /// </summary>
+        [EnumMember(Value = "UserRoleAssignmentReadAll")]
+        UserRoleAssignmentReadAll,
+        /// <summary>
+        /// UserRoleAssignmentUpdate
+        /// </summary>
+        [EnumMember(Value = "UserRoleAssignmentUpdate")]
+        UserRoleAssignmentUpdate,
+        /// <summary>
+        /// CredentialScopeAssignmentCreate
+        /// </summary>
+        [EnumMember(Value = "CredentialScopeAssignmentCreate")]
+        CredentialScopeAssignmentCreate,
+        /// <summary>
+        /// CredentialScopeAssignmentDelete
+        /// </summary>
+        [EnumMember(Value = "CredentialScopeAssignmentDelete")]
+        CredentialScopeAssignmentDelete,
+        /// <summary>
+        /// CredentialScopeAssignmentRead
+        /// </summary>
+        [EnumMember(Value = "CredentialScopeAssignmentRead")]
+        CredentialScopeAssignmentRead,
+        /// <summary>
+        /// CredentialScopeAssignmentReadAll
+        /// </summary>
+        [EnumMember(Value = "CredentialScopeAssignmentReadAll")]
+        CredentialScopeAssignmentReadAll,
+        /// <summary>
+        /// CredentialScopeAssignmentUpdate
+        /// </summary>
+        [EnumMember(Value = "CredentialScopeAssignmentUpdate")]
+        CredentialScopeAssignmentUpdate,
+        /// <summary>
+        /// UserEffectivePermissionsRead
+        /// </summary>
+        [EnumMember(Value = "UserEffectivePermissionsRead")]
+        UserEffectivePermissionsRead,
+        /// <summary>
+        /// CredentialEffectivePermissionsRead
+        /// </summary>
+        [EnumMember(Value = "CredentialEffectivePermissionsRead")]
+        CredentialEffectivePermissionsRead,
+
+        #endregion
+
         #region Labels
 
         /// <summary>
@@ -536,6 +626,16 @@
         /// </summary>
         [EnumMember(Value = "GraphExistence")]
         GraphExistence,
+        /// <summary>
+        /// GraphQuery
+        /// </summary>
+        [EnumMember(Value = "GraphQuery")]
+        GraphQuery,
+        /// <summary>
+        /// GraphTransaction
+        /// </summary>
+        [EnumMember(Value = "GraphTransaction")]
+        GraphTransaction,
         /// <summary>
         /// GraphExists
         /// </summary>

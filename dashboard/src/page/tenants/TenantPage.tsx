@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { LoadingOutlined, PlusSquareOutlined, RedoOutlined } from '@ant-design/icons';
+import { PlusSquareOutlined } from '@ant-design/icons';
 import PageContainer from '@/components/base/pageContainer/PageContainer';
 import LitegraphButton from '@/components/base/button/Button';
 import LitegraphTable from '@/components/base/table/Table';
@@ -12,8 +12,6 @@ import { usePagination } from '@/hooks/appHooks';
 import { useEnumerateTenantQuery } from '@/lib/store/slice/slice';
 import { tablePaginationConfig } from '@/constants/pagination';
 import { TenantMetaData } from 'litegraphdb/dist/types/types';
-import LitegraphFlex from '@/components/base/flex/Flex';
-import LitegraphText from '@/components/base/typograpghy/Text';
 import LitegraphTooltip from '@/components/base/tooltip/Tooltip';
 import ViewJsonModal from '@/components/base/view-json-modal/ViewJsonModal';
 
@@ -53,18 +51,7 @@ const TenantPage = () => {
   return (
     <PageContainer
       id="tenants"
-      pageTitle={
-        <LitegraphFlex align="center" gap={10}>
-          <LitegraphText>Tenants</LitegraphText>
-          {isTenantsLoading ? (
-            <LoadingOutlined className="loading-icon" />
-          ) : (
-            <LitegraphTooltip title="Refresh Data" placement="right">
-              <RedoOutlined className="cursor-pointer" onClick={fetchTenantsList} />
-            </LitegraphTooltip>
-          )}
-        </LitegraphFlex>
-      }
+      pageTitle="Tenants"
       pageTitleRightContent={
         <LitegraphTooltip title="Create a new tenant">
           <LitegraphButton
@@ -88,6 +75,8 @@ const TenantPage = () => {
           dataSource={tenantsList}
           rowKey={'GUID'}
           onRowClick={handleEditTenant}
+          onRefresh={fetchTenantsList}
+          isRefreshing={isTenantsLoading}
           pagination={{
             ...tablePaginationConfig,
             total: data?.TotalRecords,

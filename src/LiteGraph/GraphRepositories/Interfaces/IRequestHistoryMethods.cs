@@ -1,4 +1,4 @@
-namespace LiteGraph.GraphRepositories.Interfaces
+﻿namespace LiteGraph.GraphRepositories.Interfaces
 {
     using System;
     using System.Threading;

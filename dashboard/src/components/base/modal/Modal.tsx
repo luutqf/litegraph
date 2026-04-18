@@ -11,6 +11,7 @@ const LitegraphModal = ({ getContainer, destroyOnClose, ...props }: LitegraphMod
       getContainer={getContainer || (() => document.getElementById('root-div') as HTMLElement)}
       destroyOnHidden={destroyOnClose}
       {...props}
+      maskClosable
     />
   );
 };

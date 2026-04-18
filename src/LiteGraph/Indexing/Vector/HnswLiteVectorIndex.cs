@@ -101,13 +101,23 @@ namespace LiteGraph.Indexing.Vector
         /// <inheritdoc />
         public async Task AddAsync(Guid vectorId, List<float> vector, CancellationToken cancellationToken = default)
         {
+            await AddAsync(new VectorIndexEntry
+            {
+                Id = vectorId,
+                Vector = vector
+            }, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <inheritdoc />
+        public async Task AddAsync(VectorIndexEntry entry, CancellationToken cancellationToken = default)
+        {
             ThrowIfDisposed();
 
-            if (vectorId == Guid.Empty) throw new ArgumentException("Vector ID cannot be empty.");
-            if (vector == null || vector.Count == 0) throw new ArgumentNullException(nameof(vector));
+            ValidateEntry(entry);
             if (_Index == null) throw new InvalidOperationException("Index not initialized.");
 
-            await _Index.AddAsync(vectorId, vector, cancellationToken);
+            await _Index.AddAsync(entry.Id, entry.Vector, cancellationToken).ConfigureAwait(false);
+            await ApplyMetadataAsync(entry, cancellationToken).ConfigureAwait(false);
             _LastAddUtc = DateTime.UtcNow;
         }
 
@@ -124,17 +134,49 @@ namespace LiteGraph.Indexing.Vector
         }
 
         /// <inheritdoc />
-        public async Task UpdateAsync(Guid vectorId, List<float> vector, CancellationToken cancellationToken = default)
+        public async Task AddBatchAsync(IEnumerable<VectorIndexEntry> entries, CancellationToken cancellationToken = default)
         {
             ThrowIfDisposed();
 
-            if (vectorId == Guid.Empty) throw new ArgumentException("Vector ID cannot be empty.");
-            if (vector == null || vector.Count == 0) throw new ArgumentNullException(nameof(vector));
+            if (entries == null) return;
+            if (_Index == null) throw new InvalidOperationException("Index not initialized.");
+
+            List<VectorIndexEntry> entryList = entries.Where(entry => entry != null).ToList();
+            if (entryList.Count == 0) return;
+
+            Dictionary<Guid, List<float>> vectors = new Dictionary<Guid, List<float>>();
+            foreach (VectorIndexEntry entry in entryList)
+            {
+                ValidateEntry(entry);
+                vectors[entry.Id] = entry.Vector;
+            }
+
+            await _Index.AddNodesAsync(vectors, cancellationToken).ConfigureAwait(false);
+            await ApplyMetadataAsync(entryList, cancellationToken).ConfigureAwait(false);
+            _LastAddUtc = DateTime.UtcNow;
+        }
+
+        /// <inheritdoc />
+        public async Task UpdateAsync(Guid vectorId, List<float> vector, CancellationToken cancellationToken = default)
+        {
+            await UpdateAsync(new VectorIndexEntry
+            {
+                Id = vectorId,
+                Vector = vector
+            }, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <inheritdoc />
+        public async Task UpdateAsync(VectorIndexEntry entry, CancellationToken cancellationToken = default)
+        {
+            ThrowIfDisposed();
+
+            ValidateEntry(entry);
             if (_Index == null) throw new InvalidOperationException("Index not initialized.");
 
             // HnswLite doesn't support update directly, so we remove and re-add
-            await RemoveAsync(vectorId, cancellationToken);
-            await AddAsync(vectorId, vector, cancellationToken);
+            await RemoveAsync(entry.Id, cancellationToken).ConfigureAwait(false);
+            await AddAsync(entry, cancellationToken).ConfigureAwait(false);
         }
 
         /// <inheritdoc />
@@ -256,6 +298,9 @@ namespace LiteGraph.Indexing.Vector
                 LastRemoveUtc = _LastRemoveUtc,
                 LastSearchUtc = _LastSearchUtc,
                 IsLoaded = _Index != null,
+                IsDirty = _Graph?.VectorIndexDirty ?? false,
+                DirtySinceUtc = _Graph?.VectorIndexDirtyUtc,
+                DirtyReason = _Graph?.VectorIndexDirtyReason,
                 DistanceMetric = "Cosine"
             };
 
@@ -381,6 +426,45 @@ namespace LiteGraph.Indexing.Vector
             if (_Disposed) throw new ObjectDisposedException(nameof(HnswLiteVectorIndex));
         }
 
+        private static void ValidateEntry(VectorIndexEntry entry)
+        {
+            if (entry == null) throw new ArgumentNullException(nameof(entry));
+            if (entry.Id == Guid.Empty) throw new ArgumentException("Vector ID cannot be empty.", nameof(entry));
+            if (entry.Vector == null || entry.Vector.Count == 0) throw new ArgumentNullException(nameof(entry.Vector));
+        }
+
+        private async Task ApplyMetadataAsync(VectorIndexEntry entry, CancellationToken cancellationToken)
+        {
+            await ApplyMetadataAsync(new List<VectorIndexEntry> { entry }, cancellationToken).ConfigureAwait(false);
+        }
+
+        private async Task ApplyMetadataAsync(IEnumerable<VectorIndexEntry> entries, CancellationToken cancellationToken)
+        {
+            if (_Storage == null || entries == null) return;
+
+            bool metadataApplied = false;
+            foreach (VectorIndexEntry entry in entries)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                IHnswNode node = await _Storage.GetNodeAsync(entry.Id, cancellationToken).ConfigureAwait(false);
+                if (node == null) continue;
+
+                ApplyMetadata(node, entry);
+                metadataApplied = true;
+            }
+
+            if (metadataApplied && _Storage is SqliteHnswStorage sqliteStorage)
+                sqliteStorage.Save();
+        }
+
+        private static void ApplyMetadata(IHnswNode node, VectorIndexEntry entry)
+        {
+            node.Name = entry.Name;
+            node.Labels = entry.Labels != null ? new List<string>(entry.Labels) : null;
+            node.Tags = entry.Tags != null ? new Dictionary<string, object>(entry.Tags) : null;
+        }
+
         #endregion
 
         #region Storage-Implementations
@@ -399,6 +483,8 @@ namespace LiteGraph.Indexing.Vector
             {
                 HnswNode node = new HnswNode(id, vector);
                 _Nodes[id] = node;
+                if (_EntryPoint == null)
+                    _EntryPoint = id;
                 return Task.CompletedTask;
             }
 
@@ -406,7 +492,7 @@ namespace LiteGraph.Indexing.Vector
             {
                 _Nodes.Remove(id);
                 if (_EntryPoint == id)
-                    _EntryPoint = null;
+                    _EntryPoint = _Nodes.Count > 0 ? _Nodes.Keys.First() : null;
                 return Task.CompletedTask;
             }
 
@@ -434,22 +520,28 @@ namespace LiteGraph.Indexing.Vector
 
             public Task AddNodesAsync(Dictionary<Guid, List<float>> nodes, CancellationToken cancellationToken = default)
             {
+                bool wasEmpty = _EntryPoint == null;
                 foreach (KeyValuePair<Guid, List<float>> kvp in nodes)
                 {
                     HnswNode node = new HnswNode(kvp.Key, kvp.Value);
                     _Nodes[kvp.Key] = node;
                 }
+                if (wasEmpty && nodes.Count > 0)
+                    _EntryPoint = nodes.Keys.First();
                 return Task.CompletedTask;
             }
 
             public Task RemoveNodesAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default)
             {
+                bool removedEntryPoint = false;
                 foreach (Guid id in ids)
                 {
                     _Nodes.Remove(id);
                     if (_EntryPoint == id)
-                        _EntryPoint = null;
+                        removedEntryPoint = true;
                 }
+                if (removedEntryPoint)
+                    _EntryPoint = _Nodes.Count > 0 ? _Nodes.Keys.First() : null;
                 return Task.CompletedTask;
             }
 
@@ -472,6 +564,9 @@ namespace LiteGraph.Indexing.Vector
         {
             public Guid Id { get; }
             public List<float> Vector { get; }
+            public string Name { get; set; } = string.Empty;
+            public List<string> Labels { get; set; } = new List<string>();
+            public Dictionary<string, object> Tags { get; set; } = new Dictionary<string, object>();
             public Dictionary<int, HashSet<Guid>> Connections { get; }
 
             public HnswNode(Guid id, List<float> vector)
@@ -593,7 +688,10 @@ namespace LiteGraph.Indexing.Vector
                             nodes.Add(new HnswNodeState
                             {
                                 Id = nodeId,
-                                Vector = node.Vector
+                                Vector = node.Vector,
+                                Name = node.Name,
+                                Labels = node.Labels != null ? new List<string>(node.Labels) : null,
+                                Tags = node.Tags != null ? new Dictionary<string, object>(node.Tags) : null
                             });
                         }
 
@@ -644,6 +742,13 @@ namespace LiteGraph.Indexing.Vector
                                 if (nodeState.Vector != null && nodeState.Vector.Count > 0)
                                 {
                                     _Storage.AddNodeAsync(nodeState.Id, nodeState.Vector).Wait();
+                                    IHnswNode node = _Storage.GetNodeAsync(nodeState.Id).Result;
+                                    if (node != null)
+                                    {
+                                        node.Name = nodeState.Name;
+                                        node.Labels = nodeState.Labels != null ? new List<string>(nodeState.Labels) : null;
+                                        node.Tags = nodeState.Tags != null ? new Dictionary<string, object>(nodeState.Tags) : null;
+                                    }
                                 }
                             }
                         }
@@ -667,6 +772,11 @@ namespace LiteGraph.Indexing.Vector
                     SaveToFile();
                     _Disposed = true;
                 }
+            }
+
+            public void Save()
+            {
+                SaveToFile();
             }
         }
 

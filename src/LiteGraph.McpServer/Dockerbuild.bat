@@ -8,7 +8,7 @@ GOTO :Done
 
 :Usage
 ECHO Provide a tag argument for the build.
-ECHO Example: dockerbuild.bat v1.0.0
+ECHO Example: dockerbuild.bat v6.0.0
 
 :Done
 ECHO Done

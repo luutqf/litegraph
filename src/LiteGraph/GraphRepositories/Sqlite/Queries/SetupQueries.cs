@@ -1,4 +1,4 @@
-﻿namespace LiteGraph.GraphRepositories.Sqlite.Queries
+namespace LiteGraph.GraphRepositories.Sqlite.Queries
 {
     using System;
     using System.Collections.Generic;
@@ -70,6 +70,8 @@
                 + "name VARCHAR(64), "
                 + "bearertoken VARCHAR(64), "
                 + "active INT, "
+                + "scopes TEXT, "
+                + "graphguids TEXT, "
                 + "createdutc VARCHAR(64), "
                 + "lastupdateutc VARCHAR(64) "
                 + ");");
@@ -83,6 +85,86 @@
 
             sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_creds_tenantguid_guid' ON 'creds' (tenantguid ASC, guid ASC);");
             sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_creds_tenantguid_userguid' ON 'creds' (tenantguid ASC, userguid ASC);");
+
+            #endregion
+
+            #region Authorization-Roles
+
+            sql.AppendLine(
+                "CREATE TABLE IF NOT EXISTS 'authorizationroles' ("
+                + "guid VARCHAR(64) NOT NULL UNIQUE, "
+                + "tenantguid VARCHAR(64), "
+                + "name VARCHAR(128) NOT NULL, "
+                + "displayname VARCHAR(128), "
+                + "description TEXT, "
+                + "builtin INT NOT NULL DEFAULT 0, "
+                + "builtinrole VARCHAR(64), "
+                + "resourcescope VARCHAR(64) NOT NULL, "
+                + "permissions TEXT, "
+                + "resourcetypes TEXT, "
+                + "inheritstographs INT NOT NULL DEFAULT 0, "
+                + "createdutc VARCHAR(64), "
+                + "lastupdateutc VARCHAR(64) "
+                + ");");
+
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_authorizationroles_guid' ON 'authorizationroles' (guid ASC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_authorizationroles_tenantguid' ON 'authorizationroles' (tenantguid ASC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_authorizationroles_name' ON 'authorizationroles' (name ASC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_authorizationroles_tenantguid_name' ON 'authorizationroles' (tenantguid ASC, name ASC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_authorizationroles_builtin' ON 'authorizationroles' (builtin ASC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_authorizationroles_builtinrole' ON 'authorizationroles' (builtinrole ASC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_authorizationroles_resourcescope' ON 'authorizationroles' (resourcescope ASC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_authorizationroles_createdutc' ON 'authorizationroles' (createdutc DESC);");
+
+            sql.AppendLine(
+                "CREATE TABLE IF NOT EXISTS 'userroleassignments' ("
+                + "guid VARCHAR(64) NOT NULL UNIQUE, "
+                + "tenantguid VARCHAR(64) NOT NULL, "
+                + "userguid VARCHAR(64) NOT NULL, "
+                + "roleguid VARCHAR(64), "
+                + "rolename VARCHAR(128), "
+                + "resourcescope VARCHAR(64) NOT NULL, "
+                + "graphguid VARCHAR(64), "
+                + "createdutc VARCHAR(64), "
+                + "lastupdateutc VARCHAR(64) "
+                + ");");
+
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_userroleassignments_guid' ON 'userroleassignments' (guid ASC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_userroleassignments_tenantguid' ON 'userroleassignments' (tenantguid ASC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_userroleassignments_userguid' ON 'userroleassignments' (userguid ASC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_userroleassignments_roleguid' ON 'userroleassignments' (roleguid ASC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_userroleassignments_rolename' ON 'userroleassignments' (rolename ASC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_userroleassignments_resourcescope' ON 'userroleassignments' (resourcescope ASC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_userroleassignments_graphguid' ON 'userroleassignments' (graphguid ASC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_userroleassignments_tenantguid_userguid' ON 'userroleassignments' (tenantguid ASC, userguid ASC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_userroleassignments_tenantguid_graphguid' ON 'userroleassignments' (tenantguid ASC, graphguid ASC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_userroleassignments_createdutc' ON 'userroleassignments' (createdutc DESC);");
+
+            sql.AppendLine(
+                "CREATE TABLE IF NOT EXISTS 'credentialscopeassignments' ("
+                + "guid VARCHAR(64) NOT NULL UNIQUE, "
+                + "tenantguid VARCHAR(64) NOT NULL, "
+                + "credentialguid VARCHAR(64) NOT NULL, "
+                + "roleguid VARCHAR(64), "
+                + "rolename VARCHAR(128), "
+                + "resourcescope VARCHAR(64) NOT NULL, "
+                + "graphguid VARCHAR(64), "
+                + "permissions TEXT, "
+                + "resourcetypes TEXT, "
+                + "createdutc VARCHAR(64), "
+                + "lastupdateutc VARCHAR(64) "
+                + ");");
+
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_credentialscopeassignments_guid' ON 'credentialscopeassignments' (guid ASC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_credentialscopeassignments_tenantguid' ON 'credentialscopeassignments' (tenantguid ASC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_credentialscopeassignments_credentialguid' ON 'credentialscopeassignments' (credentialguid ASC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_credentialscopeassignments_roleguid' ON 'credentialscopeassignments' (roleguid ASC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_credentialscopeassignments_rolename' ON 'credentialscopeassignments' (rolename ASC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_credentialscopeassignments_resourcescope' ON 'credentialscopeassignments' (resourcescope ASC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_credentialscopeassignments_graphguid' ON 'credentialscopeassignments' (graphguid ASC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_credentialscopeassignments_tenantguid_credentialguid' ON 'credentialscopeassignments' (tenantguid ASC, credentialguid ASC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_credentialscopeassignments_tenantguid_graphguid' ON 'credentialscopeassignments' (tenantguid ASC, graphguid ASC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_credentialscopeassignments_createdutc' ON 'credentialscopeassignments' (createdutc DESC);");
 
             #endregion
 
@@ -194,6 +276,9 @@
                 + "vectorindexm INT DEFAULT NULL, "
                 + "vectorindexef INT DEFAULT NULL, "
                 + "vectorindexefconstruction INT DEFAULT NULL, "
+                + "vectorindexdirty INT NOT NULL DEFAULT 0, "
+                + "vectorindexdirtyutc VARCHAR(64), "
+                + "vectorindexdirtyreason TEXT, "
                 + "data TEXT, "
                 + "createdutc VARCHAR(64), "
                 + "lastupdateutc VARCHAR(64) "
@@ -205,6 +290,7 @@
             sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_graphs_createdutc' ON 'graphs' ('createdutc' ASC);");
             sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_graphs_lastupdateutc' ON 'graphs' ('lastupdateutc' ASC);");
             sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_graphs_data' ON 'graphs' ('data' ASC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_graphs_vectorindexdirty' ON 'graphs' (vectorindexdirty ASC);");
 
             #endregion
 
@@ -268,6 +354,9 @@
             sql.AppendLine(
                 "CREATE TABLE IF NOT EXISTS 'requesthistory' ("
                 + "guid VARCHAR(64) NOT NULL UNIQUE, "
+                + "requestid VARCHAR(128), "
+                + "correlationid VARCHAR(128), "
+                + "traceid VARCHAR(128), "
                 + "createdutc VARCHAR(64) NOT NULL, "
                 + "completedutc VARCHAR(64), "
                 + "method VARCHAR(16) NOT NULL, "
@@ -292,11 +381,55 @@
                 + ");");
 
             sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_requesthistory_guid' ON 'requesthistory' (guid ASC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_requesthistory_requestid' ON 'requesthistory' (requestid ASC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_requesthistory_correlationid_createdutc' ON 'requesthistory' (correlationid ASC, createdutc DESC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_requesthistory_traceid_createdutc' ON 'requesthistory' (traceid ASC, createdutc DESC);");
             sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_requesthistory_createdutc' ON 'requesthistory' (createdutc DESC);");
             sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_requesthistory_tenantguid_createdutc' ON 'requesthistory' (tenantguid ASC, createdutc DESC);");
             sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_requesthistory_method_createdutc' ON 'requesthistory' (method ASC, createdutc DESC);");
             sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_requesthistory_statuscode_createdutc' ON 'requesthistory' (statuscode ASC, createdutc DESC);");
             sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_requesthistory_success_createdutc' ON 'requesthistory' (success ASC, createdutc DESC);");
+
+            #endregion
+
+            #region Authorization-Audit
+
+            sql.AppendLine(
+                "CREATE TABLE IF NOT EXISTS 'authorizationaudit' ("
+                + "guid VARCHAR(64) NOT NULL UNIQUE, "
+                + "createdutc VARCHAR(64) NOT NULL, "
+                + "requestid VARCHAR(128), "
+                + "correlationid VARCHAR(128), "
+                + "traceid VARCHAR(128), "
+                + "tenantguid VARCHAR(64), "
+                + "graphguid VARCHAR(64), "
+                + "userguid VARCHAR(64), "
+                + "credentialguid VARCHAR(64), "
+                + "requesttype VARCHAR(128), "
+                + "method VARCHAR(16), "
+                + "path TEXT, "
+                + "sourceip VARCHAR(64), "
+                + "authenticationresult VARCHAR(64), "
+                + "authorizationresult VARCHAR(64), "
+                + "reason VARCHAR(128), "
+                + "requiredscope VARCHAR(64), "
+                + "isadmin INT NOT NULL DEFAULT 0, "
+                + "statuscode INT NOT NULL DEFAULT 0, "
+                + "description TEXT "
+                + ");");
+
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_authorizationaudit_guid' ON 'authorizationaudit' (guid ASC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_authorizationaudit_createdutc' ON 'authorizationaudit' (createdutc DESC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_authorizationaudit_requestid' ON 'authorizationaudit' (requestid ASC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_authorizationaudit_correlationid_createdutc' ON 'authorizationaudit' (correlationid ASC, createdutc DESC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_authorizationaudit_traceid_createdutc' ON 'authorizationaudit' (traceid ASC, createdutc DESC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_authorizationaudit_tenantguid_createdutc' ON 'authorizationaudit' (tenantguid ASC, createdutc DESC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_authorizationaudit_graphguid_createdutc' ON 'authorizationaudit' (graphguid ASC, createdutc DESC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_authorizationaudit_userguid_createdutc' ON 'authorizationaudit' (userguid ASC, createdutc DESC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_authorizationaudit_credentialguid_createdutc' ON 'authorizationaudit' (credentialguid ASC, createdutc DESC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_authorizationaudit_reason_createdutc' ON 'authorizationaudit' (reason ASC, createdutc DESC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_authorizationaudit_requiredscope_createdutc' ON 'authorizationaudit' (requiredscope ASC, createdutc DESC);");
+            sql.AppendLine("CREATE INDEX IF NOT EXISTS 'idx_authorizationaudit_requesttype_createdutc' ON 'authorizationaudit' (requesttype ASC, createdutc DESC);");
 
             #endregion
 

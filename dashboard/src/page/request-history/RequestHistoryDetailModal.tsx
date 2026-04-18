@@ -45,6 +45,11 @@ const headersAsText = (headers: Record<string, string> | undefined | null): stri
   return JSON.stringify(headers, null, 2);
 };
 
+const noWrapValueStyle: React.CSSProperties = {
+  whiteSpace: 'nowrap',
+  overflowX: 'auto',
+};
+
 const CodeBlock: React.FC<{ text: string; empty?: string }> = ({ text, empty = '(empty)' }) => {
   const onCopy = async () => {
     try {
@@ -101,16 +106,17 @@ const RequestHistoryDetailModal: React.FC<Props> = ({ entry, open, onClose }) =>
     setLoading(true);
     getRequestHistoryDetail(entry.GUID)
       .then((d) => {
-        if (!cancelled) setDetail(d);
+        if (!cancelled) {
+          setDetail(d);
+          setLoading(false);
+        }
       })
       .catch(() => {
         if (!cancelled) {
           setDetail(null);
+          setLoading(false);
           toast.error('Unable to load request detail', { id: globalToastId });
         }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
@@ -125,17 +131,18 @@ const RequestHistoryDetailModal: React.FC<Props> = ({ entry, open, onClose }) =>
       open={open}
       onCancel={onClose}
       footer={null}
-      width={1350}
-      destroyOnClose
+      width="min(1688px, calc(100vw - 32px))"
+      destroyOnHidden
+      maskClosable
     >
       <Descriptions
         size="small"
-        column={3}
+        column={2}
         bordered
         style={{ marginBottom: 16 }}
-        labelStyle={{ whiteSpace: 'nowrap' }}
+        styles={{ label: { whiteSpace: 'nowrap' } }}
       >
-        <Descriptions.Item label="ID" span={3}>
+        <Descriptions.Item label="ID" span={2}>
           <Text code copyable>
             {entry.GUID}
           </Text>
@@ -147,14 +154,22 @@ const RequestHistoryDetailModal: React.FC<Props> = ({ entry, open, onClose }) =>
         <Descriptions.Item label="Duration">
           {entry.ProcessingTimeMs.toFixed(2)} ms
         </Descriptions.Item>
-        <Descriptions.Item label="Time">{new Date(entry.CreatedUtc).toLocaleString()}</Descriptions.Item>
-        <Descriptions.Item label="Source IP">{entry.SourceIp || '-'}</Descriptions.Item>
+        <Descriptions.Item label="Time" contentStyle={noWrapValueStyle}>
+          <span data-testid="request-detail-time" style={noWrapValueStyle}>
+            {new Date(entry.CreatedUtc).toLocaleString()}
+          </span>
+        </Descriptions.Item>
+        <Descriptions.Item label="Source IP" contentStyle={noWrapValueStyle}>
+          <span data-testid="request-detail-source-ip" style={noWrapValueStyle}>
+            {entry.SourceIp || '-'}
+          </span>
+        </Descriptions.Item>
         <Descriptions.Item label="Tenant">
           {entry.TenantGUID ? <Text code>{entry.TenantGUID}</Text> : '-'}
         </Descriptions.Item>
         <Descriptions.Item label="Request Size">{formatBytes(entry.RequestBodyLength)}</Descriptions.Item>
         <Descriptions.Item label="Response Size">{formatBytes(entry.ResponseBodyLength)}</Descriptions.Item>
-        <Descriptions.Item label="URL" span={3}>
+        <Descriptions.Item label="URL" span={2}>
           <Text code style={{ wordBreak: 'break-all' }}>
             {entry.Url}
           </Text>

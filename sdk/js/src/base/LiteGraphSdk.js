@@ -15,6 +15,24 @@ import TenantMetaData from '../models/TenantMetaData';
 import { VectorMetadata } from '../models/VectorMetadata';
 import Token from '../models/Token';
 import { VectorSearchResult } from '../models/VectorSearchResult';
+import GraphTransactionBuilder from '../models/GraphTransactionBuilder';
+import TransactionResult from '../models/TransactionResult';
+import GraphQueryResult from '../models/GraphQueryResult';
+import {
+  AuthorizationEffectivePermissionsResult,
+  AuthorizationRole,
+  AuthorizationRoleSearchResult,
+  CredentialScopeAssignment,
+  CredentialScopeAssignmentSearchResult,
+  UserRoleAssignment,
+  UserRoleAssignmentSearchResult,
+} from '../models/AuthorizationModels';
+
+const buildQueryString = (params = {}) => {
+  const entries = Object.entries(params).filter(([, value]) => value !== undefined && value !== null && value !== '');
+  if (entries.length === 0) return '';
+  return `?${entries.map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`).join('&')}`;
+};
 
 /**
  * LiteGraph SDK class.
@@ -172,6 +190,409 @@ export default class LiteGraphSdk extends SdkBase {
   }
 
   //endreagion
+
+  //region Transaction Routes
+
+  /**
+   * Create a graph-scoped transaction builder.
+   * @param {string} graphGuid - The GUID of the graph.
+   * @param {Object} [options] - Transaction defaults.
+   * @param {number} [options.MaxOperations=1000] - Maximum operation count.
+   * @param {number} [options.TimeoutSeconds=60] - Transaction timeout in seconds.
+   * @returns {GraphTransactionBuilder} - Transaction builder.
+   */
+  transaction(graphGuid, options = {}) {
+    if (!graphGuid) {
+      GenericExceptionHandlers.ArgumentNullException('GraphGuid');
+    }
+    return new GraphTransactionBuilder(this, graphGuid, options);
+  }
+
+  /**
+   * Execute a graph-scoped transaction.
+   * @param {string} graphGuid - The GUID of the graph.
+   * @param {Object} request - Transaction request.
+   * @param {Array<Object>} request.Operations - Operations to execute atomically.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<TransactionResult>} - Transaction result.
+   */
+  async executeTransaction(graphGuid, request, cancellationToken) {
+    if (!graphGuid) {
+      GenericExceptionHandlers.ArgumentNullException('GraphGuid');
+    }
+    if (!request) {
+      GenericExceptionHandlers.ArgumentNullException('TransactionRequest');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${this.tenantGuid}/graphs/${graphGuid}/transaction`;
+    return await this.post(url, request, TransactionResult, cancellationToken);
+  }
+
+  //end region
+
+  //region Query Routes
+
+  /**
+   * Create a native graph query request.
+   * @param {string} query - Query text.
+   * @param {Object} [parameters] - Query parameters.
+   * @param {Object} [options] - Query execution options.
+   * @param {number} [options.MaxResults=1000] - Maximum returned rows.
+   * @param {number} [options.TimeoutSeconds=30] - Query timeout in seconds.
+   * @param {boolean} [options.IncludeProfile=false] - Include execution profile timings.
+   * @returns {Object} - Query request.
+   */
+  queryRequest(query, parameters = {}, options = {}) {
+    if (!query) {
+      GenericExceptionHandlers.ArgumentNullException('Query');
+    }
+
+    return {
+      Query: query,
+      Parameters: parameters || {},
+      MaxResults: options.MaxResults || options.maxResults || 1000,
+      TimeoutSeconds: options.TimeoutSeconds || options.timeoutSeconds || 30,
+      IncludeProfile: options.IncludeProfile || options.includeProfile || false,
+    };
+  }
+
+  /**
+   * Execute a native graph query.
+   * @param {string} graphGuid - The GUID of the graph.
+   * @param {Object|string} request - Query request or query text.
+   * @param {Object} [parameters] - Query parameters when request is query text.
+   * @param {Object} [options] - Query execution options.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+   * @returns {Promise<GraphQueryResult>} - Query result.
+   */
+  async executeQuery(graphGuid, request, parameters = {}, options = {}, cancellationToken) {
+    if (!graphGuid) {
+      GenericExceptionHandlers.ArgumentNullException('GraphGuid');
+    }
+    if (!request) {
+      GenericExceptionHandlers.ArgumentNullException('QueryRequest');
+    }
+
+    const payload = typeof request === 'string' ? this.queryRequest(request, parameters, options) : request;
+    const url = `${this._endpoint}v1.0/tenants/${this.tenantGuid}/graphs/${graphGuid}/query`;
+    return await this.post(url, payload, GraphQueryResult, cancellationToken);
+  }
+
+  //end region
+
+  //region Authorization Routes
+
+  /**
+   * List authorization roles for the configured tenant.
+   * @param {Object} [options] - Role list options.
+   * @param {number} [options.page=0] - Page index.
+   * @param {number} [options.pageSize=1000] - Page size.
+   * @param {boolean} [options.includeBuiltIns=true] - Include built-in roles.
+   * @param {boolean} [options.builtIn] - Filter by built-in status.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token.
+   * @returns {Promise<AuthorizationRoleSearchResult>} - Role search result.
+   */
+  async listAuthorizationRoles(options = {}, cancellationToken) {
+    const url = `${this._endpoint}v1.0/tenants/${this.tenantGuid}/roles${buildQueryString({
+      page: options.page ?? 0,
+      pageSize: options.pageSize ?? 1000,
+      includeBuiltIns: options.includeBuiltIns ?? true,
+      builtIn: options.builtIn,
+      name: options.name,
+      resourceScope: options.resourceScope,
+      permission: options.permission,
+      resourceType: options.resourceType,
+    })}`;
+    return await this.get(url, AuthorizationRoleSearchResult, cancellationToken);
+  }
+
+  /**
+   * Create an authorization role.
+   * @param {Object} role - Role payload.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token.
+   * @returns {Promise<AuthorizationRole>} - Created role.
+   */
+  async createAuthorizationRole(role, cancellationToken) {
+    if (!role) {
+      GenericExceptionHandlers.ArgumentNullException('AuthorizationRole');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${this.tenantGuid}/roles`;
+    return await this.putCreate(url, role, AuthorizationRole, cancellationToken);
+  }
+
+  /**
+   * Read an authorization role.
+   * @param {string} roleGuid - Role GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token.
+   * @returns {Promise<AuthorizationRole>} - Role.
+   */
+  async readAuthorizationRole(roleGuid, cancellationToken) {
+    if (!roleGuid) {
+      GenericExceptionHandlers.ArgumentNullException('RoleGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${this.tenantGuid}/roles/${roleGuid}`;
+    return await this.get(url, AuthorizationRole, cancellationToken);
+  }
+
+  /**
+   * Update an authorization role.
+   * @param {Object} role - Role payload containing GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token.
+   * @returns {Promise<AuthorizationRole>} - Updated role.
+   */
+  async updateAuthorizationRole(role, cancellationToken) {
+    if (!role) {
+      GenericExceptionHandlers.ArgumentNullException('AuthorizationRole');
+    }
+    if (!role.GUID) {
+      GenericExceptionHandlers.ArgumentNullException('RoleGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${this.tenantGuid}/roles/${role.GUID}`;
+    return await this.putUpdate(url, role, AuthorizationRole, cancellationToken);
+  }
+
+  /**
+   * Delete an authorization role.
+   * @param {string} roleGuid - Role GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token.
+   * @returns {Promise<void>}
+   */
+  async deleteAuthorizationRole(roleGuid, cancellationToken) {
+    if (!roleGuid) {
+      GenericExceptionHandlers.ArgumentNullException('RoleGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${this.tenantGuid}/roles/${roleGuid}`;
+    await this.delete(url, cancellationToken);
+  }
+
+  /**
+   * List user role assignments.
+   * @param {string} userGuid - User GUID.
+   * @param {Object} [options] - List filters.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token.
+   * @returns {Promise<UserRoleAssignmentSearchResult>} - Assignment search result.
+   */
+  async listUserRoleAssignments(userGuid, options = {}, cancellationToken) {
+    if (!userGuid) {
+      GenericExceptionHandlers.ArgumentNullException('UserGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${this.tenantGuid}/users/${userGuid}/roles${buildQueryString({
+      page: options.page ?? 0,
+      pageSize: options.pageSize ?? 1000,
+      roleName: options.roleName,
+      resourceScope: options.resourceScope,
+      graphGuid: options.graphGuid,
+    })}`;
+    return await this.get(url, UserRoleAssignmentSearchResult, cancellationToken);
+  }
+
+  /**
+   * Create a user role assignment.
+   * @param {string} userGuid - User GUID.
+   * @param {Object} assignment - Assignment payload.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token.
+   * @returns {Promise<UserRoleAssignment>} - Created assignment.
+   */
+  async createUserRoleAssignment(userGuid, assignment, cancellationToken) {
+    if (!userGuid) {
+      GenericExceptionHandlers.ArgumentNullException('UserGuid');
+    }
+    if (!assignment) {
+      GenericExceptionHandlers.ArgumentNullException('UserRoleAssignment');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${this.tenantGuid}/users/${userGuid}/roles`;
+    return await this.putCreate(url, assignment, UserRoleAssignment, cancellationToken);
+  }
+
+  /**
+   * Read a user role assignment.
+   * @param {string} userGuid - User GUID.
+   * @param {string} assignmentGuid - Assignment GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token.
+   * @returns {Promise<UserRoleAssignment>} - Assignment.
+   */
+  async readUserRoleAssignment(userGuid, assignmentGuid, cancellationToken) {
+    if (!userGuid) {
+      GenericExceptionHandlers.ArgumentNullException('UserGuid');
+    }
+    if (!assignmentGuid) {
+      GenericExceptionHandlers.ArgumentNullException('AssignmentGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${this.tenantGuid}/users/${userGuid}/roles/${assignmentGuid}`;
+    return await this.get(url, UserRoleAssignment, cancellationToken);
+  }
+
+  /**
+   * Update a user role assignment.
+   * @param {string} userGuid - User GUID.
+   * @param {Object} assignment - Assignment payload containing GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token.
+   * @returns {Promise<UserRoleAssignment>} - Updated assignment.
+   */
+  async updateUserRoleAssignment(userGuid, assignment, cancellationToken) {
+    if (!userGuid) {
+      GenericExceptionHandlers.ArgumentNullException('UserGuid');
+    }
+    if (!assignment) {
+      GenericExceptionHandlers.ArgumentNullException('UserRoleAssignment');
+    }
+    if (!assignment.GUID) {
+      GenericExceptionHandlers.ArgumentNullException('AssignmentGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${this.tenantGuid}/users/${userGuid}/roles/${assignment.GUID}`;
+    return await this.putUpdate(url, assignment, UserRoleAssignment, cancellationToken);
+  }
+
+  /**
+   * Delete a user role assignment.
+   * @param {string} userGuid - User GUID.
+   * @param {string} assignmentGuid - Assignment GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token.
+   * @returns {Promise<void>}
+   */
+  async deleteUserRoleAssignment(userGuid, assignmentGuid, cancellationToken) {
+    if (!userGuid) {
+      GenericExceptionHandlers.ArgumentNullException('UserGuid');
+    }
+    if (!assignmentGuid) {
+      GenericExceptionHandlers.ArgumentNullException('AssignmentGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${this.tenantGuid}/users/${userGuid}/roles/${assignmentGuid}`;
+    await this.delete(url, cancellationToken);
+  }
+
+  /**
+   * Read effective permissions for a user.
+   * @param {string} userGuid - User GUID.
+   * @param {string} [graphGuid] - Optional graph GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token.
+   * @returns {Promise<AuthorizationEffectivePermissionsResult>} - Effective permissions.
+   */
+  async getUserEffectivePermissions(userGuid, graphGuid, cancellationToken) {
+    if (!userGuid) {
+      GenericExceptionHandlers.ArgumentNullException('UserGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${this.tenantGuid}/users/${userGuid}/permissions${buildQueryString({
+      graphGuid,
+    })}`;
+    return await this.get(url, AuthorizationEffectivePermissionsResult, cancellationToken);
+  }
+
+  /**
+   * List credential scope assignments.
+   * @param {string} credentialGuid - Credential GUID.
+   * @param {Object} [options] - List filters.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token.
+   * @returns {Promise<CredentialScopeAssignmentSearchResult>} - Scope search result.
+   */
+  async listCredentialScopeAssignments(credentialGuid, options = {}, cancellationToken) {
+    if (!credentialGuid) {
+      GenericExceptionHandlers.ArgumentNullException('CredentialGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${this.tenantGuid}/credentials/${credentialGuid}/scopes${buildQueryString({
+      page: options.page ?? 0,
+      pageSize: options.pageSize ?? 1000,
+      roleName: options.roleName,
+      resourceScope: options.resourceScope,
+      graphGuid: options.graphGuid,
+      permission: options.permission,
+      resourceType: options.resourceType,
+    })}`;
+    return await this.get(url, CredentialScopeAssignmentSearchResult, cancellationToken);
+  }
+
+  /**
+   * Create a credential scope assignment.
+   * @param {string} credentialGuid - Credential GUID.
+   * @param {Object} assignment - Assignment payload.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token.
+   * @returns {Promise<CredentialScopeAssignment>} - Created scope.
+   */
+  async createCredentialScopeAssignment(credentialGuid, assignment, cancellationToken) {
+    if (!credentialGuid) {
+      GenericExceptionHandlers.ArgumentNullException('CredentialGuid');
+    }
+    if (!assignment) {
+      GenericExceptionHandlers.ArgumentNullException('CredentialScopeAssignment');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${this.tenantGuid}/credentials/${credentialGuid}/scopes`;
+    return await this.putCreate(url, assignment, CredentialScopeAssignment, cancellationToken);
+  }
+
+  /**
+   * Read a credential scope assignment.
+   * @param {string} credentialGuid - Credential GUID.
+   * @param {string} assignmentGuid - Assignment GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token.
+   * @returns {Promise<CredentialScopeAssignment>} - Scope assignment.
+   */
+  async readCredentialScopeAssignment(credentialGuid, assignmentGuid, cancellationToken) {
+    if (!credentialGuid) {
+      GenericExceptionHandlers.ArgumentNullException('CredentialGuid');
+    }
+    if (!assignmentGuid) {
+      GenericExceptionHandlers.ArgumentNullException('AssignmentGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${this.tenantGuid}/credentials/${credentialGuid}/scopes/${assignmentGuid}`;
+    return await this.get(url, CredentialScopeAssignment, cancellationToken);
+  }
+
+  /**
+   * Update a credential scope assignment.
+   * @param {string} credentialGuid - Credential GUID.
+   * @param {Object} assignment - Assignment payload containing GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token.
+   * @returns {Promise<CredentialScopeAssignment>} - Updated scope.
+   */
+  async updateCredentialScopeAssignment(credentialGuid, assignment, cancellationToken) {
+    if (!credentialGuid) {
+      GenericExceptionHandlers.ArgumentNullException('CredentialGuid');
+    }
+    if (!assignment) {
+      GenericExceptionHandlers.ArgumentNullException('CredentialScopeAssignment');
+    }
+    if (!assignment.GUID) {
+      GenericExceptionHandlers.ArgumentNullException('AssignmentGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${this.tenantGuid}/credentials/${credentialGuid}/scopes/${assignment.GUID}`;
+    return await this.putUpdate(url, assignment, CredentialScopeAssignment, cancellationToken);
+  }
+
+  /**
+   * Delete a credential scope assignment.
+   * @param {string} credentialGuid - Credential GUID.
+   * @param {string} assignmentGuid - Assignment GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token.
+   * @returns {Promise<void>}
+   */
+  async deleteCredentialScopeAssignment(credentialGuid, assignmentGuid, cancellationToken) {
+    if (!credentialGuid) {
+      GenericExceptionHandlers.ArgumentNullException('CredentialGuid');
+    }
+    if (!assignmentGuid) {
+      GenericExceptionHandlers.ArgumentNullException('AssignmentGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${this.tenantGuid}/credentials/${credentialGuid}/scopes/${assignmentGuid}`;
+    await this.delete(url, cancellationToken);
+  }
+
+  /**
+   * Read effective permissions for a credential.
+   * @param {string} credentialGuid - Credential GUID.
+   * @param {string} [graphGuid] - Optional graph GUID.
+   * @param {AbortController} [cancellationToken] - Optional cancellation token.
+   * @returns {Promise<AuthorizationEffectivePermissionsResult>} - Effective permissions.
+   */
+  async getCredentialEffectivePermissions(credentialGuid, graphGuid, cancellationToken) {
+    if (!credentialGuid) {
+      GenericExceptionHandlers.ArgumentNullException('CredentialGuid');
+    }
+    const url = `${this._endpoint}v1.0/tenants/${this.tenantGuid}/credentials/${credentialGuid}/permissions${buildQueryString({
+      graphGuid,
+    })}`;
+    return await this.get(url, AuthorizationEffectivePermissionsResult, cancellationToken);
+  }
+
+  //end region
 
   // region Node-Routes
 

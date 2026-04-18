@@ -5,6 +5,7 @@ import GraphViewer from '@/components/base/graph/GraphViewer';
 import { GraphNodeTooltip, GraphEdgeTooltip } from '@/components/base/graph/types';
 import { createMockInitialState } from '../../../store/mockStore';
 import { renderWithRedux } from '../../../store/utils';
+import { Provider } from 'react-redux';
 
 // Mock the Sigma container
 jest.mock('@react-sigma/core', () => ({
@@ -82,6 +83,7 @@ jest.mock('@/components/base/graph/ProgressBar', () => {
 // Mock the entity hooks
 jest.mock('@/hooks/entityHooks', () => ({
   useLazyLoadEdgesAndNodes: jest.fn(),
+  useGetSubGraphs: jest.fn(),
 }));
 
 // Mock the Redux hooks
@@ -126,7 +128,7 @@ describe('GraphViewer Component', () => {
     useAppDispatch.mockReturnValue(jest.fn());
 
     // Mock entity hooks
-    const { useLazyLoadEdgesAndNodes } = require('@/hooks/entityHooks');
+    const { useLazyLoadEdgesAndNodes, useGetSubGraphs } = require('@/hooks/entityHooks');
     useLazyLoadEdgesAndNodes.mockReturnValue({
       nodes: mockNodes,
       edges: mockEdges,
@@ -144,6 +146,12 @@ describe('GraphViewer Component', () => {
       updateLocalEdge: jest.fn(),
       addLocalEdge: jest.fn(),
       removeLocalEdge: jest.fn(),
+    });
+    useGetSubGraphs.mockReturnValue({
+      loadSubGraph: jest.fn(),
+      isSubGraphLoading: false,
+      subGraphNodes: [],
+      subGraphEdges: [],
     });
   });
 
@@ -477,7 +485,7 @@ describe('GraphViewer Component', () => {
   });
 
   it('resets 3D view when selectedGraph changes', () => {
-    const { rerender } = renderWithRedux(
+    const { rerender, store } = renderWithRedux(
       <GraphViewer
         isAddEditNodeVisible={false}
         setIsAddEditNodeVisible={mockSetIsAddEditNodeVisible}
@@ -501,16 +509,18 @@ describe('GraphViewer Component', () => {
     useAppSelector.mockReturnValue('new-graph-id');
 
     rerender(
-      <GraphViewer
-        isAddEditNodeVisible={false}
-        setIsAddEditNodeVisible={mockSetIsAddEditNodeVisible}
-        nodeTooltip={mockNodeTooltip}
-        edgeTooltip={mockEdgeTooltip}
-        setNodeTooltip={mockSetNodeTooltip}
-        setEdgeTooltip={mockSetEdgeTooltip}
-        isAddEditEdgeVisible={false}
-        setIsAddEditEdgeVisible={mockSetIsAddEditEdgeVisible}
-      />
+      <Provider store={store}>
+        <GraphViewer
+          isAddEditNodeVisible={false}
+          setIsAddEditNodeVisible={mockSetIsAddEditNodeVisible}
+          nodeTooltip={mockNodeTooltip}
+          edgeTooltip={mockEdgeTooltip}
+          setNodeTooltip={mockSetNodeTooltip}
+          setEdgeTooltip={mockSetEdgeTooltip}
+          isAddEditEdgeVisible={false}
+          setIsAddEditEdgeVisible={mockSetIsAddEditEdgeVisible}
+        />
+      </Provider>
     );
 
     // 3D view should be reset to false

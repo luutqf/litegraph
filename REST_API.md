@@ -17,7 +17,7 @@ A bearer token can be supplied in the `Authorization` header, i.e. `Authorizatio
 
 ### Credentials
 
-The user's email, password, and tenant GUID can be passed in as headers using `x-email`, `x-email`, and `x-tenant-guid`.  This method does not work for administrative API calls, as the administrator is only defined by bearer token in `litegraph.json`.
+The user's email, password, and tenant GUID can be passed in as headers using `x-email`, `x-password`, and `x-tenant-guid`.  This method does not work for administrative API calls, as the administrator is only defined by bearer token in `litegraph.json`.
 
 ### Security token
 
@@ -501,11 +501,146 @@ Valid search types are `CosineSimilarity` `CosineDistance` `EuclidianSimilarity`
 ]
 ```
 
+### Graph Query Request
+
+Native graph queries execute within one tenant and one graph. See [DSL.md](DSL.md) for the supported syntax, parameter rules, result metadata, mutation behavior, and examples.
+
+```
+{
+    "Query": "MATCH (n:Person) WHERE n.data.role = $role RETURN n LIMIT 10",
+    "Parameters": {
+        "role": "engineer"
+    },
+    "MaxResults": 100,
+    "TimeoutSeconds": 30,
+    "IncludeProfile": false
+}
+```
+
+Read-only queries require read permission. Mutation queries require write permission.
+
+### Graph Query Response
+
+```
+{
+    "Success": true,
+    "Mutated": false,
+    "RowCount": 1,
+    "Rows": [
+        {
+            "n": {
+                "GUID": "00000000-0000-0000-0000-000000000000",
+                "Name": "Ada"
+            }
+        }
+    ],
+    "Objects": [],
+    "Plan": {
+        "Kind": "Read",
+        "UsesVectorSearch": false,
+        "Mutates": false
+    },
+    "ExecutionProfile": null
+}
+```
+
+### Graph Transaction Request
+
+Graph transactions execute atomically inside one tenant and one graph. See [TRANSACTIONS.md](TRANSACTIONS.md) for the complete operation model.
+
+```
+{
+    "Operations": [
+        {
+            "Operation": "Create",
+            "ObjectType": "Node",
+            "Object": {
+                "Name": "Ada",
+                "Data": {
+                    "role": "mathematician"
+                }
+            }
+        }
+    ],
+    "MaxOperations": 100,
+    "TimeoutSeconds": 30
+}
+```
+
+### Graph Transaction Response
+
+```
+{
+    "Success": true,
+    "RolledBack": false,
+    "FailedOperationIndex": null,
+    "ErrorMessage": null,
+    "Results": [
+        {
+            "Success": true,
+            "OperationIndex": 0,
+            "ObjectType": "Node",
+            "ObjectGUID": "00000000-0000-0000-0000-000000000000",
+            "Object": { }
+        }
+    ]
+}
+```
+
+### Authorization Role
+
+```
+{
+    "GUID": "00000000-0000-0000-0000-000000000000",
+    "TenantGUID": "00000000-0000-0000-0000-000000000000",
+    "Name": "GraphReader",
+    "Description": "Read-only graph access",
+    "BuiltIn": false,
+    "Immutable": false,
+    "Permissions": [ "Read" ],
+    "ResourceTypes": [ "Graph", "Node", "Edge", "Label", "Tag", "Vector", "Query" ],
+    "ResourceScope": "Graph",
+    "InheritToGraphs": false
+}
+```
+
+### User Role Assignment
+
+```
+{
+    "GUID": "00000000-0000-0000-0000-000000000000",
+    "TenantGUID": "00000000-0000-0000-0000-000000000000",
+    "UserGUID": "00000000-0000-0000-0000-000000000000",
+    "RoleGUID": "00000000-0000-0000-0000-000000000000",
+    "GraphGUID": "00000000-0000-0000-0000-000000000000",
+    "Active": true
+}
+```
+
+### Credential Scope Assignment
+
+```
+{
+    "GUID": "00000000-0000-0000-0000-000000000000",
+    "TenantGUID": "00000000-0000-0000-0000-000000000000",
+    "CredentialGUID": "00000000-0000-0000-0000-000000000000",
+    "RoleGUID": "00000000-0000-0000-0000-000000000000",
+    "GraphGUID": "00000000-0000-0000-0000-000000000000",
+    "Permissions": [ "Read" ],
+    "ResourceTypes": [ "Graph", "Node", "Edge", "Query" ],
+    "Active": true
+}
+```
+
 ## General APIs
 
 | API                   | Method | URL |
 |-----------------------|--------|-----|
 | Validate connectivity | HEAD   | /   |
+| Server information    | GET    | /   |
+| Prometheus metrics    | GET    | /metrics |
+
+The metrics route is registered only when observability and Prometheus are enabled. It is intentionally unauthenticated in v6.0.0 and should be protected by network policy or a reverse proxy when exposed outside trusted networks.
 
 ## Admin APIs
 
@@ -569,11 +704,37 @@ Credential APIs require administrator bearer token authentication.
 | Read many            | GET    | /v1.0/tenants/[guid]/credentials              |
 | Read many            | GET    | /v1.0/tenants/[guid]/credentials?guids=...    |
 | Read                 | GET    | /v1.0/tenants/[guid]/credentials/[guid]       |
-| Read by bearer token | GET    | /v1.0/credentials/bearer                      |
+| Read by bearer token | GET    | /v1.0/credentials/bearer/[bearerToken]        |
 | Delete               | DELETE | /v1.0/tenants/[guid]/credentials/[guid]       |
 | Delete all in tenant | DELETE | /v1.0/tenants/[guid]/credentials              |
 | Delete by user       | DELETE | /v1.0/tenants/[guid]/users/[guid]/credentials |
 | Exists               | HEAD   | /v1.0/tenants/[guid]/credentials/[guid]       |
+
+## Authorization APIs
+
+Authorization APIs require an administrator bearer token or an authenticated user/credential with an effective admin grant for the requested scope. Built-in roles are readable but immutable.
+
+| API                                   | Method | URL                                                                                 |
+|---------------------------------------|--------|-------------------------------------------------------------------------------------|
+| Create role                           | PUT    | /v1.0/tenants/[tenantGuid]/roles                                                    |
+| Read roles                            | GET    | /v1.0/tenants/[tenantGuid]/roles                                                    |
+| Read role                             | GET    | /v1.0/tenants/[tenantGuid]/roles/[roleGuid]                                         |
+| Update role                           | PUT    | /v1.0/tenants/[tenantGuid]/roles/[roleGuid]                                         |
+| Delete role                           | DELETE | /v1.0/tenants/[tenantGuid]/roles/[roleGuid]                                         |
+| Assign user role                      | PUT    | /v1.0/tenants/[tenantGuid]/users/[userGuid]/roles                                   |
+| Read user role assignments            | GET    | /v1.0/tenants/[tenantGuid]/users/[userGuid]/roles                                   |
+| Read user role assignment             | GET    | /v1.0/tenants/[tenantGuid]/users/[userGuid]/roles/[assignmentGuid]                  |
+| Update user role assignment           | PUT    | /v1.0/tenants/[tenantGuid]/users/[userGuid]/roles/[assignmentGuid]                  |
+| Delete user role assignment           | DELETE | /v1.0/tenants/[tenantGuid]/users/[userGuid]/roles/[assignmentGuid]                  |
+| Read user effective permissions       | GET    | /v1.0/tenants/[tenantGuid]/users/[userGuid]/permissions                             |
+| Assign credential scope               | PUT    | /v1.0/tenants/[tenantGuid]/credentials/[credentialGuid]/scopes                      |
+| Read credential scope assignments     | GET    | /v1.0/tenants/[tenantGuid]/credentials/[credentialGuid]/scopes                      |
+| Read credential scope assignment      | GET    | /v1.0/tenants/[tenantGuid]/credentials/[credentialGuid]/scopes/[assignmentGuid]     |
+| Update credential scope assignment    | PUT    | /v1.0/tenants/[tenantGuid]/credentials/[credentialGuid]/scopes/[assignmentGuid]     |
+| Delete credential scope assignment    | DELETE | /v1.0/tenants/[tenantGuid]/credentials/[credentialGuid]/scopes/[assignmentGuid]     |
+| Read credential effective permissions | GET    | /v1.0/tenants/[tenantGuid]/credentials/[credentialGuid]/permissions                 |
+
+See [RBAC.md](RBAC.md) for role definitions, permission/resource mappings, compatibility behavior for existing users, and credential-scope examples.
 
 ## Label APIs
 
@@ -649,6 +810,7 @@ Vector APIs require administrator bearer token authentication, aside from the ve
 | Delete edge vectors      | DELETE | /v1.0/tenants/[guid]/graphs/[guid]/edges/[guid]/vectors  |
 | Exists                   | HEAD   | /v1.0/tenants/[guid]/vectors/[guid]                      |
 | Search                   | POST   | /v1.0/tenants/[guid]/vectors                             |
+| Search in graph          | POST   | /v1.0/tenants/[guid]/graphs/[guid]/vectors/search        |
 
 ## Graph APIs
 
@@ -660,6 +822,9 @@ Vector APIs require administrator bearer token authentication, aside from the ve
 | Read many            | GET    | /v1.0/tenants/[guid]/graphs                                |
 | Read many            | GET    | /v1.0/tenants/[guid]/graphs?guids=...                      |
 | Read all in tenant   | GET    | /v1.0/tenants/[guid]/graphs/all                            |
+| Read first           | POST   | /v1.0/tenants/[guid]/graphs/first                          |
+| Statistics           | GET    | /v1.0/tenants/[guid]/graphs/[guid]/stats                   |
+| All graph statistics | GET    | /v1.0/tenants/[guid]/graphs/stats                          |
 | Delete               | DELETE | /v1.0/tenants/[guid]/graphs/[guid]                         |
 | Delete w/ cascade    | DELETE | /v1.0/tenants/[guid]/graphs/[guid]?force                   |
 | Delete all in tenant | DELETE | /v1.0/tenants/[guid]/graphs/all                            |
@@ -667,6 +832,12 @@ Vector APIs require administrator bearer token authentication, aside from the ve
 | Search               | POST   | /v1.0/tenants/[guid]/graphs/search                         |
 | Render as GEXF       | GET    | /v1.0/tenants/[guid]/graphs/[guid]/export/gexf?incldata    |
 | Batch existence      | POST   | /v1.0/tenants/[guid]/graphs/[guid]/existence               |
+| Native query         | POST   | /v1.0/tenants/[guid]/graphs/[guid]/query                   |
+| Graph transaction    | POST   | /v1.0/tenants/[guid]/graphs/[guid]/transaction             |
+| Node subgraph        | GET    | /v1.0/tenants/[guid]/graphs/[guid]/nodes/[guid]/subgraph   |
+| Node subgraph stats  | GET    | /v1.0/tenants/[guid]/graphs/[guid]/nodes/[guid]/subgraph/stats |
+
+Native graph query and graph transaction endpoints are graph scoped. They cannot cross tenants or graphs.
 
 ## Graph Vector Index APIs
 
@@ -732,3 +903,46 @@ Vector APIs require administrator bearer token authentication, aside from the ve
 | Get node parents               | GET    | /v1.0/tenants/[guid]/graphs/[guid]/nodes/[guid]/parents     |
 | Get node children              | GET    | /v1.0/tenants/[guid]/graphs/[guid]/nodes/[guid]/children    |
 | Get routes between nodes       | POST   | /v1.0/tenants/[guid]/graphs/[guid]/routes                   |
+
+## Request History APIs
+
+Request history APIs require read/admin access according to the authenticated principal and optional tenant scope. Request history is intended for recent diagnostics; use Prometheus and OpenTelemetry for aggregate monitoring.
+
+| API                     | Method | URL                                       |
+|-------------------------|--------|-------------------------------------------|
+| List request history    | GET    | /v1.0/requesthistory                      |
+| Request history summary | GET    | /v1.0/requesthistory/summary              |
+| Read entry              | GET    | /v1.0/requesthistory/[requestGuid]        |
+| Read detailed entry     | GET    | /v1.0/requesthistory/[requestGuid]/detail |
+| Delete entry            | DELETE | /v1.0/requesthistory/[requestGuid]        |
+| Bulk delete             | DELETE | /v1.0/requesthistory/bulk                 |
+
+Common query-string filters include `tenantGuid`, `method`, `statusCode`, `success`, `pathContains`, paging, and time-range filters. Detailed entries include captured request/response metadata subject to configured redaction and truncation.
+
+## Enumeration APIs
+
+The v2.0 enumeration routes accept an `Enumeration Query` as JSON on POST and equivalent query-string filters on GET where supported.
+
+| Resource      | Method | URL                                                    |
+|---------------|--------|--------------------------------------------------------|
+| Tenants       | GET    | /v2.0/tenants                                         |
+| Tenants       | POST   | /v2.0/tenants                                         |
+| Users         | GET    | /v2.0/tenants/[tenantGuid]/users                      |
+| Users         | POST   | /v2.0/tenants/[tenantGuid]/users                      |
+| Credentials   | GET    | /v2.0/tenants/[tenantGuid]/credentials                |
+| Credentials   | POST   | /v2.0/tenants/[tenantGuid]/credentials                |
+| Graphs        | GET    | /v2.0/tenants/[tenantGuid]/graphs                     |
+| Graphs        | POST   | /v2.0/tenants/[tenantGuid]/graphs                     |
+| Nodes         | GET    | /v2.0/tenants/[tenantGuid]/graphs/[graphGuid]/nodes   |
+| Nodes         | POST   | /v2.0/tenants/[tenantGuid]/graphs/[graphGuid]/nodes   |
+| Edges         | GET    | /v2.0/tenants/[tenantGuid]/graphs/[graphGuid]/edges   |
+| Edges         | POST   | /v2.0/tenants/[tenantGuid]/graphs/[graphGuid]/edges   |
+| Labels        | GET    | /v2.0/tenants/[tenantGuid]/labels                     |
+| Labels        | POST   | /v2.0/tenants/[tenantGuid]/labels                     |
+| Graph labels  | POST   | /v2.0/tenants/[tenantGuid]/graphs/[graphGuid]/labels  |
+| Tags          | GET    | /v2.0/tenants/[tenantGuid]/tags                       |
+| Tags          | POST   | /v2.0/tenants/[tenantGuid]/tags                       |
+| Graph tags    | POST   | /v2.0/tenants/[tenantGuid]/graphs/[graphGuid]/tags    |
+| Vectors       | GET    | /v2.0/tenants/[tenantGuid]/vectors                    |
+| Vectors       | POST   | /v2.0/tenants/[tenantGuid]/vectors                    |
+| Graph vectors | POST   | /v2.0/tenants/[tenantGuid]/graphs/[graphGuid]/vectors |

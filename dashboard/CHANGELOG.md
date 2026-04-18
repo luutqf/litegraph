@@ -2,13 +2,20 @@
 
 ## Current Version
 
-v0.1.0
+v6.0.0
 
-- Initial release
+- Added administrator authorization management
+- Added request history monitoring, filters, JSON views, and improved pagination controls
+- Added API Explorer updates for v6 query and transaction workflows
+- Updated navigation, theme behavior, and header actions for v6 dashboard use
 
 ## Previous Versions
 
 Notes from previous versions will be shown here.
+
+v0.1.0
+
+- Initial release
 
 v0.1.1
 

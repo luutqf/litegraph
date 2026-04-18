@@ -164,7 +164,6 @@ const AddEditGraph = ({
 
   return (
     <LitegraphModal
-      maskClosable={false}
       title={getCreateEditViewModelTitle(
         'Graph',
         isGraphLoading,

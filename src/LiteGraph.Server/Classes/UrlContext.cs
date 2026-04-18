@@ -287,12 +287,21 @@
 
                     if (matcher.Match("/v1.0/tenants/{tenantGuid}/users", out _UrlParameters)) return RequestTypeEnum.UserReadAll;
                     if (matcher.Match("/v2.0/tenants/{tenantGuid}/users", out _UrlParameters)) return RequestTypeEnum.UserEnumerate;
+                    if (matcher.Match("/v1.0/tenants/{tenantGuid}/users/{userGuid}/roles/{assignmentGuid}", out _UrlParameters)) return RequestTypeEnum.UserRoleAssignmentRead;
+                    if (matcher.Match("/v1.0/tenants/{tenantGuid}/users/{userGuid}/roles", out _UrlParameters)) return RequestTypeEnum.UserRoleAssignmentReadAll;
+                    if (matcher.Match("/v1.0/tenants/{tenantGuid}/users/{userGuid}/permissions", out _UrlParameters)) return RequestTypeEnum.UserEffectivePermissionsRead;
                     if (matcher.Match("/v1.0/tenants/{tenantGuid}/users/{userGuid}", out _UrlParameters)) return RequestTypeEnum.UserRead;
 
                     if (matcher.Match("/v1.0/credentials/bearer/{bearerToken}", out _UrlParameters)) return RequestTypeEnum.CredentialReadByBearerToken;
                     if (matcher.Match("/v1.0/tenants/{tenantGuid}/credentials", out _UrlParameters)) return RequestTypeEnum.CredentialReadAll;
                     if (matcher.Match("/v2.0/tenants/{tenantGuid}/credentials", out _UrlParameters)) return RequestTypeEnum.CredentialEnumerate;
+                    if (matcher.Match("/v1.0/tenants/{tenantGuid}/credentials/{credentialGuid}/scopes/{assignmentGuid}", out _UrlParameters)) return RequestTypeEnum.CredentialScopeAssignmentRead;
+                    if (matcher.Match("/v1.0/tenants/{tenantGuid}/credentials/{credentialGuid}/scopes", out _UrlParameters)) return RequestTypeEnum.CredentialScopeAssignmentReadAll;
+                    if (matcher.Match("/v1.0/tenants/{tenantGuid}/credentials/{credentialGuid}/permissions", out _UrlParameters)) return RequestTypeEnum.CredentialEffectivePermissionsRead;
                     if (matcher.Match("/v1.0/tenants/{tenantGuid}/credentials/{credentialGuid}", out _UrlParameters)) return RequestTypeEnum.CredentialRead;
+
+                    if (matcher.Match("/v1.0/tenants/{tenantGuid}/roles/{roleGuid}", out _UrlParameters)) return RequestTypeEnum.AuthorizationRoleRead;
+                    if (matcher.Match("/v1.0/tenants/{tenantGuid}/roles", out _UrlParameters)) return RequestTypeEnum.AuthorizationRoleReadAll;
 
                     if (matcher.Match("/v1.0/tenants/{tenantGuid}/labels/all", out _UrlParameters)) return RequestTypeEnum.LabelReadAllInTenant;
                     if (matcher.Match("/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/labels/all", out _UrlParameters)) return RequestTypeEnum.LabelReadAllInGraph;
@@ -355,7 +364,7 @@
                     if (matcher.Match("/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges", out _UrlParameters)) return RequestTypeEnum.EdgeReadMany;
                     if (matcher.Match("/v2.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges", out _UrlParameters)) return RequestTypeEnum.EdgeEnumerate;
                     if (matcher.Match("/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/between", out _UrlParameters)) return RequestTypeEnum.EdgeBetween;
-                    if (matcher.Match("/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/{edgeGuid}", out _UrlParameters)) return RequestTypeEnum.EdgeReadMany;
+                    if (matcher.Match("/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/{edgeGuid}", out _UrlParameters)) return RequestTypeEnum.EdgeRead;
 
                     #endregion
                 }
@@ -395,10 +404,17 @@
                     if (matcher.Match("/v1.0/tenants/{tenantGuid}", out _UrlParameters)) return RequestTypeEnum.TenantUpdate;
 
                     if (matcher.Match("/v1.0/tenants/{tenantGuid}/users", out _UrlParameters)) return RequestTypeEnum.UserCreate;
+                    if (matcher.Match("/v1.0/tenants/{tenantGuid}/users/{userGuid}/roles/{assignmentGuid}", out _UrlParameters)) return RequestTypeEnum.UserRoleAssignmentUpdate;
+                    if (matcher.Match("/v1.0/tenants/{tenantGuid}/users/{userGuid}/roles", out _UrlParameters)) return RequestTypeEnum.UserRoleAssignmentCreate;
                     if (matcher.Match("/v1.0/tenants/{tenantGuid}/users/{userGuid}", out _UrlParameters)) return RequestTypeEnum.UserUpdate;
 
                     if (matcher.Match("/v1.0/tenants/{tenantGuid}/credentials", out _UrlParameters)) return RequestTypeEnum.CredentialCreate;
+                    if (matcher.Match("/v1.0/tenants/{tenantGuid}/credentials/{credentialGuid}/scopes/{assignmentGuid}", out _UrlParameters)) return RequestTypeEnum.CredentialScopeAssignmentUpdate;
+                    if (matcher.Match("/v1.0/tenants/{tenantGuid}/credentials/{credentialGuid}/scopes", out _UrlParameters)) return RequestTypeEnum.CredentialScopeAssignmentCreate;
                     if (matcher.Match("/v1.0/tenants/{tenantGuid}/credentials/{credentialGuid}", out _UrlParameters)) return RequestTypeEnum.CredentialUpdate;
+
+                    if (matcher.Match("/v1.0/tenants/{tenantGuid}/roles/{roleGuid}", out _UrlParameters)) return RequestTypeEnum.AuthorizationRoleUpdate;
+                    if (matcher.Match("/v1.0/tenants/{tenantGuid}/roles", out _UrlParameters)) return RequestTypeEnum.AuthorizationRoleCreate;
 
                     if (matcher.Match("/v1.0/tenants/{tenantGuid}/labels", out _UrlParameters)) return RequestTypeEnum.LabelCreate;
                     if (matcher.Match("/v1.0/tenants/{tenantGuid}/labels/bulk", out _UrlParameters)) return RequestTypeEnum.LabelCreateMany;
@@ -441,13 +457,18 @@
                     if (matcher.Match("/v2.0/tenants/{tenantGuid}/users", out _UrlParameters)) return RequestTypeEnum.UserEnumerate;
                     if (matcher.Match("/v2.0/tenants/{tenantGuid}/credentials", out _UrlParameters)) return RequestTypeEnum.CredentialEnumerate;
                     if (matcher.Match("/v2.0/tenants/{tenantGuid}/labels", out _UrlParameters)) return RequestTypeEnum.LabelEnumerate;
+                    if (matcher.Match("/v2.0/tenants/{tenantGuid}/graphs/{graphGuid}/labels", out _UrlParameters)) return RequestTypeEnum.LabelEnumerate;
                     if (matcher.Match("/v2.0/tenants/{tenantGuid}/tags", out _UrlParameters)) return RequestTypeEnum.TagEnumerate;
+                    if (matcher.Match("/v2.0/tenants/{tenantGuid}/graphs/{graphGuid}/tags", out _UrlParameters)) return RequestTypeEnum.TagEnumerate;
                     if (matcher.Match("/v2.0/tenants/{tenantGuid}/vectors", out _UrlParameters)) return RequestTypeEnum.VectorEnumerate;
+                    if (matcher.Match("/v2.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectors", out _UrlParameters)) return RequestTypeEnum.VectorEnumerate;
 
                     if (matcher.Match("/v1.0/tenants/{tenantGuid}/graphs/first", out _UrlParameters)) return RequestTypeEnum.GraphReadFirst;
                     if (matcher.Match("/v1.0/tenants/{tenantGuid}/graphs/search", out _UrlParameters)) return RequestTypeEnum.GraphSearch;
 
                     if (matcher.Match("/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/existence", out _UrlParameters)) return RequestTypeEnum.GraphExistence;
+                    if (matcher.Match("/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/query", out _UrlParameters)) return RequestTypeEnum.GraphQuery;
+                    if (matcher.Match("/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/transaction", out _UrlParameters)) return RequestTypeEnum.GraphTransaction;
 
                     if (matcher.Match("/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectorindex/rebuild", out _UrlParameters)) return RequestTypeEnum.GraphVectorIndexRebuild;
                     if (matcher.Match("/v2.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectorindex/rebuild", out _UrlParameters)) return RequestTypeEnum.GraphVectorIndexRebuild;
@@ -459,9 +480,11 @@
                     if (matcher.Match("/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/search", out _UrlParameters)) return RequestTypeEnum.NodeSearch;
 
                     if (matcher.Match("/v2.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges", out _UrlParameters)) return RequestTypeEnum.EdgeEnumerate;
+                    if (matcher.Match("/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/edges", out _UrlParameters)) return RequestTypeEnum.AllEdgesToNode;
                     if (matcher.Match("/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/first", out _UrlParameters)) return RequestTypeEnum.EdgeReadAll;
                     if (matcher.Match("/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/search", out _UrlParameters)) return RequestTypeEnum.EdgeSearch;
 
+                    if (matcher.Match("/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectors/search", out _UrlParameters)) return RequestTypeEnum.VectorSearch;
                     if (matcher.Match("/v1.0/tenants/{tenantGuid}/vectors", out _UrlParameters)) return RequestTypeEnum.VectorSearch;
 
                     #endregion
@@ -475,10 +498,14 @@
                     if (matcher.Match("/v1.0/tenants/{tenantGuid}", out _UrlParameters)) return RequestTypeEnum.TenantDelete;
 
                     if (matcher.Match("/v1.0/tenants/{tenantGuid}/users/{userGuid}/credentials", out _UrlParameters)) return RequestTypeEnum.CredentialDeleteByUser;
+                    if (matcher.Match("/v1.0/tenants/{tenantGuid}/credentials/{credentialGuid}/scopes/{assignmentGuid}", out _UrlParameters)) return RequestTypeEnum.CredentialScopeAssignmentDelete;
                     if (matcher.Match("/v1.0/tenants/{tenantGuid}/credentials/{credentialGuid}", out _UrlParameters)) return RequestTypeEnum.CredentialDelete;
                     if (matcher.Match("/v1.0/tenants/{tenantGuid}/credentials", out _UrlParameters)) return RequestTypeEnum.CredentialDeleteAllInTenant;
 
+                    if (matcher.Match("/v1.0/tenants/{tenantGuid}/users/{userGuid}/roles/{assignmentGuid}", out _UrlParameters)) return RequestTypeEnum.UserRoleAssignmentDelete;
                     if (matcher.Match("/v1.0/tenants/{tenantGuid}/users/{userGuid}", out _UrlParameters)) return RequestTypeEnum.UserDelete;
+
+                    if (matcher.Match("/v1.0/tenants/{tenantGuid}/roles/{roleGuid}", out _UrlParameters)) return RequestTypeEnum.AuthorizationRoleDelete;
 
                     if (matcher.Match("/v1.0/tenants/{tenantGuid}/labels/all", out _UrlParameters)) return RequestTypeEnum.LabelDeleteAllInTenant;
                     if (matcher.Match("/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/labels/all", out _UrlParameters)) return RequestTypeEnum.LabelDeleteAllInGraph;

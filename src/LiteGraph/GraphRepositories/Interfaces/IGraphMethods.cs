@@ -13,7 +13,6 @@
     using LiteGraph;
     using LiteGraph.Indexing.Vector;
     using LiteGraph.Serialization;
-    using Microsoft.Data.Sqlite;
 
     /// <summary>
     /// Interface for graph methods.
@@ -52,8 +51,8 @@
         /// <param name="tags">Tags on which to match.</param>
         /// <param name="graphFilter">
         /// Graph filter expression for Data JSON body.
-        /// Expression left terms must follow the form of Sqlite JSON paths.
-        /// For example, to retrieve the 'Name' property, use '$.Name', OperatorEnum.Equals, '[name here]'.</param>
+        /// Expression left terms use LiteGraph JSON data paths relative to the Data object.
+        /// For example, to retrieve the 'Name' property, use 'Name', OperatorEnum.Equals, '[name here]'.</param>
         /// <param name="order">Enumeration order.</param>
         /// <param name="skip">The number of records to skip.</param>
         /// <param name="token">Cancellation token.</param>
@@ -77,8 +76,8 @@
         /// <param name="tags">Tags on which to match.</param>
         /// <param name="graphFilter">
         /// Graph filter expression for Data JSON body.
-        /// Expression left terms must follow the form of Sqlite JSON paths.
-        /// For example, to retrieve the 'Name' property, use '$.Name', OperatorEnum.Equals, '[name here]'.</param>
+        /// Expression left terms use LiteGraph JSON data paths relative to the Data object.
+        /// For example, to retrieve the 'Name' property, use 'Name', OperatorEnum.Equals, '[name here]'.</param>
         /// <param name="order">Enumeration order.</param>
         /// <param name="token">Cancellation token.</param>
         /// <returns>Graph.</returns>
@@ -125,8 +124,8 @@
         /// <param name="tags">Tags upon which to filter.</param>
         /// <param name="filter">
         /// Edge filter expression for Data JSON body.
-        /// Expression left terms must follow the form of Sqlite JSON paths.
-        /// For example, to retrieve the 'Name' property, use '$.Name', OperatorEnum.Equals, '[name here]'.</param>
+        /// Expression left terms use LiteGraph JSON data paths relative to the Data object.
+        /// For example, to retrieve the 'Name' property, use 'Name', OperatorEnum.Equals, '[name here]'.</param>
         /// <param name="order">Enumeration order.</param>
         /// <param name="markerGuid">Marker GUID.</param>
         /// <param name="token">Cancellation token.</param>
@@ -237,6 +236,32 @@
         /// <param name="token">Cancellation token.</param>
         /// <returns>Vector index statistics or null if no index exists.</returns>
         Task<VectorIndexStatistics> GetVectorIndexStatistics(
+            Guid tenantGuid,
+            Guid graphGuid,
+            CancellationToken token = default);
+
+        /// <summary>
+        /// Mark a graph vector index dirty, indicating it should be rebuilt before index-backed search is used.
+        /// </summary>
+        /// <param name="tenantGuid">Tenant GUID.</param>
+        /// <param name="graphGuid">Graph GUID.</param>
+        /// <param name="reason">Dirty reason.</param>
+        /// <param name="token">Cancellation token.</param>
+        /// <returns>Task.</returns>
+        Task MarkVectorIndexDirtyAsync(
+            Guid tenantGuid,
+            Guid graphGuid,
+            string reason,
+            CancellationToken token = default);
+
+        /// <summary>
+        /// Clear vector index dirty state after a successful rebuild.
+        /// </summary>
+        /// <param name="tenantGuid">Tenant GUID.</param>
+        /// <param name="graphGuid">Graph GUID.</param>
+        /// <param name="token">Cancellation token.</param>
+        /// <returns>Task.</returns>
+        Task ClearVectorIndexDirtyAsync(
             Guid tenantGuid,
             Guid graphGuid,
             CancellationToken token = default);

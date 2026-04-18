@@ -2,7 +2,9 @@ namespace LiteGraph.GraphRepositories.Sqlite.Implementations
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Linq;
+    using System.Threading;
     using System.Threading.Tasks;
     using LiteGraph.Indexing.Vector;
 
@@ -25,12 +27,17 @@ namespace LiteGraph.GraphRepositories.Sqlite.Implementations
             if (graph == null || !graph.VectorIndexType.HasValue || graph.VectorIndexType == VectorIndexTypeEnum.None)
                 return;
 
-            IVectorIndex index = await repo.VectorIndexManager.GetOrCreateIndexAsync(graph);
-            if (index != null && vector.NodeGUID.HasValue)
-            {
-                // Store node GUID in the index so we can retrieve nodes from search results
-                await index.AddAsync(vector.NodeGUID.Value, vector.Vectors);
-            }
+            if (!vector.NodeGUID.HasValue) return;
+
+            await ExecuteIndexMutationAsync(
+                repo,
+                graph,
+                "Vector create index update failed",
+                async index =>
+                {
+                    VectorIndexEntry entry = await BuildNodeIndexEntryAsync(repo, graph, vector).ConfigureAwait(false);
+                    await index.AddAsync(entry).ConfigureAwait(false);
+                }).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -52,21 +59,22 @@ namespace LiteGraph.GraphRepositories.Sqlite.Implementations
             {
                 Guid graphGuid = graphGroup.Key;
                 List<VectorMetadata> graphVectors = graphGroup.ToList();
-                
+
                 if (graphVectors.Count == 0) continue;
 
                 Graph graph = await repo.Graph.ReadByGuid(graphVectors[0].TenantGUID, graphGuid).ConfigureAwait(false);
                 if (graph == null || !graph.VectorIndexType.HasValue || graph.VectorIndexType == VectorIndexTypeEnum.None)
                     continue;
 
-                IVectorIndex index = await repo.VectorIndexManager.GetOrCreateIndexAsync(graph);
-                if (index != null)
-                {
-                    // Store node GUIDs in the index so we can retrieve nodes from search results
-                    Dictionary<Guid, List<float>> batch = graphVectors.Where(v => v.NodeGUID.HasValue).ToDictionary(v => v.NodeGUID.Value, v => v.Vectors);
-                    if (batch.Count > 0)
-                        await index.AddBatchAsync(batch);
-                }
+                List<VectorIndexEntry> batch = await BuildNodeIndexEntriesAsync(repo, graph, graphVectors).ConfigureAwait(false);
+
+                if (batch.Count < 1) continue;
+
+                await ExecuteIndexMutationAsync(
+                    repo,
+                    graph,
+                    "Vector batch create index update failed",
+                    async index => await index.AddBatchAsync(batch).ConfigureAwait(false)).ConfigureAwait(false);
             }
         }
 
@@ -84,11 +92,17 @@ namespace LiteGraph.GraphRepositories.Sqlite.Implementations
             if (graph == null || !graph.VectorIndexType.HasValue || graph.VectorIndexType == VectorIndexTypeEnum.None)
                 return;
 
-            IVectorIndex index = await repo.VectorIndexManager.GetOrCreateIndexAsync(graph);
-            if (index != null && vector.NodeGUID.HasValue)
-            {
-                await index.UpdateAsync(vector.NodeGUID.Value, vector.Vectors);
-            }
+            if (!vector.NodeGUID.HasValue) return;
+
+            await ExecuteIndexMutationAsync(
+                repo,
+                graph,
+                "Vector update index update failed",
+                async index =>
+                {
+                    VectorIndexEntry entry = await BuildNodeIndexEntryAsync(repo, graph, vector).ConfigureAwait(false);
+                    await index.UpdateAsync(entry).ConfigureAwait(false);
+                }).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -105,12 +119,11 @@ namespace LiteGraph.GraphRepositories.Sqlite.Implementations
             if (graph == null || !graph.VectorIndexType.HasValue || graph.VectorIndexType == VectorIndexTypeEnum.None)
                 return;
 
-            IVectorIndex index = repo.VectorIndexManager.GetIndex(graphGuid);
-            if (index != null)
-            {
-                // Use nodeGuid as the key since that's what we store in the index
-                await index.RemoveAsync(nodeGuid);
-            }
+            await ExecuteIndexMutationAsync(
+                repo,
+                graph,
+                "Vector delete index update failed",
+                async index => await index.RemoveAsync(nodeGuid).ConfigureAwait(false)).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -129,12 +142,11 @@ namespace LiteGraph.GraphRepositories.Sqlite.Implementations
             if (graph == null || !graph.VectorIndexType.HasValue || graph.VectorIndexType == VectorIndexTypeEnum.None)
                 return;
 
-            IVectorIndex index = repo.VectorIndexManager.GetIndex(graphGuid);
-            if (index != null)
-            {
-                // Use nodeGuids as keys since that's what we store in the index
-                await index.RemoveBatchAsync(nodeGuids);
-            }
+            await ExecuteIndexMutationAsync(
+                repo,
+                graph,
+                "Vector batch delete index update failed",
+                async index => await index.RemoveBatchAsync(nodeGuids).ConfigureAwait(false)).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -155,49 +167,196 @@ namespace LiteGraph.GraphRepositories.Sqlite.Implementations
             int topK,
             int? ef = null)
         {
-            if (graph == null || !graph.VectorIndexType.HasValue || graph.VectorIndexType == VectorIndexTypeEnum.None)
-                return null;
+            using Activity activity = LiteGraphTelemetry.ActivitySource.StartActivity(LiteGraphTelemetry.VectorIndexSearchActivityName, ActivityKind.Internal);
+            SetVectorIndexSearchActivityTags(activity, searchType, queryVector, graph, topK, ef);
 
-            IVectorIndex index = await repo.VectorIndexManager.GetOrCreateIndexAsync(graph);
-            if (index == null)
-                return null;
-
-            // Perform indexed search
-            List<VectorDistanceResult> results = await index.SearchAsync(queryVector, topK, ef ?? graph.VectorIndexEf);
-
-            // Convert distance to appropriate score based on search type
-            List<VectorScoreResult> scoredResults = new List<VectorScoreResult>();
-            foreach (VectorDistanceResult result in results)
+            try
             {
-                float score = result.Distance;
-
-                // Convert based on search type
-                switch (searchType)
+                if (graph == null || !graph.VectorIndexType.HasValue || graph.VectorIndexType == VectorIndexTypeEnum.None)
                 {
-                    case VectorSearchTypeEnum.CosineSimilarity:
-                        // HnswLite returns cosine distance, convert to similarity
-                        score = 1.0f - result.Distance;
-                        break;
-                    case VectorSearchTypeEnum.CosineDistance:
-                        // Already in distance form
-                        break;
-                    case VectorSearchTypeEnum.EuclidianSimilarity:
-                        // Convert distance to similarity
-                        score = 1.0f / (1.0f + result.Distance);
-                        break;
-                    case VectorSearchTypeEnum.EuclidianDistance:
-                        // Already in distance form
-                        break;
-                    case VectorSearchTypeEnum.DotProduct:
-                        // For dot product, higher is better, so negate if it's a distance
-                        score = -result.Distance;
-                        break;
+                    activity?.SetTag("litegraph.vector.index.used", false);
+                    activity?.SetTag("litegraph.vector.index.skip_reason", "not_configured");
+                    LiteGraphTelemetry.SetActivityOk(activity);
+                    return null;
                 }
 
-                scoredResults.Add(new VectorScoreResult(result.Id, score));
+                if (graph.VectorIndexDirty)
+                {
+                    activity?.SetTag("litegraph.vector.index.used", false);
+                    activity?.SetTag("litegraph.vector.index.skip_reason", "dirty");
+                    LiteGraphTelemetry.SetActivityOk(activity);
+                    return null;
+                }
+
+                IVectorIndex index = await repo.VectorIndexManager.GetOrCreateIndexAsync(graph).ConfigureAwait(false);
+                if (index == null)
+                {
+                    activity?.SetTag("litegraph.vector.index.used", false);
+                    activity?.SetTag("litegraph.vector.index.skip_reason", "unavailable");
+                    LiteGraphTelemetry.SetActivityOk(activity);
+                    return null;
+                }
+
+                // Perform indexed search
+                List<VectorDistanceResult> results = await index.SearchAsync(queryVector, topK, ef ?? graph.VectorIndexEf).ConfigureAwait(false);
+
+                // Convert distance to appropriate score based on search type
+                List<VectorScoreResult> scoredResults = new List<VectorScoreResult>();
+                foreach (VectorDistanceResult result in results)
+                {
+                    float score = result.Distance;
+
+                    // Convert based on search type
+                    switch (searchType)
+                    {
+                        case VectorSearchTypeEnum.CosineSimilarity:
+                            // HnswLite returns cosine distance, convert to similarity
+                            score = 1.0f - result.Distance;
+                            break;
+                        case VectorSearchTypeEnum.CosineDistance:
+                            // Already in distance form
+                            break;
+                        case VectorSearchTypeEnum.EuclidianSimilarity:
+                            // Convert distance to similarity
+                            score = 1.0f / (1.0f + result.Distance);
+                            break;
+                        case VectorSearchTypeEnum.EuclidianDistance:
+                            // Already in distance form
+                            break;
+                        case VectorSearchTypeEnum.DotProduct:
+                            // For dot product, higher is better, so negate if it's a distance
+                            score = -result.Distance;
+                            break;
+                    }
+
+                    scoredResults.Add(new VectorScoreResult(result.Id, score));
+                }
+
+                activity?.SetTag("litegraph.vector.index.used", true);
+                activity?.SetTag("litegraph.vector.index.results", scoredResults.Count);
+                LiteGraphTelemetry.SetActivityOk(activity);
+                return scoredResults;
+            }
+            catch (Exception e)
+            {
+                LiteGraphTelemetry.SetActivityException(activity, e);
+                throw;
+            }
+        }
+
+        private static void SetVectorIndexSearchActivityTags(
+            Activity activity,
+            VectorSearchTypeEnum searchType,
+            List<float> queryVector,
+            Graph graph,
+            int topK,
+            int? ef)
+        {
+            if (activity == null) return;
+
+            activity.SetTag("db.system", "litegraph");
+            activity.SetTag("litegraph.vector.search_type", searchType.ToString());
+            activity.SetTag("litegraph.vector.dimensions", queryVector?.Count ?? 0);
+            activity.SetTag("litegraph.vector.top_k", topK);
+            if (ef != null) activity.SetTag("litegraph.vector.index.ef", ef.Value);
+            if (graph == null) return;
+
+            activity.SetTag("litegraph.tenant_guid", graph.TenantGUID.ToString("D"));
+            activity.SetTag("litegraph.graph_guid", graph.GUID.ToString("D"));
+            activity.SetTag("litegraph.vector.index.type", graph.VectorIndexType?.ToString() ?? "None");
+            activity.SetTag("litegraph.vector.index.dirty", graph.VectorIndexDirty);
+        }
+
+        private static async Task ExecuteIndexMutationAsync(
+            SqliteGraphRepository repo,
+            Graph graph,
+            string dirtyReason,
+            Func<IVectorIndex, Task> mutation)
+        {
+            try
+            {
+                IVectorIndex index = await repo.VectorIndexManager.GetOrCreateIndexAsync(graph).ConfigureAwait(false);
+                if (index == null) return;
+
+                await mutation(index).ConfigureAwait(false);
+                repo.NoteVectorIndexMutation(graph.TenantGUID, graph.GUID, dirtyReason);
+            }
+            catch (Exception e)
+            {
+                await MarkIndexDirtyAfterFailureAsync(repo, graph, dirtyReason, e).ConfigureAwait(false);
+            }
+        }
+
+        private static async Task MarkIndexDirtyAfterFailureAsync(
+            SqliteGraphRepository repo,
+            Graph graph,
+            string dirtyReason,
+            Exception exception)
+        {
+            string reason = dirtyReason + ": " + exception.GetType().Name + ": " + exception.Message;
+            repo.Logging.Log(SeverityEnum.Warn, reason);
+
+            if (repo.GraphTransactionActive)
+            {
+                repo.NoteVectorIndexFailure(graph.TenantGUID, graph.GUID, reason);
+                return;
             }
 
-            return scoredResults;
+            await repo.Graph.MarkVectorIndexDirtyAsync(graph.TenantGUID, graph.GUID, reason).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Build vector index entries for node vectors with node metadata resolved from the repository.
+        /// </summary>
+        /// <param name="repo">Repository.</param>
+        /// <param name="graph">Graph.</param>
+        /// <param name="vectors">Vectors.</param>
+        /// <param name="token">Cancellation token.</param>
+        /// <returns>Vector index entries.</returns>
+        public static async Task<List<VectorIndexEntry>> BuildNodeIndexEntriesAsync(
+            SqliteGraphRepository repo,
+            Graph graph,
+            IEnumerable<VectorMetadata> vectors,
+            CancellationToken token = default)
+        {
+            if (repo == null) throw new ArgumentNullException(nameof(repo));
+            if (graph == null) throw new ArgumentNullException(nameof(graph));
+
+            List<VectorMetadata> nodeVectors = vectors?
+                .Where(vector => vector != null && vector.Vectors != null && vector.Vectors.Count > 0 && vector.NodeGUID.HasValue)
+                .ToList() ?? new List<VectorMetadata>();
+
+            if (nodeVectors.Count < 1) return new List<VectorIndexEntry>();
+
+            Dictionary<Guid, Node> nodesByGuid = new Dictionary<Guid, Node>();
+            List<Guid> nodeGuids = nodeVectors.Select(vector => vector.NodeGUID.Value).Distinct().ToList();
+
+            await foreach (Node node in repo.Node.ReadByGuids(graph.TenantGUID, nodeGuids, token).ConfigureAwait(false))
+            {
+                nodesByGuid[node.GUID] = node;
+            }
+
+            List<VectorIndexEntry> entries = new List<VectorIndexEntry>();
+            foreach (VectorMetadata vector in nodeVectors)
+            {
+                nodesByGuid.TryGetValue(vector.NodeGUID.Value, out Node node);
+                entries.Add(VectorIndexEntry.FromVectorMetadata(vector, graph, node));
+            }
+
+            return entries;
+        }
+
+        private static async Task<VectorIndexEntry> BuildNodeIndexEntryAsync(
+            SqliteGraphRepository repo,
+            Graph graph,
+            VectorMetadata vector,
+            CancellationToken token = default)
+        {
+            Node node = null;
+            if (vector?.NodeGUID.HasValue == true)
+                node = await repo.Node.ReadByGuid(vector.TenantGUID, vector.NodeGUID.Value, token).ConfigureAwait(false);
+
+            return VectorIndexEntry.FromVectorMetadata(vector, graph, node);
         }
     }
 }

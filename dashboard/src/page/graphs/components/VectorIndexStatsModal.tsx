@@ -133,6 +133,7 @@ const VectorIndexStatsModal: React.FC<VectorIndexStatsModalProps> = ({
       onCancel={handleCancel}
       footer={null}
       width={900}
+      maskClosable
     >
       {isStatsLoading ? (
         <PageLoading />

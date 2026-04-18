@@ -1,4 +1,5 @@
 import { ApiOperation, ApiParameter } from './types';
+import { getRequestBodyTemplate } from './requestTemplates';
 
 type OpenApiSchema = { [key: string]: unknown };
 
@@ -87,6 +88,9 @@ export const flattenOpenApi = (spec: OpenApiSpec | null | undefined): ApiOperati
           }
         }
       }
+
+      requestBodyExample =
+        getRequestBodyTemplate(path, method.toUpperCase()) || requestBodyExample;
 
       const tag = def.tags?.[0] || 'Other';
       ops.push({

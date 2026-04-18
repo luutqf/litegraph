@@ -51,8 +51,8 @@
         /// <param name="tags">Tags on which to match.</param>
         /// <param name="graphFilter">
         /// Graph filter expression for Data JSON body.
-        /// Expression left terms must follow the form of Sqlite JSON paths.
-        /// For example, to retrieve the 'Name' property, use '$.Name', OperatorEnum.Equals, '[name here]'.</param>
+        /// Expression left terms use LiteGraph JSON data paths relative to the Data object.
+        /// For example, to retrieve the 'Name' property, use 'Name', OperatorEnum.Equals, '[name here]'.</param>
         /// <param name="order">Enumeration order.</param>
         /// <param name="skip">The number of records to skip.</param>
         /// <param name="includeData">Boolean indicating whether the object's data property should be included.</param>
@@ -80,8 +80,8 @@
         /// <param name="tags">Tags on which to match.</param>
         /// <param name="graphFilter">
         /// Graph filter expression for Data JSON body.
-        /// Expression left terms must follow the form of Sqlite JSON paths.
-        /// For example, to retrieve the 'Name' property, use '$.Name', OperatorEnum.Equals, '[name here]'.</param>
+        /// Expression left terms use LiteGraph JSON data paths relative to the Data object.
+        /// For example, to retrieve the 'Name' property, use 'Name', OperatorEnum.Equals, '[name here]'.</param>
         /// <param name="order">Enumeration order.</param>
         /// <param name="includeData">Boolean indicating whether the object's data property should be included.</param>
         /// <param name="includeSubordinates">Boolean indicating whether the object's subordinate properties (labels, tags, vectors) should be included.</param>

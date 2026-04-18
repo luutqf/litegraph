@@ -2,6 +2,7 @@ namespace LiteGraph.McpServer.Registrations
 {
     using System;
     using System.Collections.Generic;
+    using System.Net.Http;
     using ExpressionTree;
     using System.Text.Json;
     using LiteGraph.McpServer.Classes;
@@ -48,8 +49,7 @@ namespace LiteGraph.McpServer.Registrations
                     Guid graphGuid = Guid.Parse(graphGuidProp.GetString()!);
                     string name = nameProp.GetString()!;
                     Node node = new Node { TenantGUID = tenantGuid, GraphGUID = graphGuid, Name = name };
-                    Node created = sdk.Node.Create(node).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(created, true);
+                    return CreateNode(sdk, tenantGuid, graphGuid, node);
                 });
 
             server.RegisterTool(
@@ -82,8 +82,7 @@ namespace LiteGraph.McpServer.Registrations
                     bool includeData = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeData", false);
                     bool includeSubordinates = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeSubordinates", false);
 
-                    Node node = sdk.Node.ReadByGuid(tenantGuid, graphGuid, nodeGuid, includeData, includeSubordinates).GetAwaiter().GetResult();
-                    return node != null ? Serializer.SerializeJson(node, true) : "null";
+                    return ReadNode(sdk, tenantGuid, graphGuid, nodeGuid, includeData, includeSubordinates);
                 });
 
             server.RegisterTool(
@@ -111,8 +110,7 @@ namespace LiteGraph.McpServer.Registrations
                     (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
                     bool includeData = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeData", false);
                     bool includeSubordinates = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeSubordinates", false);
-                    List<Node> nodes = sdk.Node.ReadMany(tenantGuid, graphGuid, order, skip, includeData, includeSubordinates).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(nodes, true);
+                    return ReadNodes(sdk, tenantGuid, graphGuid, order, skip, includeData, includeSubordinates);
                 });
 
             server.RegisterTool(
@@ -155,8 +153,7 @@ namespace LiteGraph.McpServer.Registrations
                         nodeFilter = Serializer.DeserializeJson<Expr>(nodeFilterJson);
                     }
 
-                    RouteResponse routeResponse = sdk.Node.ReadRoutes(searchType, tenantGuid, graphGuid, fromNodeGuid, toNodeGuid, edgeFilter, nodeFilter).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(routeResponse?.Routes ?? new List<RouteDetail>(), true);
+                    return ReadRoutes(sdk, tenantGuid, graphGuid, fromNodeGuid, toNodeGuid, edgeFilter, nodeFilter);
                 });
 
             server.RegisterTool(
@@ -182,8 +179,7 @@ namespace LiteGraph.McpServer.Registrations
                     Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
                     Guid nodeGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "nodeGuid");
                     (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
-                    List<Node> parents = sdk.Node.ReadParents(tenantGuid, graphGuid, nodeGuid, order, skip).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(parents ?? new List<Node>(), true);
+                    return ReadParents(sdk, tenantGuid, graphGuid, nodeGuid, order, skip);
 
                 });
 
@@ -210,8 +206,7 @@ namespace LiteGraph.McpServer.Registrations
                     Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
                     Guid nodeGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "nodeGuid");
                     (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
-                    List<Node> children = sdk.Node.ReadChildren(tenantGuid, graphGuid, nodeGuid, order, skip).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(children ?? new List<Node>(), true);
+                    return ReadChildren(sdk, tenantGuid, graphGuid, nodeGuid, order, skip);
                 });
 
             server.RegisterTool(
@@ -236,7 +231,7 @@ namespace LiteGraph.McpServer.Registrations
 
                     Guid tenantGuid = Guid.Parse(tenantGuidProp.GetString()!);
                     Guid graphGuid = Guid.Parse(graphGuidProp.GetString()!);
-                    sdk.Node.DeleteAllInGraph(tenantGuid, graphGuid).GetAwaiter().GetResult();
+                    DeleteAllNodesInGraph(sdk, tenantGuid, graphGuid);
                     return true;
                 });
 
@@ -266,7 +261,7 @@ namespace LiteGraph.McpServer.Registrations
                     Guid graphGuid = Guid.Parse(graphGuidProp.GetString()!);
                     List<Guid> nodeGuids = Serializer.DeserializeJson<List<Guid>>(nodeGuidsProp.GetRawText());
 
-                    sdk.Node.DeleteMany(tenantGuid, graphGuid, nodeGuids).GetAwaiter().GetResult();
+                    DeleteNodes(sdk, tenantGuid, graphGuid, nodeGuids);
                     return true;
                 });
 
@@ -293,8 +288,7 @@ namespace LiteGraph.McpServer.Registrations
                     (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
                     bool includeData = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeData");
                     bool includeSubordinates = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeSubordinates");
-                    List<Node> nodes = sdk.Node.ReadAllInTenant(tenantGuid, order, skip, includeData, includeSubordinates).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(nodes, true);
+                    return ReadAllNodesInTenant(sdk, tenantGuid, order, skip, includeData, includeSubordinates);
                 });
 
             server.RegisterTool(
@@ -322,8 +316,7 @@ namespace LiteGraph.McpServer.Registrations
                     (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
                     bool includeData = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeData");
                     bool includeSubordinates = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeSubordinates");
-                    List<Node> nodes = sdk.Node.ReadAllInGraph(tenantGuid, graphGuid, order, skip, includeData, includeSubordinates).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(nodes, true);
+                    return ReadAllNodesInGraph(sdk, tenantGuid, graphGuid, order, skip, includeData, includeSubordinates);
                 });
 
             server.RegisterTool(
@@ -351,8 +344,7 @@ namespace LiteGraph.McpServer.Registrations
                     (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
                     bool includeData = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeData");
                     bool includeSubordinates = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeSubordinates");
-                    List<Node> nodes = sdk.Node.ReadMostConnected(tenantGuid, graphGuid, order, skip, includeData, includeSubordinates).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(nodes, true);
+                    return ReadMostConnectedNodes(sdk, tenantGuid, graphGuid, order, skip, includeData, includeSubordinates);
                 });
 
             server.RegisterTool(
@@ -380,8 +372,7 @@ namespace LiteGraph.McpServer.Registrations
                     (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
                     bool includeData = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeData");
                     bool includeSubordinates = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeSubordinates");
-                    List<Node> nodes = sdk.Node.ReadLeastConnected(tenantGuid, graphGuid, order, skip, includeData, includeSubordinates).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(nodes, true);
+                    return ReadLeastConnectedNodes(sdk, tenantGuid, graphGuid, order, skip, includeData, includeSubordinates);
                 });
 
             server.RegisterTool(
@@ -400,7 +391,7 @@ namespace LiteGraph.McpServer.Registrations
                 {
                     if (!args.HasValue) throw new ArgumentException("Parameters required");
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
-                    sdk.Node.DeleteAllInTenant(tenantGuid).GetAwaiter().GetResult();
+                    DeleteAllNodesInTenant(sdk, tenantGuid);
                     return true;
                 });
 
@@ -427,8 +418,7 @@ namespace LiteGraph.McpServer.Registrations
                     Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
                     Guid nodeGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "nodeGuid");
                     (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
-                    List<Node> neighbors = sdk.Node.ReadNeighbors(tenantGuid, graphGuid, nodeGuid, order, skip).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(neighbors ?? new List<Node>(), true);
+                    return ReadNeighbors(sdk, tenantGuid, graphGuid, nodeGuid, order, skip);
                 });
 
             server.RegisterTool(
@@ -455,8 +445,7 @@ namespace LiteGraph.McpServer.Registrations
 
                     string nodesJson = nodesProp.GetString() ?? throw new ArgumentException("Nodes JSON string cannot be null");
                     List<Node> nodes = Serializer.DeserializeJson<List<Node>>(nodesJson);
-                    List<Node> created = sdk.Node.CreateMany(tenantGuid, graphGuid, nodes).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(created, true);
+                    return CreateNodes(sdk, tenantGuid, graphGuid, nodes);
                 });
 
             server.RegisterTool(
@@ -486,8 +475,7 @@ namespace LiteGraph.McpServer.Registrations
                     List<Guid> guids = Serializer.DeserializeJson<List<Guid>>(guidsProp.GetRawText());
                     bool includeData = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeData", false);
                     bool includeSubordinates = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeSubordinates", false);
-                    List<Node> nodes = sdk.Node.ReadByGuids(tenantGuid, graphGuid, guids, includeData, includeSubordinates).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(nodes, true);
+                    return ReadNodesByGuids(sdk, tenantGuid, graphGuid, guids, includeData, includeSubordinates);
                 });
 
             server.RegisterTool(
@@ -508,8 +496,7 @@ namespace LiteGraph.McpServer.Registrations
                         throw new ArgumentException("Node JSON string is required");
                     string nodeJson = nodeProp.GetString() ?? throw new ArgumentException("Node JSON string cannot be null");
                     Node node = Serializer.DeserializeJson<Node>(nodeJson);
-                    Node updated = sdk.Node.Update(node).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(updated, true);
+                    return UpdateNode(sdk, node);
                 });
 
             server.RegisterTool(
@@ -532,7 +519,7 @@ namespace LiteGraph.McpServer.Registrations
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                     Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
                     Guid nodeGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "nodeGuid");
-                    sdk.Node.DeleteByGuid(tenantGuid, graphGuid, nodeGuid).GetAwaiter().GetResult();
+                    DeleteNode(sdk, tenantGuid, graphGuid, nodeGuid);
                     return true;
                 });
 
@@ -556,8 +543,7 @@ namespace LiteGraph.McpServer.Registrations
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                     Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
                     Guid nodeGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "nodeGuid");
-                    bool exists = sdk.Node.ExistsByGuid(tenantGuid, graphGuid, nodeGuid).GetAwaiter().GetResult();
-                    return exists.ToString().ToLower();
+                    return NodeExists(sdk, tenantGuid, graphGuid, nodeGuid).ToString().ToLowerInvariant();
                 });
 
             server.RegisterTool(
@@ -579,8 +565,7 @@ namespace LiteGraph.McpServer.Registrations
 
                     string reqJson = reqProp.GetString() ?? throw new ArgumentException("SearchRequest JSON string cannot be null");
                     SearchRequest req = Serializer.DeserializeJson<SearchRequest>(reqJson);
-                    SearchResult result = sdk.Node.Search(req).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(result, true);
+                    return SearchNodes(sdk, req);
                 });
 
             server.RegisterTool(
@@ -602,8 +587,7 @@ namespace LiteGraph.McpServer.Registrations
 
                     string reqJson = reqProp.GetString() ?? throw new ArgumentException("SearchRequest JSON string cannot be null");
                     SearchRequest req = Serializer.DeserializeJson<SearchRequest>(reqJson);
-                    Node node = sdk.Node.ReadFirst(req).GetAwaiter().GetResult();
-                    return node != null ? Serializer.SerializeJson(node, true) : "null";
+                    return ReadFirstNode(sdk, req);
                 });
 
             server.RegisterTool(
@@ -630,8 +614,7 @@ namespace LiteGraph.McpServer.Registrations
                     if (query.GraphGUID == null)
                         throw new ArgumentException("query.GraphGUID is required.");
 
-                    EnumerationResult<Node> result = sdk.Node.Enumerate(query).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(result, true);
+                    return EnumerateNodes(sdk, query);
                 });
         }
 
@@ -658,8 +641,7 @@ namespace LiteGraph.McpServer.Registrations
                 Guid graphGuid = Guid.Parse(graphGuidProp.GetString()!);
                 string name = nameProp.GetString()!;
                 Node node = new Node { TenantGUID = tenantGuid, GraphGUID = graphGuid, Name = name };
-                Node created = sdk.Node.Create(node).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(created, true);
+                return CreateNode(sdk, tenantGuid, graphGuid, node);
             });
 
             server.RegisterMethod("node/get", (args) =>
@@ -675,8 +657,7 @@ namespace LiteGraph.McpServer.Registrations
                 Guid nodeGuid = Guid.Parse(nodeGuidProp.GetString()!);
                 bool includeData = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeData", false);
                 bool includeSubordinates = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeSubordinates", false);
-                Node node = sdk.Node.ReadByGuid(tenantGuid, graphGuid, nodeGuid, includeData, includeSubordinates).GetAwaiter().GetResult();
-                return node != null ? Serializer.SerializeJson(node, true) : "null";
+                return ReadNode(sdk, tenantGuid, graphGuid, nodeGuid, includeData, includeSubordinates);
             });
 
             server.RegisterMethod("node/all", (args) =>
@@ -687,8 +668,7 @@ namespace LiteGraph.McpServer.Registrations
                 (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
                 bool includeData = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeData", false);
                 bool includeSubordinates = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeSubordinates", false);
-                List<Node> nodes = sdk.Node.ReadMany(tenantGuid, graphGuid, order, skip, includeData, includeSubordinates).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(nodes, true);
+                return ReadNodes(sdk, tenantGuid, graphGuid, order, skip, includeData, includeSubordinates);
             });
 
             server.RegisterMethod("node/traverse", (args) =>
@@ -713,8 +693,7 @@ namespace LiteGraph.McpServer.Registrations
                     nodeFilter = Serializer.DeserializeJson<Expr>(nodeFilterJson);
                 }
 
-                RouteResponse routeResponse = sdk.Node.ReadRoutes(searchType, tenantGuid, graphGuid, fromNodeGuid, toNodeGuid, edgeFilter, nodeFilter).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(routeResponse?.Routes ?? new List<RouteDetail>(), true);
+                return ReadRoutes(sdk, tenantGuid, graphGuid, fromNodeGuid, toNodeGuid, edgeFilter, nodeFilter);
             });
 
             server.RegisterMethod("node/parents", (args) =>
@@ -724,8 +703,7 @@ namespace LiteGraph.McpServer.Registrations
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
                 Guid nodeGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "nodeGuid");
                 (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
-                List<Node> parents = sdk.Node.ReadParents(tenantGuid, graphGuid, nodeGuid, order, skip).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(parents, true);
+                    return ReadParents(sdk, tenantGuid, graphGuid, nodeGuid, order, skip);
             });
 
             server.RegisterMethod("node/children", (args) =>
@@ -735,8 +713,7 @@ namespace LiteGraph.McpServer.Registrations
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
                 Guid nodeGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "nodeGuid");
                 (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
-                List<Node> children = sdk.Node.ReadChildren(tenantGuid, graphGuid, nodeGuid, order, skip).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(children, true);
+                    return ReadChildren(sdk, tenantGuid, graphGuid, nodeGuid, order, skip);
             });
 
             server.RegisterMethod("node/neighbors", (args) =>
@@ -746,8 +723,7 @@ namespace LiteGraph.McpServer.Registrations
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
                 Guid nodeGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "nodeGuid");
                 (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
-                List<Node> neighbors = sdk.Node.ReadNeighbors(tenantGuid, graphGuid, nodeGuid, order, skip).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(neighbors, true);
+                    return ReadNeighbors(sdk, tenantGuid, graphGuid, nodeGuid, order, skip);
             });
 
             server.RegisterMethod("node/deleteall", (args) =>
@@ -755,8 +731,8 @@ namespace LiteGraph.McpServer.Registrations
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
-                sdk.Node.DeleteAllInGraph(tenantGuid, graphGuid).GetAwaiter().GetResult();
-                return true;
+                    DeleteAllNodesInGraph(sdk, tenantGuid, graphGuid);
+                    return true;
             });
 
             server.RegisterMethod("node/deletemany", (args) =>
@@ -769,8 +745,8 @@ namespace LiteGraph.McpServer.Registrations
 
                 List<Guid> nodeGuids = Serializer.DeserializeJson<List<Guid>>(nodeGuidsProp.GetRawText());
 
-                sdk.Node.DeleteMany(tenantGuid, graphGuid, nodeGuids).GetAwaiter().GetResult();
-                return true;
+                    DeleteNodes(sdk, tenantGuid, graphGuid, nodeGuids);
+                    return true;
             });
 
             server.RegisterMethod("node/readallintenant", (args) =>
@@ -780,8 +756,7 @@ namespace LiteGraph.McpServer.Registrations
                 (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
                 bool includeData = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeData");
                 bool includeSubordinates = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeSubordinates");
-                List<Node> nodes = sdk.Node.ReadAllInTenant(tenantGuid, order, skip, includeData, includeSubordinates).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(nodes, true);
+                    return ReadAllNodesInTenant(sdk, tenantGuid, order, skip, includeData, includeSubordinates);
             });
 
             server.RegisterMethod("node/readallingraph", (args) =>
@@ -792,8 +767,7 @@ namespace LiteGraph.McpServer.Registrations
                 (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
                 bool includeData = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeData");
                 bool includeSubordinates = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeSubordinates");
-                List<Node> nodes = sdk.Node.ReadAllInGraph(tenantGuid, graphGuid, order, skip, includeData, includeSubordinates).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(nodes, true);
+                    return ReadAllNodesInGraph(sdk, tenantGuid, graphGuid, order, skip, includeData, includeSubordinates);
             });
 
             server.RegisterMethod("node/readmostconnected", (args) =>
@@ -804,8 +778,7 @@ namespace LiteGraph.McpServer.Registrations
                 (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
                 bool includeData = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeData");
                 bool includeSubordinates = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeSubordinates");
-                List<Node> nodes = sdk.Node.ReadMostConnected(tenantGuid, graphGuid, order, skip, includeData, includeSubordinates).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(nodes, true);
+                    return ReadMostConnectedNodes(sdk, tenantGuid, graphGuid, order, skip, includeData, includeSubordinates);
             });
 
             server.RegisterMethod("node/readleastconnected", (args) =>
@@ -816,16 +789,15 @@ namespace LiteGraph.McpServer.Registrations
                 (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
                 bool includeData = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeData");
                 bool includeSubordinates = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeSubordinates");
-                List<Node> nodes = sdk.Node.ReadLeastConnected(tenantGuid, graphGuid, order, skip, includeData, includeSubordinates).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(nodes, true);
+                    return ReadLeastConnectedNodes(sdk, tenantGuid, graphGuid, order, skip, includeData, includeSubordinates);
             });
 
             server.RegisterMethod("node/deleteallintenant", (args) =>
             {
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
-                sdk.Node.DeleteAllInTenant(tenantGuid).GetAwaiter().GetResult();
-                return true;
+                    DeleteAllNodesInTenant(sdk, tenantGuid);
+                    return true;
             });
 
             server.RegisterMethod("node/readallintenant", (args) =>
@@ -835,8 +807,7 @@ namespace LiteGraph.McpServer.Registrations
                 (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
                 bool includeData = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeData");
                 bool includeSubordinates = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeSubordinates");
-                List<Node> nodes = sdk.Node.ReadAllInTenant(tenantGuid, order, skip, includeData, includeSubordinates).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(nodes, true);
+                return ReadAllNodesInTenant(sdk, tenantGuid, order, skip, includeData, includeSubordinates);
             });
 
             server.RegisterMethod("node/readallingraph", (args) =>
@@ -847,8 +818,7 @@ namespace LiteGraph.McpServer.Registrations
                 (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
                 bool includeData = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeData");
                 bool includeSubordinates = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeSubordinates");
-                List<Node> nodes = sdk.Node.ReadAllInGraph(tenantGuid, graphGuid, order, skip, includeData, includeSubordinates).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(nodes, true);
+                return ReadAllNodesInGraph(sdk, tenantGuid, graphGuid, order, skip, includeData, includeSubordinates);
             });
 
             server.RegisterMethod("node/readmostconnected", (args) =>
@@ -859,8 +829,7 @@ namespace LiteGraph.McpServer.Registrations
                 (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
                 bool includeData = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeData");
                 bool includeSubordinates = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeSubordinates");
-                List<Node> nodes = sdk.Node.ReadMostConnected(tenantGuid, graphGuid, order, skip, includeData, includeSubordinates).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(nodes, true);
+                return ReadMostConnectedNodes(sdk, tenantGuid, graphGuid, order, skip, includeData, includeSubordinates);
             });
 
             server.RegisterMethod("node/readleastconnected", (args) =>
@@ -871,15 +840,14 @@ namespace LiteGraph.McpServer.Registrations
                 (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
                 bool includeData = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeData");
                 bool includeSubordinates = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeSubordinates");
-                List<Node> nodes = sdk.Node.ReadLeastConnected(tenantGuid, graphGuid, order, skip, includeData, includeSubordinates).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(nodes, true);
+                return ReadLeastConnectedNodes(sdk, tenantGuid, graphGuid, order, skip, includeData, includeSubordinates);
             });
 
             server.RegisterMethod("node/deleteallintenant", (args) =>
             {
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
-                sdk.Node.DeleteAllInTenant(tenantGuid).GetAwaiter().GetResult();
+                DeleteAllNodesInTenant(sdk, tenantGuid);
                 return true;
             });
 
@@ -893,8 +861,7 @@ namespace LiteGraph.McpServer.Registrations
 
                 string nodesJson = nodesProp.GetString() ?? throw new ArgumentException("Nodes JSON string cannot be null");
                 List<Node> nodes = Serializer.DeserializeJson<List<Node>>(nodesJson);
-                List<Node> created = sdk.Node.CreateMany(tenantGuid, graphGuid, nodes).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(created, true);
+                    return CreateNodes(sdk, tenantGuid, graphGuid, nodes);
             });
 
             server.RegisterMethod("node/getmany", (args) =>
@@ -908,8 +875,7 @@ namespace LiteGraph.McpServer.Registrations
                 List<Guid> guids = Serializer.DeserializeJson<List<Guid>>(guidsProp.GetRawText());
                 bool includeData = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeData", false);
                 bool includeSubordinates = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeSubordinates", false);
-                List<Node> nodes = sdk.Node.ReadByGuids(tenantGuid, graphGuid, guids, includeData, includeSubordinates).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(nodes, true);
+                    return ReadNodesByGuids(sdk, tenantGuid, graphGuid, guids, includeData, includeSubordinates);
             });
 
             server.RegisterMethod("node/update", (args) =>
@@ -918,8 +884,7 @@ namespace LiteGraph.McpServer.Registrations
                     throw new ArgumentException("Node JSON string is required");
                 string nodeJson = nodeProp.GetString() ?? throw new ArgumentException("Node JSON string cannot be null");
                 Node node = Serializer.DeserializeJson<Node>(nodeJson);
-                Node updated = sdk.Node.Update(node).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(updated, true);
+                return UpdateNode(sdk, node);
             });
 
             server.RegisterMethod("node/delete", (args) =>
@@ -928,7 +893,7 @@ namespace LiteGraph.McpServer.Registrations
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
                 Guid nodeGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "nodeGuid");
-                sdk.Node.DeleteByGuid(tenantGuid, graphGuid, nodeGuid).GetAwaiter().GetResult();
+                DeleteNode(sdk, tenantGuid, graphGuid, nodeGuid);
                 return true;
             });
 
@@ -938,8 +903,7 @@ namespace LiteGraph.McpServer.Registrations
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
                 Guid nodeGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "nodeGuid");
-                bool exists = sdk.Node.ExistsByGuid(tenantGuid, graphGuid, nodeGuid).GetAwaiter().GetResult();
-                return exists.ToString().ToLower();
+                    return NodeExists(sdk, tenantGuid, graphGuid, nodeGuid).ToString().ToLowerInvariant();
             });
 
             server.RegisterMethod("node/search", (args) =>
@@ -949,8 +913,7 @@ namespace LiteGraph.McpServer.Registrations
 
                 string reqJson = reqProp.GetString() ?? throw new ArgumentException("SearchRequest JSON string cannot be null");
                 SearchRequest req = Serializer.DeserializeJson<SearchRequest>(reqJson);
-                SearchResult result = sdk.Node.Search(req).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(result, true);
+                    return SearchNodes(sdk, req);
             });
 
             server.RegisterMethod("node/readfirst", (args) =>
@@ -960,8 +923,7 @@ namespace LiteGraph.McpServer.Registrations
 
                 string reqJson = reqProp.GetString() ?? throw new ArgumentException("SearchRequest JSON string cannot be null");
                 SearchRequest req = Serializer.DeserializeJson<SearchRequest>(reqJson);
-                Node node = sdk.Node.ReadFirst(req).GetAwaiter().GetResult();
-                return node != null ? Serializer.SerializeJson(node, true) : "null";
+                    return ReadFirstNode(sdk, req);
             });
 
             server.RegisterMethod("node/enumerate", (args) =>
@@ -976,8 +938,7 @@ namespace LiteGraph.McpServer.Registrations
                 if (query.GraphGUID == null)
                     throw new ArgumentException("query.GraphGUID is required.");
 
-                EnumerationResult<Node> result = sdk.Node.Enumerate(query).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(result, true);
+                    return EnumerateNodes(sdk, query);
             });
         }
 
@@ -1004,8 +965,7 @@ namespace LiteGraph.McpServer.Registrations
                 Guid graphGuid = Guid.Parse(graphGuidProp.GetString()!);
                 string name = nameProp.GetString()!;
                 Node node = new Node { TenantGUID = tenantGuid, GraphGUID = graphGuid, Name = name };
-                Node created = sdk.Node.Create(node).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(created, true);
+                return CreateNode(sdk, tenantGuid, graphGuid, node);
             });
 
             server.RegisterMethod("node/get", (args) =>
@@ -1021,8 +981,7 @@ namespace LiteGraph.McpServer.Registrations
                 Guid nodeGuid = Guid.Parse(nodeGuidProp.GetString()!);
                 bool includeData = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeData", false);
                 bool includeSubordinates = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeSubordinates", false);
-                Node node = sdk.Node.ReadByGuid(tenantGuid, graphGuid, nodeGuid, includeData, includeSubordinates).GetAwaiter().GetResult();
-                return node != null ? Serializer.SerializeJson(node, true) : "null";
+                return ReadNode(sdk, tenantGuid, graphGuid, nodeGuid, includeData, includeSubordinates);
             });
 
             server.RegisterMethod("node/all", (args) =>
@@ -1033,8 +992,7 @@ namespace LiteGraph.McpServer.Registrations
                 (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
                 bool includeData = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeData", false);
                 bool includeSubordinates = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeSubordinates", false);
-                List<Node> nodes = sdk.Node.ReadMany(tenantGuid, graphGuid, order, skip, includeData, includeSubordinates).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(nodes, true);
+                return ReadNodes(sdk, tenantGuid, graphGuid, order, skip, includeData, includeSubordinates);
             });
 
             server.RegisterMethod("node/traverse", (args) =>
@@ -1059,8 +1017,7 @@ namespace LiteGraph.McpServer.Registrations
                     nodeFilter = Serializer.DeserializeJson<Expr>(nodeFilterJson);
                 }
 
-                RouteResponse routeResponse = sdk.Node.ReadRoutes(searchType, tenantGuid, graphGuid, fromNodeGuid, toNodeGuid, edgeFilter, nodeFilter).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(routeResponse?.Routes ?? new List<RouteDetail>(), true);
+                return ReadRoutes(sdk, tenantGuid, graphGuid, fromNodeGuid, toNodeGuid, edgeFilter, nodeFilter);
             });
 
             server.RegisterMethod("node/parents", (args) =>
@@ -1069,8 +1026,8 @@ namespace LiteGraph.McpServer.Registrations
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
                 Guid nodeGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "nodeGuid");
-                List<Node> parents = sdk.Node.ReadParents(tenantGuid, graphGuid, nodeGuid).GetAwaiter().GetResult(); ;
-                return Serializer.SerializeJson(parents, true);
+                (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
+                return ReadParents(sdk, tenantGuid, graphGuid, nodeGuid, order, skip);
             });
 
             server.RegisterMethod("node/children", (args) =>
@@ -1080,8 +1037,7 @@ namespace LiteGraph.McpServer.Registrations
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
                 Guid nodeGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "nodeGuid");
                 (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
-                List<Node> children = sdk.Node.ReadChildren(tenantGuid, graphGuid, nodeGuid, order, skip).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(children, true);
+                return ReadChildren(sdk, tenantGuid, graphGuid, nodeGuid, order, skip);
             });
 
             server.RegisterMethod("node/neighbors", (args) =>
@@ -1091,8 +1047,7 @@ namespace LiteGraph.McpServer.Registrations
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
                 Guid nodeGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "nodeGuid");
                 (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
-                List<Node> neighbors = sdk.Node.ReadNeighbors(tenantGuid, graphGuid, nodeGuid, order, skip).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(neighbors, true);
+                    return ReadNeighbors(sdk, tenantGuid, graphGuid, nodeGuid, order, skip);
             });
 
             server.RegisterMethod("node/deleteall", (args) =>
@@ -1100,7 +1055,7 @@ namespace LiteGraph.McpServer.Registrations
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
-                sdk.Node.DeleteAllInGraph(tenantGuid, graphGuid).GetAwaiter().GetResult();
+                DeleteAllNodesInGraph(sdk, tenantGuid, graphGuid);
                 return true;
             });
 
@@ -1114,7 +1069,7 @@ namespace LiteGraph.McpServer.Registrations
 
                 List<Guid> nodeGuids = Serializer.DeserializeJson<List<Guid>>(nodeGuidsProp.GetRawText());
 
-                sdk.Node.DeleteMany(tenantGuid, graphGuid, nodeGuids).GetAwaiter().GetResult();
+                DeleteNodes(sdk, tenantGuid, graphGuid, nodeGuids);
                 return true;
             });
 
@@ -1128,8 +1083,7 @@ namespace LiteGraph.McpServer.Registrations
 
                 string nodesJson = nodesProp.GetString() ?? throw new ArgumentException("Nodes JSON string cannot be null");
                 List<Node> nodes = Serializer.DeserializeJson<List<Node>>(nodesJson);
-                List<Node> created = sdk.Node.CreateMany(tenantGuid, graphGuid, nodes).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(created, true);
+                    return CreateNodes(sdk, tenantGuid, graphGuid, nodes);
             });
 
             server.RegisterMethod("node/getmany", (args) =>
@@ -1143,8 +1097,7 @@ namespace LiteGraph.McpServer.Registrations
                 List<Guid> guids = Serializer.DeserializeJson<List<Guid>>(guidsProp.GetRawText());
                 bool includeData = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeData", false);
                 bool includeSubordinates = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeSubordinates", false);
-                List<Node> nodes = sdk.Node.ReadByGuids(tenantGuid, graphGuid, guids, includeData, includeSubordinates).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(nodes, true);
+                    return ReadNodesByGuids(sdk, tenantGuid, graphGuid, guids, includeData, includeSubordinates);
             });
 
             server.RegisterMethod("node/update", (args) =>
@@ -1153,8 +1106,7 @@ namespace LiteGraph.McpServer.Registrations
                     throw new ArgumentException("Node JSON string is required");
                 string nodeJson = nodeProp.GetString() ?? throw new ArgumentException("Node JSON string cannot be null");
                 Node node = Serializer.DeserializeJson<Node>(nodeJson);
-                Node updated = sdk.Node.Update(node).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(updated, true);
+                return UpdateNode(sdk, node);
             });
 
             server.RegisterMethod("node/delete", (args) =>
@@ -1163,7 +1115,7 @@ namespace LiteGraph.McpServer.Registrations
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
                 Guid nodeGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "nodeGuid");
-                sdk.Node.DeleteByGuid(tenantGuid, graphGuid, nodeGuid).GetAwaiter().GetResult();
+                DeleteNode(sdk, tenantGuid, graphGuid, nodeGuid);
                 return true;
             });
 
@@ -1173,8 +1125,7 @@ namespace LiteGraph.McpServer.Registrations
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
                 Guid nodeGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "nodeGuid");
-                bool exists = sdk.Node.ExistsByGuid(tenantGuid, graphGuid, nodeGuid).GetAwaiter().GetResult();
-                return exists.ToString().ToLower();
+                    return NodeExists(sdk, tenantGuid, graphGuid, nodeGuid).ToString().ToLowerInvariant();
             });
 
             server.RegisterMethod("node/search", (args) =>
@@ -1184,8 +1135,7 @@ namespace LiteGraph.McpServer.Registrations
 
                 string reqJson = reqProp.GetString() ?? throw new ArgumentException("SearchRequest JSON string cannot be null");
                 SearchRequest req = Serializer.DeserializeJson<SearchRequest>(reqJson);
-                SearchResult result = sdk.Node.Search(req).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(result, true);
+                    return SearchNodes(sdk, req);
             });
 
             server.RegisterMethod("node/readfirst", (args) =>
@@ -1195,8 +1145,7 @@ namespace LiteGraph.McpServer.Registrations
 
                 string reqJson = reqProp.GetString() ?? throw new ArgumentException("SearchRequest JSON string cannot be null");
                 SearchRequest req = Serializer.DeserializeJson<SearchRequest>(reqJson);
-                Node node = sdk.Node.ReadFirst(req).GetAwaiter().GetResult();
-                return node != null ? Serializer.SerializeJson(node, true) : "null";
+                    return ReadFirstNode(sdk, req);
             });
 
             server.RegisterMethod("node/enumerate", (args) =>
@@ -1211,9 +1160,368 @@ namespace LiteGraph.McpServer.Registrations
                 if (query.GraphGUID == null)
                     throw new ArgumentException("query.GraphGUID is required.");
 
-                EnumerationResult<Node> result = sdk.Node.Enumerate(query).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(result, true);
+                    return EnumerateNodes(sdk, query);
             });
+        }
+
+        #endregion
+
+        #region Private-Methods
+
+        private static string CreateNode(LiteGraphSdk sdk, Guid tenantGuid, Guid graphGuid, Node node)
+        {
+            string body = Serializer.SerializeJson(node, false);
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Put,
+                "/v1.0/tenants/"
+                + LiteGraphMcpRestProxy.Escape(tenantGuid)
+                + "/graphs/"
+                + LiteGraphMcpRestProxy.Escape(graphGuid)
+                + "/nodes",
+                body);
+        }
+
+        private static string ReadNode(
+            LiteGraphSdk sdk,
+            Guid tenantGuid,
+            Guid graphGuid,
+            Guid nodeGuid,
+            bool includeData,
+            bool includeSubordinates)
+        {
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Get,
+                "/v1.0/tenants/"
+                + LiteGraphMcpRestProxy.Escape(tenantGuid)
+                + "/graphs/"
+                + LiteGraphMcpRestProxy.Escape(graphGuid)
+                + "/nodes/"
+                + LiteGraphMcpRestProxy.Escape(nodeGuid)
+                + "?incldata="
+                + includeData.ToString().ToLowerInvariant()
+                + "&inclsub="
+                + includeSubordinates.ToString().ToLowerInvariant());
+        }
+
+        private static string ReadNodes(
+            LiteGraphSdk sdk,
+            Guid tenantGuid,
+            Guid graphGuid,
+            EnumerationOrderEnum order,
+            int skip,
+            bool includeData,
+            bool includeSubordinates)
+        {
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Get,
+                NodeCollectionPath(tenantGuid, graphGuid) + BuildReadQuery(order, skip, includeData, includeSubordinates));
+        }
+
+        private static string ReadRoutes(
+            LiteGraphSdk sdk,
+            Guid tenantGuid,
+            Guid graphGuid,
+            Guid fromNodeGuid,
+            Guid toNodeGuid,
+            Expr? edgeFilter,
+            Expr? nodeFilter)
+        {
+            string body = Serializer.SerializeJson(
+                new
+                {
+                    From = fromNodeGuid,
+                    To = toNodeGuid,
+                    EdgeFilter = edgeFilter,
+                    NodeFilter = nodeFilter
+                },
+                false);
+
+            string response = LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Post,
+                "/v1.0/tenants/"
+                + LiteGraphMcpRestProxy.Escape(tenantGuid)
+                + "/graphs/"
+                + LiteGraphMcpRestProxy.Escape(graphGuid)
+                + "/routes",
+                body);
+            RouteResponse routeResponse = Serializer.DeserializeJson<RouteResponse>(response);
+            return Serializer.SerializeJson(routeResponse?.Routes ?? new List<RouteDetail>(), true);
+        }
+
+        private static string ReadParents(
+            LiteGraphSdk sdk,
+            Guid tenantGuid,
+            Guid graphGuid,
+            Guid nodeGuid,
+            EnumerationOrderEnum order,
+            int skip)
+        {
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Get,
+                NodePath(tenantGuid, graphGuid, nodeGuid) + "/parents" + BuildReadQuery(order, skip, false, false));
+        }
+
+        private static string ReadChildren(
+            LiteGraphSdk sdk,
+            Guid tenantGuid,
+            Guid graphGuid,
+            Guid nodeGuid,
+            EnumerationOrderEnum order,
+            int skip)
+        {
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Get,
+                NodePath(tenantGuid, graphGuid, nodeGuid) + "/children" + BuildReadQuery(order, skip, false, false));
+        }
+
+        private static string ReadNeighbors(
+            LiteGraphSdk sdk,
+            Guid tenantGuid,
+            Guid graphGuid,
+            Guid nodeGuid,
+            EnumerationOrderEnum order,
+            int skip)
+        {
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Get,
+                NodePath(tenantGuid, graphGuid, nodeGuid) + "/neighbors" + BuildReadQuery(order, skip, false, false));
+        }
+
+        private static string ReadAllNodesInTenant(
+            LiteGraphSdk sdk,
+            Guid tenantGuid,
+            EnumerationOrderEnum order,
+            int skip,
+            bool includeData,
+            bool includeSubordinates)
+        {
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Get,
+                "/v1.0/tenants/"
+                + LiteGraphMcpRestProxy.Escape(tenantGuid)
+                + "/nodes/all"
+                + BuildReadQuery(order, skip, includeData, includeSubordinates));
+        }
+
+        private static string ReadAllNodesInGraph(
+            LiteGraphSdk sdk,
+            Guid tenantGuid,
+            Guid graphGuid,
+            EnumerationOrderEnum order,
+            int skip,
+            bool includeData,
+            bool includeSubordinates)
+        {
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Get,
+                NodeCollectionPath(tenantGuid, graphGuid) + "/all" + BuildReadQuery(order, skip, includeData, includeSubordinates));
+        }
+
+        private static string ReadMostConnectedNodes(
+            LiteGraphSdk sdk,
+            Guid tenantGuid,
+            Guid graphGuid,
+            EnumerationOrderEnum order,
+            int skip,
+            bool includeData,
+            bool includeSubordinates)
+        {
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Get,
+                NodeCollectionPath(tenantGuid, graphGuid) + "/mostconnected" + BuildReadQuery(order, skip, includeData, includeSubordinates));
+        }
+
+        private static string ReadLeastConnectedNodes(
+            LiteGraphSdk sdk,
+            Guid tenantGuid,
+            Guid graphGuid,
+            EnumerationOrderEnum order,
+            int skip,
+            bool includeData,
+            bool includeSubordinates)
+        {
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Get,
+                NodeCollectionPath(tenantGuid, graphGuid) + "/leastconnected" + BuildReadQuery(order, skip, includeData, includeSubordinates));
+        }
+
+        private static string CreateNodes(LiteGraphSdk sdk, Guid tenantGuid, Guid graphGuid, List<Node> nodes)
+        {
+            string body = Serializer.SerializeJson(nodes, false);
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Put,
+                NodeCollectionPath(tenantGuid, graphGuid) + "/bulk",
+                body);
+        }
+
+        private static string ReadNodesByGuids(
+            LiteGraphSdk sdk,
+            Guid tenantGuid,
+            Guid graphGuid,
+            List<Guid> nodeGuids,
+            bool includeData,
+            bool includeSubordinates)
+        {
+            if (nodeGuids == null || nodeGuids.Count == 0) return Serializer.SerializeJson(new List<Node>(), true);
+
+            List<Node> nodes = new List<Node>();
+            foreach (Guid nodeGuid in nodeGuids)
+            {
+                string nodeJson = ReadNode(sdk, tenantGuid, graphGuid, nodeGuid, includeData, includeSubordinates);
+                Node node = Serializer.DeserializeJson<Node>(nodeJson);
+                if (node != null) nodes.Add(node);
+            }
+
+            return Serializer.SerializeJson(nodes, true);
+        }
+
+        private static string SearchNodes(LiteGraphSdk sdk, SearchRequest request)
+        {
+            if (request == null) throw new ArgumentNullException(nameof(request));
+            string body = Serializer.SerializeJson(request, false);
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Post,
+                NodeCollectionPath(request.TenantGUID, request.GraphGUID) + "/search",
+                body);
+        }
+
+        private static string ReadFirstNode(LiteGraphSdk sdk, SearchRequest request)
+        {
+            if (request == null) throw new ArgumentNullException(nameof(request));
+            string body = Serializer.SerializeJson(request, false);
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Post,
+                NodeCollectionPath(request.TenantGUID, request.GraphGUID) + "/first",
+                body);
+        }
+
+        private static string EnumerateNodes(LiteGraphSdk sdk, EnumerationRequest query)
+        {
+            if (query == null) throw new ArgumentNullException(nameof(query));
+            if (query.TenantGUID == null) throw new ArgumentException("query.TenantGUID is required.");
+            if (query.GraphGUID == null) throw new ArgumentException("query.GraphGUID is required.");
+
+            string body = Serializer.SerializeJson(query, false);
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Post,
+                "/v2.0/tenants/"
+                + LiteGraphMcpRestProxy.Escape(query.TenantGUID.Value)
+                + "/graphs/"
+                + LiteGraphMcpRestProxy.Escape(query.GraphGUID.Value)
+                + "/nodes",
+                body);
+        }
+
+        private static string UpdateNode(LiteGraphSdk sdk, Node node)
+        {
+            if (node == null) throw new ArgumentNullException(nameof(node));
+
+            string body = Serializer.SerializeJson(node, false);
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Put,
+                "/v1.0/tenants/"
+                + LiteGraphMcpRestProxy.Escape(node.TenantGUID)
+                + "/graphs/"
+                + LiteGraphMcpRestProxy.Escape(node.GraphGUID)
+                + "/nodes/"
+                + LiteGraphMcpRestProxy.Escape(node.GUID),
+                body);
+        }
+
+        private static void DeleteNode(LiteGraphSdk sdk, Guid tenantGuid, Guid graphGuid, Guid nodeGuid)
+        {
+            LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Delete,
+                "/v1.0/tenants/"
+                + LiteGraphMcpRestProxy.Escape(tenantGuid)
+                + "/graphs/"
+                + LiteGraphMcpRestProxy.Escape(graphGuid)
+                + "/nodes/"
+                + LiteGraphMcpRestProxy.Escape(nodeGuid));
+        }
+
+        private static bool NodeExists(LiteGraphSdk sdk, Guid tenantGuid, Guid graphGuid, Guid nodeGuid)
+        {
+            return LiteGraphMcpRestProxy.HeadExists(sdk, NodePath(tenantGuid, graphGuid, nodeGuid));
+        }
+
+        private static void DeleteAllNodesInGraph(LiteGraphSdk sdk, Guid tenantGuid, Guid graphGuid)
+        {
+            LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Delete,
+                NodeCollectionPath(tenantGuid, graphGuid) + "/all");
+        }
+
+        private static void DeleteNodes(LiteGraphSdk sdk, Guid tenantGuid, Guid graphGuid, List<Guid> nodeGuids)
+        {
+            string body = Serializer.SerializeJson(nodeGuids, false);
+            LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Delete,
+                NodeCollectionPath(tenantGuid, graphGuid) + "/bulk",
+                body);
+        }
+
+        private static void DeleteAllNodesInTenant(LiteGraphSdk sdk, Guid tenantGuid)
+        {
+            LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Delete,
+                "/v1.0/tenants/"
+                + LiteGraphMcpRestProxy.Escape(tenantGuid)
+                + "/nodes/all");
+        }
+
+        private static string NodeCollectionPath(Guid tenantGuid, Guid graphGuid)
+        {
+            return "/v1.0/tenants/"
+                + LiteGraphMcpRestProxy.Escape(tenantGuid)
+                + "/graphs/"
+                + LiteGraphMcpRestProxy.Escape(graphGuid)
+                + "/nodes";
+        }
+
+        private static string NodePath(Guid tenantGuid, Guid graphGuid, Guid nodeGuid)
+        {
+            return NodeCollectionPath(tenantGuid, graphGuid)
+                + "/"
+                + LiteGraphMcpRestProxy.Escape(nodeGuid);
+        }
+
+        private static string BuildReadQuery(
+            EnumerationOrderEnum order,
+            int skip,
+            bool includeData,
+            bool includeSubordinates)
+        {
+            List<string> query = new List<string>
+            {
+                "order=" + LiteGraphMcpRestProxy.Escape(order.ToString()),
+                "skip=" + skip
+            };
+
+            if (includeData) query.Add("incldata=true");
+            if (includeSubordinates) query.Add("inclsub=true");
+
+            return "?" + String.Join("&", query);
         }
 
         #endregion

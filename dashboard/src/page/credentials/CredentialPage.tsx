@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { LoadingOutlined, PlusSquareOutlined, RedoOutlined } from '@ant-design/icons';
+import { PlusSquareOutlined } from '@ant-design/icons';
 import PageContainer from '@/components/base/pageContainer/PageContainer';
 import LitegraphButton from '@/components/base/button/Button';
 import LitegraphTable from '@/components/base/table/Table';
@@ -14,8 +14,6 @@ import ViewJsonModal from '@/components/base/view-json-modal/ViewJsonModal';
 import { usePagination } from '@/hooks/appHooks';
 import { useEnumerateCredentialQuery, useGetAllUsersQuery } from '@/lib/store/slice/slice';
 import { tablePaginationConfig } from '@/constants/pagination';
-import LitegraphFlex from '@/components/base/flex/Flex';
-import LitegraphText from '@/components/base/typograpghy/Text';
 import LitegraphTooltip from '@/components/base/tooltip/Tooltip';
 
 const CredentialPage = () => {
@@ -64,18 +62,7 @@ const CredentialPage = () => {
   return (
     <PageContainer
       id="credentials"
-      pageTitle={
-        <LitegraphFlex align="center" gap={10}>
-          <LitegraphText>Credentials</LitegraphText>
-          {isCredentialsLoading ? (
-            <LoadingOutlined className="loading-icon" />
-          ) : (
-            <LitegraphTooltip title="Refresh Data" placement="right">
-              <RedoOutlined className="cursor-pointer" onClick={fetchCredentialsList} />
-            </LitegraphTooltip>
-          )}
-        </LitegraphFlex>
-      }
+      pageTitle="Credentials"
       pageTitleRightContent={
         <LitegraphTooltip title="Create a new credential">
           <LitegraphButton
@@ -99,6 +86,8 @@ const CredentialPage = () => {
           dataSource={credentialsListWithUsers}
           rowKey={'GUID'}
           onRowClick={handleEditCredential}
+          onRefresh={fetchCredentialsList}
+          isRefreshing={isCredentialsLoading || isUsersLoading}
           pagination={{
             ...tablePaginationConfig,
             total: data?.TotalRecords,

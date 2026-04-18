@@ -35,16 +35,19 @@ jest.mock('@/components/inputs/tags-input/TagsInput', () => {
 });
 
 // Mock antd Form
-jest.mock('antd', () => ({
-  Form: {
-    useForm: jest.fn(() => [{}]),
-  },
-  Tag: jest.fn(({ children, ...props }) => (
-    <span data-testid="tag" {...props}>
-      {children}
-    </span>
-  )),
-}));
+jest.mock('antd', () => {
+  const MockForm = ({ children, ...props }: any) => <form {...props}>{children}</form>;
+  MockForm.useForm = jest.fn(() => [{}]);
+
+  return {
+    Form: MockForm,
+    Tag: jest.fn(({ children, ...props }) => (
+      <span data-testid="tag" {...props}>
+        {children}
+      </span>
+    )),
+  };
+});
 
 describe('ApiSearchFilters', () => {
   beforeEach(() => {
@@ -124,8 +127,8 @@ describe('ApiSearchFilters', () => {
   it('should have proper component structure', () => {
     const { container } = render(<ApiSearchFilters />);
 
-    // Should have the flex container as the main wrapper
-    expect(container.firstChild).toHaveAttribute('data-testid', 'flex-container');
+    expect(container.firstChild?.nodeName).toBe('FORM');
+    expect(screen.getByTestId('flex-container')).toBeInTheDocument();
 
     // Should contain both input components
     expect(container).toHaveTextContent('Label Input');

@@ -1764,8 +1764,8 @@
                 null,
                 null,
                 null,
-                EnumerationOrderEnum.CreatedDescending,
-                0,
+                req.Order,
+                req.Skip,
                 false,
                 false,
                 token).WithCancellation(token).ConfigureAwait(false))
@@ -1992,18 +1992,19 @@
         internal async Task<ResponseContext> AllEdgesToNode(RequestContext req, CancellationToken token = default)
         {
             if (req == null) throw new ArgumentNullException(nameof(req));
+            SearchRequest search = req.SearchRequest;
             List<Edge> allEdges = new List<Edge>();
             await foreach (Edge edge in _LiteGraph.Edge.ReadNodeEdges(
                 req.TenantGUID.Value,
                 req.GraphGUID.Value,
                 req.NodeGUID.Value,
-                null,
-                null,
-                null,
-                req.Order,
-                req.Skip,
-                req.IncludeData,
-                req.IncludeSubordinates,
+                search?.Labels,
+                search?.Tags,
+                search?.Expr,
+                search?.Ordering ?? req.Order,
+                search?.Skip ?? req.Skip,
+                search != null ? search.IncludeData || req.IncludeData : req.IncludeData,
+                search != null ? search.IncludeSubordinates || req.IncludeSubordinates : req.IncludeSubordinates,
                 token).WithCancellation(token).ConfigureAwait(false))
             {
                 allEdges.Add(edge);

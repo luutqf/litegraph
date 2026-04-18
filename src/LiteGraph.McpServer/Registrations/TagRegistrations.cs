@@ -2,6 +2,7 @@ namespace LiteGraph.McpServer.Registrations
 {
     using System;
     using System.Collections.Generic;
+    using System.Net.Http;
     using System.Text.Json;
     using LiteGraph.McpServer.Classes;
     using LiteGraph.Sdk;
@@ -39,8 +40,7 @@ namespace LiteGraph.McpServer.Registrations
                         throw new ArgumentException("Tag JSON string is required");
                     string tagJson = tagProp.GetString() ?? throw new ArgumentException("Tag JSON string cannot be null");
                     TagMetadata tag = Serializer.DeserializeJson<TagMetadata>(tagJson);
-                    TagMetadata created = sdk.Tag.Create(tag).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(created, true);
+                    return CreateTag(sdk, tag);
                 });
 
             server.RegisterTool(
@@ -62,8 +62,7 @@ namespace LiteGraph.McpServer.Registrations
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                     Guid tagGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tagGuid");
 
-                    TagMetadata tag = sdk.Tag.ReadByGuid(tenantGuid, tagGuid).GetAwaiter().GetResult();
-                    return tag != null ? Serializer.SerializeJson(tag, true) : "null";
+                    return ReadTag(sdk, tenantGuid, tagGuid);
                 });
 
             server.RegisterTool(
@@ -94,8 +93,7 @@ namespace LiteGraph.McpServer.Registrations
                     Guid? edgeGuid = LiteGraphMcpServerHelpers.GetGuidOptional(args.Value, "edgeGuid");
                     (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
                     
-                    List<TagMetadata> tags = sdk.Tag.ReadMany(tenantGuid, graphGuid, nodeGuid, edgeGuid, order, skip).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(tags, true);
+                    return ReadTags(sdk, tenantGuid, graphGuid, nodeGuid, edgeGuid, order, skip);
                 });
 
             server.RegisterTool(
@@ -120,8 +118,7 @@ namespace LiteGraph.McpServer.Registrations
                     if (query.TenantGUID == null)
                         throw new ArgumentException("query.TenantGUID is required.");
 
-                    EnumerationResult<TagMetadata> result = sdk.Tag.Enumerate(query).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(result, true);
+                    return EnumerateTags(sdk, query);
                 });
 
             server.RegisterTool(
@@ -142,8 +139,7 @@ namespace LiteGraph.McpServer.Registrations
                         throw new ArgumentException("Tag JSON string is required");
                     string tagJson = tagProp.GetString() ?? throw new ArgumentException("Tag JSON string cannot be null");
                     TagMetadata tag = Serializer.DeserializeJson<TagMetadata>(tagJson);
-                    TagMetadata updated = sdk.Tag.Update(tag).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(updated, true);
+                    return UpdateTag(sdk, tag);
                 });
 
             server.RegisterTool(
@@ -164,7 +160,7 @@ namespace LiteGraph.McpServer.Registrations
                     if (!args.HasValue) throw new ArgumentException("Parameters required");
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                     Guid tagGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tagGuid");
-                    sdk.Tag.DeleteByGuid(tenantGuid, tagGuid).GetAwaiter().GetResult();
+                    DeleteTag(sdk, tenantGuid, tagGuid);
                     return true;
                 });
 
@@ -186,8 +182,7 @@ namespace LiteGraph.McpServer.Registrations
                     if (!args.HasValue) throw new ArgumentException("Parameters required");
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                     Guid tagGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tagGuid");
-                    bool exists = sdk.Tag.ExistsByGuid(tenantGuid, tagGuid).GetAwaiter().GetResult();
-                    return exists.ToString().ToLower();
+                    return TagExists(sdk, tenantGuid, tagGuid).ToString().ToLowerInvariant();
                 });
 
             server.RegisterTool(
@@ -211,8 +206,7 @@ namespace LiteGraph.McpServer.Registrations
                         throw new ArgumentException("Tag GUIDs array is required");
                     
                     List<Guid> guids = Serializer.DeserializeJson<List<Guid>>(guidsProp.GetRawText());
-                    List<TagMetadata> tags = sdk.Tag.ReadByGuids(tenantGuid, guids).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(tags, true);
+                    return ReadTagsByGuids(sdk, tenantGuid, guids);
                 });
 
             server.RegisterTool(
@@ -237,8 +231,7 @@ namespace LiteGraph.McpServer.Registrations
                     
                     string tagsJson = tagsProp.GetString() ?? throw new ArgumentException("Tags JSON string cannot be null");
                     List<TagMetadata> tags = Serializer.DeserializeJson<List<TagMetadata>>(tagsJson);
-                    List<TagMetadata> created = sdk.Tag.CreateMany(tenantGuid, tags).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(created, true);
+                    return CreateTags(sdk, tenantGuid, tags);
                 });
 
             server.RegisterTool(
@@ -262,7 +255,7 @@ namespace LiteGraph.McpServer.Registrations
                         throw new ArgumentException("Tag GUIDs array is required");
                     
                     List<Guid> guids = Serializer.DeserializeJson<List<Guid>>(guidsProp.GetRawText());
-                    sdk.Tag.DeleteMany(tenantGuid, guids).GetAwaiter().GetResult();
+                    DeleteTags(sdk, tenantGuid, guids);
                     return true;
                 });
 
@@ -282,8 +275,8 @@ namespace LiteGraph.McpServer.Registrations
                 {
                     if (!args.HasValue) throw new ArgumentException("Parameters required");
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
-                    List<TagMetadata> tags = sdk.Tag.ReadAllInTenant(tenantGuid).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(tags, true);
+                    (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
+                    return ReadAllTagsInTenant(sdk, tenantGuid, order, skip);
                 });
 
             server.RegisterTool(
@@ -304,8 +297,8 @@ namespace LiteGraph.McpServer.Registrations
                     if (!args.HasValue) throw new ArgumentException("Parameters required");
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                     Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
-                    List<TagMetadata> tags = sdk.Tag.ReadAllInGraph(tenantGuid, graphGuid).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(tags, true);
+                    (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
+                    return ReadAllTagsInGraph(sdk, tenantGuid, graphGuid, order, skip);
                 });
 
             server.RegisterTool(
@@ -326,8 +319,8 @@ namespace LiteGraph.McpServer.Registrations
                     if (!args.HasValue) throw new ArgumentException("Parameters required");
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                     Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
-                    List<TagMetadata> tags = sdk.Tag.ReadManyGraph(tenantGuid, graphGuid).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(tags, true);
+                    (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
+                    return ReadGraphTags(sdk, tenantGuid, graphGuid, order, skip);
                 });
 
             server.RegisterTool(
@@ -350,8 +343,8 @@ namespace LiteGraph.McpServer.Registrations
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                     Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
                     Guid nodeGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "nodeGuid");
-                    List<TagMetadata> tags = sdk.Tag.ReadManyNode(tenantGuid, graphGuid, nodeGuid).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(tags, true);
+                    (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
+                    return ReadNodeTags(sdk, tenantGuid, graphGuid, nodeGuid, order, skip);
                 });
 
             server.RegisterTool(
@@ -374,8 +367,8 @@ namespace LiteGraph.McpServer.Registrations
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                     Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
                     Guid edgeGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "edgeGuid");
-                    List<TagMetadata> tags = sdk.Tag.ReadManyEdge(tenantGuid, graphGuid, edgeGuid).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(tags, true);
+                    (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
+                    return ReadEdgeTags(sdk, tenantGuid, graphGuid, edgeGuid, order, skip);
                 });
 
             server.RegisterTool(
@@ -394,7 +387,7 @@ namespace LiteGraph.McpServer.Registrations
                 {
                     if (!args.HasValue) throw new ArgumentException("Parameters required");
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
-                    sdk.Tag.DeleteAllInTenant(tenantGuid).GetAwaiter().GetResult();
+                    DeleteAllTagsInTenant(sdk, tenantGuid);
                     return true;
                 });
 
@@ -416,7 +409,7 @@ namespace LiteGraph.McpServer.Registrations
                     if (!args.HasValue) throw new ArgumentException("Parameters required");
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                     Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
-                    sdk.Tag.DeleteAllInGraph(tenantGuid, graphGuid).GetAwaiter().GetResult();
+                    DeleteAllTagsInGraph(sdk, tenantGuid, graphGuid);
                     return true;
                 });
 
@@ -438,7 +431,7 @@ namespace LiteGraph.McpServer.Registrations
                     if (!args.HasValue) throw new ArgumentException("Parameters required");
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                     Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
-                    sdk.Tag.DeleteGraphTags(tenantGuid, graphGuid).GetAwaiter().GetResult();
+                    DeleteGraphTags(sdk, tenantGuid, graphGuid);
                     return true;
                 });
 
@@ -462,7 +455,7 @@ namespace LiteGraph.McpServer.Registrations
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                     Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
                     Guid nodeGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "nodeGuid");
-                    sdk.Tag.DeleteNodeTags(tenantGuid, graphGuid, nodeGuid).GetAwaiter().GetResult();
+                    DeleteNodeTags(sdk, tenantGuid, graphGuid, nodeGuid);
                     return true;
                 });
 
@@ -486,7 +479,7 @@ namespace LiteGraph.McpServer.Registrations
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                     Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
                     Guid edgeGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "edgeGuid");
-                    sdk.Tag.DeleteEdgeTags(tenantGuid, graphGuid, edgeGuid).GetAwaiter().GetResult();
+                    DeleteEdgeTags(sdk, tenantGuid, graphGuid, edgeGuid);
                     return true;
                 });
         }
@@ -508,8 +501,7 @@ namespace LiteGraph.McpServer.Registrations
                     throw new ArgumentException("Tag JSON string is required");
                 string tagJson = tagProp.GetString() ?? throw new ArgumentException("Tag JSON string cannot be null");
                 TagMetadata tag = Serializer.DeserializeJson<TagMetadata>(tagJson);
-                TagMetadata created = sdk.Tag.Create(tag).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(created, true);
+                return CreateTag(sdk, tag);
             });
 
             server.RegisterMethod("tag/get", (args) =>
@@ -518,8 +510,7 @@ namespace LiteGraph.McpServer.Registrations
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid tagGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tagGuid");
 
-                TagMetadata tag = sdk.Tag.ReadByGuid(tenantGuid, tagGuid).GetAwaiter().GetResult();
-                return tag != null ? Serializer.SerializeJson(tag, true) : "null";
+                return ReadTag(sdk, tenantGuid, tagGuid);
             });
 
             server.RegisterMethod("tag/readmany", (args) =>
@@ -531,8 +522,7 @@ namespace LiteGraph.McpServer.Registrations
                 Guid? nodeGuid = LiteGraphMcpServerHelpers.GetGuidOptional(args.Value, "nodeGuid");
                 Guid? edgeGuid = LiteGraphMcpServerHelpers.GetGuidOptional(args.Value, "edgeGuid");
                 (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
-                List<TagMetadata> tags = sdk.Tag.ReadMany(tenantGuid, graphGuid, nodeGuid, edgeGuid, order, skip).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(tags, true);
+                return ReadTags(sdk, tenantGuid, graphGuid, nodeGuid, edgeGuid, order, skip);
             });
 
             server.RegisterMethod("tag/enumerate", (args) =>
@@ -545,8 +535,7 @@ namespace LiteGraph.McpServer.Registrations
                 if (query.TenantGUID == null)
                     throw new ArgumentException("query.TenantGUID is required.");
                 
-                EnumerationResult<TagMetadata> result = sdk.Tag.Enumerate(query).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(result, true);
+                return EnumerateTags(sdk, query);
             });
 
             server.RegisterMethod("tag/update", (args) =>
@@ -555,8 +544,7 @@ namespace LiteGraph.McpServer.Registrations
                     throw new ArgumentException("Tag JSON string is required");
                 string tagJson = tagProp.GetString() ?? throw new ArgumentException("Tag JSON string cannot be null");
                 TagMetadata tag = Serializer.DeserializeJson<TagMetadata>(tagJson);
-                TagMetadata updated = sdk.Tag.Update(tag).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(updated, true);
+                return UpdateTag(sdk, tag);
             });
 
             server.RegisterMethod("tag/delete", (args) =>
@@ -564,7 +552,7 @@ namespace LiteGraph.McpServer.Registrations
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid tagGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tagGuid");
-                sdk.Tag.DeleteByGuid(tenantGuid, tagGuid).GetAwaiter().GetResult();
+                DeleteTag(sdk, tenantGuid, tagGuid);
                 return true;
             });
 
@@ -573,8 +561,7 @@ namespace LiteGraph.McpServer.Registrations
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid tagGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tagGuid");
-                bool exists = sdk.Tag.ExistsByGuid(tenantGuid, tagGuid).GetAwaiter().GetResult();
-                return exists.ToString().ToLower();
+                return TagExists(sdk, tenantGuid, tagGuid).ToString().ToLowerInvariant();
             });
 
             server.RegisterMethod("tag/getmany", (args) =>
@@ -585,8 +572,7 @@ namespace LiteGraph.McpServer.Registrations
                     throw new ArgumentException("Tag GUIDs array is required");
                 
                 List<Guid> guids = Serializer.DeserializeJson<List<Guid>>(guidsProp.GetRawText());
-                List<TagMetadata> tags = sdk.Tag.ReadByGuids(tenantGuid, guids).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(tags, true);
+                return ReadTagsByGuids(sdk, tenantGuid, guids);
             });
 
             server.RegisterMethod("tag/createmany", (args) =>
@@ -598,8 +584,7 @@ namespace LiteGraph.McpServer.Registrations
                 
                 string tagsJson = tagsProp.GetString() ?? throw new ArgumentException("Tags JSON string cannot be null");
                 List<TagMetadata> tags = Serializer.DeserializeJson<List<TagMetadata>>(tagsJson);
-                List<TagMetadata> created = sdk.Tag.CreateMany(tenantGuid, tags).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(created, true);
+                return CreateTags(sdk, tenantGuid, tags);
             });
 
             server.RegisterMethod("tag/deletemany", (args) =>
@@ -610,7 +595,7 @@ namespace LiteGraph.McpServer.Registrations
                     throw new ArgumentException("Tag GUIDs array is required");
                 
                 List<Guid> guids = Serializer.DeserializeJson<List<Guid>>(guidsProp.GetRawText());
-                sdk.Tag.DeleteMany(tenantGuid, guids).GetAwaiter().GetResult();
+                DeleteTags(sdk, tenantGuid, guids);
                 return true;
             });
 
@@ -618,8 +603,8 @@ namespace LiteGraph.McpServer.Registrations
             {
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
-                List<TagMetadata> tags = sdk.Tag.ReadAllInTenant(tenantGuid).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(tags, true);
+                (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
+                return ReadAllTagsInTenant(sdk, tenantGuid, order, skip);
             });
 
             server.RegisterMethod("tag/readallingraph", (args) =>
@@ -627,8 +612,8 @@ namespace LiteGraph.McpServer.Registrations
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
-                List<TagMetadata> tags = sdk.Tag.ReadAllInGraph(tenantGuid, graphGuid).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(tags, true);
+                (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
+                return ReadAllTagsInGraph(sdk, tenantGuid, graphGuid, order, skip);
             });
 
             server.RegisterMethod("tag/readmanygraph", (args) =>
@@ -636,8 +621,8 @@ namespace LiteGraph.McpServer.Registrations
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
-                List<TagMetadata> tags = sdk.Tag.ReadManyGraph(tenantGuid, graphGuid).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(tags, true);
+                (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
+                return ReadGraphTags(sdk, tenantGuid, graphGuid, order, skip);
             });
 
             server.RegisterMethod("tag/readmanynode", (args) =>
@@ -646,8 +631,8 @@ namespace LiteGraph.McpServer.Registrations
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
                 Guid nodeGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "nodeGuid");
-                List<TagMetadata> tags = sdk.Tag.ReadManyNode(tenantGuid, graphGuid, nodeGuid).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(tags, true);
+                (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
+                return ReadNodeTags(sdk, tenantGuid, graphGuid, nodeGuid, order, skip);
             });
 
             server.RegisterMethod("tag/readmanyedge", (args) =>
@@ -656,15 +641,15 @@ namespace LiteGraph.McpServer.Registrations
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
                 Guid edgeGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "edgeGuid");
-                List<TagMetadata> tags = sdk.Tag.ReadManyEdge(tenantGuid, graphGuid, edgeGuid).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(tags, true);
+                (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
+                return ReadEdgeTags(sdk, tenantGuid, graphGuid, edgeGuid, order, skip);
             });
 
             server.RegisterMethod("tag/deleteallintenant", (args) =>
             {
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
-                sdk.Tag.DeleteAllInTenant(tenantGuid).GetAwaiter().GetResult();
+                DeleteAllTagsInTenant(sdk, tenantGuid);
                 return true;
             });
 
@@ -673,7 +658,7 @@ namespace LiteGraph.McpServer.Registrations
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
-                sdk.Tag.DeleteAllInGraph(tenantGuid, graphGuid).GetAwaiter().GetResult();
+                DeleteAllTagsInGraph(sdk, tenantGuid, graphGuid);
                 return true;
             });
 
@@ -682,7 +667,7 @@ namespace LiteGraph.McpServer.Registrations
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
-                sdk.Tag.DeleteGraphTags(tenantGuid, graphGuid).GetAwaiter().GetResult();
+                DeleteGraphTags(sdk, tenantGuid, graphGuid);
                 return true;
             });
 
@@ -692,7 +677,7 @@ namespace LiteGraph.McpServer.Registrations
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
                 Guid nodeGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "nodeGuid");
-                sdk.Tag.DeleteNodeTags(tenantGuid, graphGuid, nodeGuid).GetAwaiter().GetResult();
+                DeleteNodeTags(sdk, tenantGuid, graphGuid, nodeGuid);
                 return true;
             });
 
@@ -702,7 +687,7 @@ namespace LiteGraph.McpServer.Registrations
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
                 Guid edgeGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "edgeGuid");
-                sdk.Tag.DeleteEdgeTags(tenantGuid, graphGuid, edgeGuid).GetAwaiter().GetResult();
+                DeleteEdgeTags(sdk, tenantGuid, graphGuid, edgeGuid);
                 return true;
             });
         }
@@ -724,8 +709,7 @@ namespace LiteGraph.McpServer.Registrations
                     throw new ArgumentException("Tag JSON string is required");
                 string tagJson = tagProp.GetString() ?? throw new ArgumentException("Tag JSON string cannot be null");
                 TagMetadata tag = Serializer.DeserializeJson<TagMetadata>(tagJson);
-                TagMetadata created = sdk.Tag.Create(tag).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(created, true);
+                return CreateTag(sdk, tag);
             });
 
             server.RegisterMethod("tag/get", (args) =>
@@ -734,8 +718,7 @@ namespace LiteGraph.McpServer.Registrations
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid tagGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tagGuid");
 
-                TagMetadata tag = sdk.Tag.ReadByGuid(tenantGuid, tagGuid).GetAwaiter().GetResult();
-                return tag != null ? Serializer.SerializeJson(tag, true) : "null";
+                return ReadTag(sdk, tenantGuid, tagGuid);
             });
 
             server.RegisterMethod("tag/readmany", (args) =>
@@ -747,8 +730,7 @@ namespace LiteGraph.McpServer.Registrations
                 Guid? nodeGuid = LiteGraphMcpServerHelpers.GetGuidOptional(args.Value, "nodeGuid");
                 Guid? edgeGuid = LiteGraphMcpServerHelpers.GetGuidOptional(args.Value, "edgeGuid");
                 (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
-                List<TagMetadata> tags = sdk.Tag.ReadMany(tenantGuid, graphGuid, nodeGuid, edgeGuid, order, skip).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(tags, true);
+                return ReadTags(sdk, tenantGuid, graphGuid, nodeGuid, edgeGuid, order, skip);
             });
 
             server.RegisterMethod("tag/enumerate", (args) =>
@@ -761,8 +743,7 @@ namespace LiteGraph.McpServer.Registrations
                 if (query.TenantGUID == null)
                     throw new ArgumentException("query.TenantGUID is required.");
                 
-                EnumerationResult<TagMetadata> result = sdk.Tag.Enumerate(query).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(result, true);
+                return EnumerateTags(sdk, query);
             });
 
             server.RegisterMethod("tag/update", (args) =>
@@ -771,8 +752,7 @@ namespace LiteGraph.McpServer.Registrations
                     throw new ArgumentException("Tag JSON string is required");
                 string tagJson = tagProp.GetString() ?? throw new ArgumentException("Tag JSON string cannot be null");
                 TagMetadata tag = Serializer.DeserializeJson<TagMetadata>(tagJson);
-                TagMetadata updated = sdk.Tag.Update(tag).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(updated, true);
+                return UpdateTag(sdk, tag);
             });
 
             server.RegisterMethod("tag/delete", (args) =>
@@ -780,7 +760,7 @@ namespace LiteGraph.McpServer.Registrations
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid tagGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tagGuid");
-                sdk.Tag.DeleteByGuid(tenantGuid, tagGuid).GetAwaiter().GetResult();
+                DeleteTag(sdk, tenantGuid, tagGuid);
                 return true;
             });
 
@@ -789,8 +769,7 @@ namespace LiteGraph.McpServer.Registrations
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid tagGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tagGuid");
-                bool exists = sdk.Tag.ExistsByGuid(tenantGuid, tagGuid).GetAwaiter().GetResult();
-                return exists.ToString().ToLower();
+                return TagExists(sdk, tenantGuid, tagGuid).ToString().ToLowerInvariant();
             });
 
             server.RegisterMethod("tag/getmany", (args) =>
@@ -801,8 +780,7 @@ namespace LiteGraph.McpServer.Registrations
                     throw new ArgumentException("Tag GUIDs array is required");
                 
                 List<Guid> guids = Serializer.DeserializeJson<List<Guid>>(guidsProp.GetRawText());
-                List<TagMetadata> tags = sdk.Tag.ReadByGuids(tenantGuid, guids).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(tags, true);
+                return ReadTagsByGuids(sdk, tenantGuid, guids);
             });
 
             server.RegisterMethod("tag/createmany", (args) =>
@@ -814,8 +792,7 @@ namespace LiteGraph.McpServer.Registrations
                 
                 string tagsJson = tagsProp.GetString() ?? throw new ArgumentException("Tags JSON string cannot be null");
                 List<TagMetadata> tags = Serializer.DeserializeJson<List<TagMetadata>>(tagsJson);
-                List<TagMetadata> created = sdk.Tag.CreateMany(tenantGuid, tags).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(created, true);
+                return CreateTags(sdk, tenantGuid, tags);
             });
 
             server.RegisterMethod("tag/deletemany", (args) =>
@@ -826,7 +803,7 @@ namespace LiteGraph.McpServer.Registrations
                     throw new ArgumentException("Tag GUIDs array is required");
                 
                 List<Guid> guids = Serializer.DeserializeJson<List<Guid>>(guidsProp.GetRawText());
-                sdk.Tag.DeleteMany(tenantGuid, guids).GetAwaiter().GetResult();
+                DeleteTags(sdk, tenantGuid, guids);
                 return true;
             });
 
@@ -834,8 +811,8 @@ namespace LiteGraph.McpServer.Registrations
             {
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
-                List<TagMetadata> tags = sdk.Tag.ReadAllInTenant(tenantGuid).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(tags, true);
+                (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
+                return ReadAllTagsInTenant(sdk, tenantGuid, order, skip);
             });
 
             server.RegisterMethod("tag/readallingraph", (args) =>
@@ -843,8 +820,8 @@ namespace LiteGraph.McpServer.Registrations
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
-                List<TagMetadata> tags = sdk.Tag.ReadAllInGraph(tenantGuid, graphGuid).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(tags, true);
+                (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
+                return ReadAllTagsInGraph(sdk, tenantGuid, graphGuid, order, skip);
             });
 
             server.RegisterMethod("tag/readmanygraph", (args) =>
@@ -852,8 +829,8 @@ namespace LiteGraph.McpServer.Registrations
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
-                List<TagMetadata> tags = sdk.Tag.ReadManyGraph(tenantGuid, graphGuid).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(tags, true);
+                (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
+                return ReadGraphTags(sdk, tenantGuid, graphGuid, order, skip);
             });
 
             server.RegisterMethod("tag/readmanynode", (args) =>
@@ -862,8 +839,8 @@ namespace LiteGraph.McpServer.Registrations
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
                 Guid nodeGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "nodeGuid");
-                List<TagMetadata> tags = sdk.Tag.ReadManyNode(tenantGuid, graphGuid, nodeGuid).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(tags, true);
+                (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
+                return ReadNodeTags(sdk, tenantGuid, graphGuid, nodeGuid, order, skip);
             });
 
             server.RegisterMethod("tag/readmanyedge", (args) =>
@@ -872,15 +849,15 @@ namespace LiteGraph.McpServer.Registrations
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
                 Guid edgeGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "edgeGuid");
-                List<TagMetadata> tags = sdk.Tag.ReadManyEdge(tenantGuid, graphGuid, edgeGuid).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(tags, true);
+                (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
+                return ReadEdgeTags(sdk, tenantGuid, graphGuid, edgeGuid, order, skip);
             });
 
             server.RegisterMethod("tag/deleteallintenant", (args) =>
             {
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
-                sdk.Tag.DeleteAllInTenant(tenantGuid).GetAwaiter().GetResult();
+                DeleteAllTagsInTenant(sdk, tenantGuid);
                 return true;
             });
 
@@ -889,7 +866,7 @@ namespace LiteGraph.McpServer.Registrations
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
-                sdk.Tag.DeleteAllInGraph(tenantGuid, graphGuid).GetAwaiter().GetResult();
+                DeleteAllTagsInGraph(sdk, tenantGuid, graphGuid);
                 return true;
             });
 
@@ -898,7 +875,7 @@ namespace LiteGraph.McpServer.Registrations
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
-                sdk.Tag.DeleteGraphTags(tenantGuid, graphGuid).GetAwaiter().GetResult();
+                DeleteGraphTags(sdk, tenantGuid, graphGuid);
                 return true;
             });
 
@@ -908,7 +885,7 @@ namespace LiteGraph.McpServer.Registrations
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
                 Guid nodeGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "nodeGuid");
-                sdk.Tag.DeleteNodeTags(tenantGuid, graphGuid, nodeGuid).GetAwaiter().GetResult();
+                DeleteNodeTags(sdk, tenantGuid, graphGuid, nodeGuid);
                 return true;
             });
 
@@ -918,12 +895,316 @@ namespace LiteGraph.McpServer.Registrations
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
                 Guid edgeGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "edgeGuid");
-                sdk.Tag.DeleteEdgeTags(tenantGuid, graphGuid, edgeGuid).GetAwaiter().GetResult();
+                DeleteEdgeTags(sdk, tenantGuid, graphGuid, edgeGuid);
                 return true;
             });
         }
 
         #endregion
+
+        #region Private-Methods
+
+        private static string CreateTag(LiteGraphSdk sdk, TagMetadata tag)
+        {
+            if (tag == null) throw new ArgumentNullException(nameof(tag));
+
+            string body = Serializer.SerializeJson(tag, false);
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Put,
+                "/v1.0/tenants/"
+                + LiteGraphMcpRestProxy.Escape(tag.TenantGUID)
+                + "/tags",
+                body);
+        }
+
+        private static string ReadTag(LiteGraphSdk sdk, Guid tenantGuid, Guid tagGuid)
+        {
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Get,
+                TagPath(tenantGuid, tagGuid));
+        }
+
+        private static string ReadTags(
+            LiteGraphSdk sdk,
+            Guid tenantGuid,
+            Guid? graphGuid,
+            Guid? nodeGuid,
+            Guid? edgeGuid,
+            EnumerationOrderEnum order,
+            int skip)
+        {
+            if (nodeGuid.HasValue)
+            {
+                if (!graphGuid.HasValue) throw new ArgumentException("Graph GUID is required when node GUID is provided.");
+                return ReadNodeTags(sdk, tenantGuid, graphGuid.Value, nodeGuid.Value, order, skip);
+            }
+
+            if (edgeGuid.HasValue)
+            {
+                if (!graphGuid.HasValue) throw new ArgumentException("Graph GUID is required when edge GUID is provided.");
+                return ReadEdgeTags(sdk, tenantGuid, graphGuid.Value, edgeGuid.Value, order, skip);
+            }
+
+            if (graphGuid.HasValue) return ReadAllTagsInGraph(sdk, tenantGuid, graphGuid.Value, order, skip);
+
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Get,
+                TagCollectionPath(tenantGuid) + BuildReadQuery(order, skip));
+        }
+
+        private static string EnumerateTags(LiteGraphSdk sdk, EnumerationRequest query)
+        {
+            if (query == null) throw new ArgumentNullException(nameof(query));
+            if (query.TenantGUID == null) throw new ArgumentException("query.TenantGUID is required.");
+
+            string body = Serializer.SerializeJson(query, false);
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Post,
+                query.GraphGUID.HasValue
+                    ? "/v2.0/tenants/"
+                        + LiteGraphMcpRestProxy.Escape(query.TenantGUID.Value)
+                        + "/graphs/"
+                        + LiteGraphMcpRestProxy.Escape(query.GraphGUID.Value)
+                        + "/tags"
+                    : "/v2.0/tenants/"
+                        + LiteGraphMcpRestProxy.Escape(query.TenantGUID.Value)
+                        + "/tags",
+                body);
+        }
+
+        private static bool TagExists(LiteGraphSdk sdk, Guid tenantGuid, Guid tagGuid)
+        {
+            return LiteGraphMcpRestProxy.HeadExists(sdk, TagPath(tenantGuid, tagGuid));
+        }
+
+        private static string ReadTagsByGuids(LiteGraphSdk sdk, Guid tenantGuid, List<Guid> tagGuids)
+        {
+            if (tagGuids == null || tagGuids.Count == 0) return Serializer.SerializeJson(new List<TagMetadata>(), true);
+
+            List<TagMetadata> tags = new List<TagMetadata>();
+            foreach (Guid tagGuid in tagGuids)
+            {
+                string tagJson = ReadTag(sdk, tenantGuid, tagGuid);
+                TagMetadata tag = Serializer.DeserializeJson<TagMetadata>(tagJson);
+                if (tag != null) tags.Add(tag);
+            }
+
+            return Serializer.SerializeJson(tags, true);
+        }
+
+        private static string CreateTags(LiteGraphSdk sdk, Guid tenantGuid, List<TagMetadata> tags)
+        {
+            string body = Serializer.SerializeJson(tags ?? new List<TagMetadata>(), false);
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Put,
+                TagCollectionPath(tenantGuid) + "/bulk",
+                body);
+        }
+
+        private static void DeleteTags(LiteGraphSdk sdk, Guid tenantGuid, List<Guid> tagGuids)
+        {
+            string body = Serializer.SerializeJson(tagGuids ?? new List<Guid>(), false);
+            LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Delete,
+                TagCollectionPath(tenantGuid) + "/bulk",
+                body);
+        }
+
+        private static string ReadAllTagsInTenant(
+            LiteGraphSdk sdk,
+            Guid tenantGuid,
+            EnumerationOrderEnum order,
+            int skip)
+        {
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Get,
+                TagCollectionPath(tenantGuid) + "/all" + BuildReadQuery(order, skip));
+        }
+
+        private static string ReadAllTagsInGraph(
+            LiteGraphSdk sdk,
+            Guid tenantGuid,
+            Guid graphGuid,
+            EnumerationOrderEnum order,
+            int skip)
+        {
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Get,
+                GraphTagCollectionPath(tenantGuid, graphGuid) + "/all" + BuildReadQuery(order, skip));
+        }
+
+        private static string ReadGraphTags(
+            LiteGraphSdk sdk,
+            Guid tenantGuid,
+            Guid graphGuid,
+            EnumerationOrderEnum order,
+            int skip)
+        {
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Get,
+                GraphTagCollectionPath(tenantGuid, graphGuid) + BuildReadQuery(order, skip));
+        }
+
+        private static string ReadNodeTags(
+            LiteGraphSdk sdk,
+            Guid tenantGuid,
+            Guid graphGuid,
+            Guid nodeGuid,
+            EnumerationOrderEnum order,
+            int skip)
+        {
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Get,
+                "/v1.0/tenants/"
+                + LiteGraphMcpRestProxy.Escape(tenantGuid)
+                + "/graphs/"
+                + LiteGraphMcpRestProxy.Escape(graphGuid)
+                + "/nodes/"
+                + LiteGraphMcpRestProxy.Escape(nodeGuid)
+                + "/tags"
+                + BuildReadQuery(order, skip));
+        }
+
+        private static string ReadEdgeTags(
+            LiteGraphSdk sdk,
+            Guid tenantGuid,
+            Guid graphGuid,
+            Guid edgeGuid,
+            EnumerationOrderEnum order,
+            int skip)
+        {
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Get,
+                "/v1.0/tenants/"
+                + LiteGraphMcpRestProxy.Escape(tenantGuid)
+                + "/graphs/"
+                + LiteGraphMcpRestProxy.Escape(graphGuid)
+                + "/edges/"
+                + LiteGraphMcpRestProxy.Escape(edgeGuid)
+                + "/tags"
+                + BuildReadQuery(order, skip));
+        }
+
+        private static string UpdateTag(LiteGraphSdk sdk, TagMetadata tag)
+        {
+            if (tag == null) throw new ArgumentNullException(nameof(tag));
+
+            string body = Serializer.SerializeJson(tag, false);
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Put,
+                "/v1.0/tenants/"
+                + LiteGraphMcpRestProxy.Escape(tag.TenantGUID)
+                + "/tags/"
+                + LiteGraphMcpRestProxy.Escape(tag.GUID),
+                body);
+        }
+
+        private static void DeleteTag(LiteGraphSdk sdk, Guid tenantGuid, Guid tagGuid)
+        {
+            LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Delete,
+                TagPath(tenantGuid, tagGuid));
+        }
+
+        private static void DeleteAllTagsInTenant(LiteGraphSdk sdk, Guid tenantGuid)
+        {
+            LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Delete,
+                TagCollectionPath(tenantGuid) + "/all");
+        }
+
+        private static void DeleteAllTagsInGraph(LiteGraphSdk sdk, Guid tenantGuid, Guid graphGuid)
+        {
+            LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Delete,
+                GraphTagCollectionPath(tenantGuid, graphGuid) + "/all");
+        }
+
+        private static void DeleteGraphTags(LiteGraphSdk sdk, Guid tenantGuid, Guid graphGuid)
+        {
+            LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Delete,
+                GraphTagCollectionPath(tenantGuid, graphGuid));
+        }
+
+        private static void DeleteNodeTags(LiteGraphSdk sdk, Guid tenantGuid, Guid graphGuid, Guid nodeGuid)
+        {
+            LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Delete,
+                "/v1.0/tenants/"
+                + LiteGraphMcpRestProxy.Escape(tenantGuid)
+                + "/graphs/"
+                + LiteGraphMcpRestProxy.Escape(graphGuid)
+                + "/nodes/"
+                + LiteGraphMcpRestProxy.Escape(nodeGuid)
+                + "/tags");
+        }
+
+        private static void DeleteEdgeTags(LiteGraphSdk sdk, Guid tenantGuid, Guid graphGuid, Guid edgeGuid)
+        {
+            LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Delete,
+                "/v1.0/tenants/"
+                + LiteGraphMcpRestProxy.Escape(tenantGuid)
+                + "/graphs/"
+                + LiteGraphMcpRestProxy.Escape(graphGuid)
+                + "/edges/"
+                + LiteGraphMcpRestProxy.Escape(edgeGuid)
+                + "/tags");
+        }
+
+        private static string TagCollectionPath(Guid tenantGuid)
+        {
+            return "/v1.0/tenants/"
+                + LiteGraphMcpRestProxy.Escape(tenantGuid)
+                + "/tags";
+        }
+
+        private static string TagPath(Guid tenantGuid, Guid tagGuid)
+        {
+            return TagCollectionPath(tenantGuid)
+                + "/"
+                + LiteGraphMcpRestProxy.Escape(tagGuid);
+        }
+
+        private static string GraphTagCollectionPath(Guid tenantGuid, Guid graphGuid)
+        {
+            return "/v1.0/tenants/"
+                + LiteGraphMcpRestProxy.Escape(tenantGuid)
+                + "/graphs/"
+                + LiteGraphMcpRestProxy.Escape(graphGuid)
+                + "/tags";
+        }
+
+        private static string BuildReadQuery(EnumerationOrderEnum order, int skip)
+        {
+            List<string> query = new List<string>
+            {
+                "order=" + LiteGraphMcpRestProxy.Escape(order.ToString()),
+                "skip=" + skip
+            };
+
+            return "?" + String.Join("&", query);
+        }
+
+        #endregion
     }
 }
-

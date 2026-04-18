@@ -1,4 +1,4 @@
-namespace LiteGraph.Client.Interfaces
+﻿namespace LiteGraph.Client.Interfaces
 {
     using System;
     using System.Threading;

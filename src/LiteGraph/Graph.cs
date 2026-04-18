@@ -1,4 +1,4 @@
-﻿namespace LiteGraph
+namespace LiteGraph
 {
     using LiteGraph.Indexing.Vector;
     using System;
@@ -86,7 +86,7 @@
             }
             set
             {
-                if (value != null && (value.Value < 2 || value.Value > 100)) 
+                if (value != null && (value.Value < 2 || value.Value > 100))
                     throw new ArgumentOutOfRangeException(nameof(VectorIndexM), "M must be between 2 and 100.");
                 _VectorIndexM = value;
             }
@@ -105,7 +105,7 @@
             }
             set
             {
-                if (value != null && (value.Value < 1 || value.Value > 10000)) 
+                if (value != null && (value.Value < 1 || value.Value > 10000))
                     throw new ArgumentOutOfRangeException(nameof(VectorIndexEf), "Ef must be between 1 and 10000.");
                 _VectorIndexEf = value;
             }
@@ -124,11 +124,26 @@
             }
             set
             {
-                if (value != null && (value.Value < 1 || value.Value > 10000)) 
+                if (value != null && (value.Value < 1 || value.Value > 10000))
                     throw new ArgumentOutOfRangeException(nameof(VectorIndexEfConstruction), "EfConstruction must be between 1 and 10000");
                 _VectorIndexEfConstruction = value;
             }
         }
+
+        /// <summary>
+        /// Indicates that the configured vector index may be inconsistent with persisted vectors and should be rebuilt.
+        /// </summary>
+        public bool VectorIndexDirty { get; set; } = false;
+
+        /// <summary>
+        /// Timestamp when the vector index was marked dirty.
+        /// </summary>
+        public DateTime? VectorIndexDirtyUtc { get; set; } = null;
+
+        /// <summary>
+        /// Reason the vector index was marked dirty.
+        /// </summary>
+        public string VectorIndexDirtyReason { get; set; } = null;
 
         /// <summary>
         /// Timestamp from creation, in UTC.

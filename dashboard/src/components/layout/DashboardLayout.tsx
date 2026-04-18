@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { LogoutOutlined, ReloadOutlined } from '@ant-design/icons';
-import { Layout, Tag } from 'antd';
+import { GithubOutlined, LogoutOutlined, ReloadOutlined } from '@ant-design/icons';
+import { Button, Layout, Tag } from 'antd';
 import Navigation from '../navigation';
 import LitegraphText from '../base/typograpghy/Text';
 import { useLogout } from '@/hooks/authHooks';
@@ -196,21 +196,27 @@ const DashboardLayout = ({
               >
                 <ThemeModeSwitch />
               </LitegraphTooltip>
-              {!noProfile ? (
-                <LoggedUserInfo />
-              ) : (
-                <LitegraphTooltip title="Sign out of the dashboard">
-                  <div
-                    className={styles.logoutLink}
-                    onClick={() => logOutFromSystem()}
-                    role="button"
-                    tabIndex={0}
-                  >
-                    <LogoutOutlined className={styles.logoutIcon} />
-                    <span>Logout</span>
-                  </div>
-                </LitegraphTooltip>
-              )}
+              <LitegraphTooltip title="LiteGraph on GitHub">
+                <a
+                  className={styles.headerIconLink}
+                  href="https://github.com/litegraphdb/litegraph"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="LiteGraph GitHub repository"
+                >
+                  <GithubOutlined />
+                </a>
+              </LitegraphTooltip>
+              {!noProfile && <LoggedUserInfo />}
+              <LitegraphTooltip title="Sign out of the dashboard">
+                <Button
+                  type="text"
+                  className={styles.headerIconButton}
+                  icon={<LogoutOutlined />}
+                  onClick={() => logOutFromSystem()}
+                  aria-label="Logout"
+                />
+              </LitegraphTooltip>
             </LitegraphFlex>
           </div>
           <Content

@@ -6,6 +6,8 @@ A web interface for visualizing and managing network graphs, built with Next.js 
 
 This dashboard is part of the [LiteGraph monorepo](../README.md).
 
+Current release: v6.0.0.
+
 ## Documentation
 
 Full documentation is available at [https://litegraph.readme.io/](https://litegraph.readme.io/).
@@ -29,6 +31,9 @@ This can be accessed by logging in to `localhost:3000/login/admin`
 - **Tenants**: Manage and edit tenants
 - **Users**: Manage and edit users
 - **Credentials**: Manage and edit credentials
+- **Authorization**: Manage roles, user role assignments, credential scopes, and effective permissions
+- **Request History**: Inspect recent requests, outcomes, durations, traces, and request/response JSON
+- **API Explorer**: Run REST requests including v6 query and transaction workflows
 
 ## Requirements
 

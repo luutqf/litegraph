@@ -12,7 +12,6 @@
     using ExpressionTree;
     using LiteGraph;
     using LiteGraph.Serialization;
-    using Microsoft.Data.Sqlite;
 
     /// <summary>
     /// Interface for tenant methods.
@@ -91,7 +90,7 @@
         /// <param name="force">True to force deletion of users and credentials.</param>
         /// <param name="token">Cancellation token.</param>
         Task DeleteByGuid(Guid guid, bool force = false, CancellationToken token = default);
-        
+
         /// <summary>
         /// Check if a tenant exists by GUID.
         /// </summary>

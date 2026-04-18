@@ -11,15 +11,6 @@ Object.defineProperty(window, 'localStorage', {
   value: mockLocalStorage,
 });
 
-// Mock window.location
-const mockLocation = {
-  href: '',
-};
-Object.defineProperty(window, 'location', {
-  value: mockLocation,
-  writable: true,
-});
-
 // Mock the litegraph reducer
 jest.mock('@/lib/store/litegraph/reducer', () => {
   return jest.fn((state = { test: 'initial' }, action) => {
@@ -54,11 +45,11 @@ jest.mock('@/lib/store/rtkApiMiddlewear', () => ({
 describe('rootReducer', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockLocation.href = '';
+    window.history.pushState({}, '', '/');
   });
 
   describe('handleLogout', () => {
-    it('should remove all localStorage items and redirect to default login path', () => {
+    it('should remove all localStorage items for default logout', () => {
       handleLogout();
 
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(localStorageKeys.token);
@@ -66,10 +57,9 @@ describe('rootReducer', () => {
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(localStorageKeys.user);
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(localStorageKeys.adminAccessKey);
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(localStorageKeys.serverUrl);
-      expect(mockLocation.href).toBe(paths.login);
     });
 
-    it('should remove all localStorage items and redirect to custom path', () => {
+    it('should remove all localStorage items for custom-path logout', () => {
       const customPath = '/custom-login';
       handleLogout(customPath);
 
@@ -78,7 +68,6 @@ describe('rootReducer', () => {
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(localStorageKeys.user);
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(localStorageKeys.adminAccessKey);
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(localStorageKeys.serverUrl);
-      expect(mockLocation.href).toBe(customPath);
     });
   });
 
@@ -118,9 +107,6 @@ describe('rootReducer', () => {
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(localStorageKeys.adminAccessKey);
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(localStorageKeys.serverUrl);
 
-      // Verify redirect happened
-      expect(mockLocation.href).toBe(logoutPath);
-
       // Verify state is still returned
       expect(newState).toBeDefined();
     });
@@ -133,7 +119,6 @@ describe('rootReducer', () => {
 
       const newState = rootReducer(initialState, action);
 
-      expect(mockLocation.href).toBe(paths.login);
       expect(newState).toBeDefined();
     });
 

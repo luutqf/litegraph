@@ -11,6 +11,8 @@ import LitegraphTooltip from './base/tooltip/Tooltip';
 import { useFlushDBtoDisk } from '@/lib/sdk/litegraph.service';
 import ConfirmationModal from './confirmation-modal/ConfirmationModal';
 import { useState } from 'react';
+import { useAppContext } from '@/hooks/appHooks';
+import { ThemeEnum } from '@/types/types';
 
 const { Sider } = Layout;
 
@@ -26,6 +28,7 @@ const Navigation = ({
   isAdmin?: boolean;
 }) => {
   const [open, setOpen] = useState(false);
+  const { theme } = useAppContext();
   const { flushDBtoDisk, isLoading, error } = useFlushDBtoDisk();
   const onFlushDBtoDisk = async () => {
     const result = await flushDBtoDisk();
@@ -36,12 +39,12 @@ const Navigation = ({
   return (
     <Sider
       theme="light"
-      width={170}
+      width={220}
       trigger={null}
       collapsible
       collapsed={collapsed}
       collapsedWidth={60}
-      className={styles.sidebarContainer}
+      className={`${styles.sidebarContainer} ${theme === ThemeEnum.LIGHT ? styles.sidebarLight : ''}`}
     >
       <LitegraphFlex justify="center" gap={8} align="center" className={styles.logoContainer}>
         {collapsed ? (

@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Form, Input, Button } from 'antd';
 import { CloseCircleFilled, PlusOutlined } from '@ant-design/icons';
 import styles from './styles.module.scss';
@@ -13,14 +13,23 @@ interface TagsInputProps {
 }
 
 const TagsInput: React.FC<TagsInputProps> = ({ value = [], onChange, name, readonly }) => {
+  const form = Form.useFormInstance();
+
+  useEffect(() => {
+    const current = form.getFieldValue(name);
+    if ((current === undefined || current === null) && value.length > 0) {
+      form.setFieldValue(name, value);
+    }
+  }, [form, name, value]);
+
   return (
-    <Form.List name={name} initialValue={value}>
+    <Form.List name={name}>
       {(fields, { add, remove }, { errors }) => (
         <>
           {fields?.length > 0
             ? fields.map((field, index) => (
-                <Form.Item {...field} key={field.key} style={{ marginBottom: 8 }}>
-                  <Input.Group compact>
+                <Form.Item key={field.key} style={{ marginBottom: 8 }}>
+                  <div className={styles.compactInputGroup}>
                     <Form.Item
                       name={[field.name, 'key']}
                       noStyle
@@ -49,7 +58,7 @@ const TagsInput: React.FC<TagsInputProps> = ({ value = [], onChange, name, reado
                         }
                       />
                     </Form.Item>
-                  </Input.Group>
+                  </div>
                 </Form.Item>
               ))
             : readonly && <LitegraphText>N/A</LitegraphText>}

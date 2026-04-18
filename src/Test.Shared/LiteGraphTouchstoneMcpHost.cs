@@ -28,13 +28,20 @@ namespace Test.Shared
             return client;
         }
 
-        private static async Task EnsureMcpEnvironmentAsync(CancellationToken cancellationToken = default)
+        private static async Task EnsureMcpEnvironmentAsync(CancellationToken cancellationToken = default, string apiKey = "litegraphadmin")
         {
             if (_McpEnvironment != null)
             {
-                EnsureProcessIsRunning(_McpEnvironment.LiteGraphProcess);
-                EnsureProcessIsRunning(_McpEnvironment.McpProcess);
-                return;
+                if (!String.Equals(_McpEnvironment.ApiKey, apiKey, StringComparison.Ordinal))
+                {
+                    await CleanupMcpServer().ConfigureAwait(false);
+                }
+                else
+                {
+                    EnsureProcessIsRunning(_McpEnvironment.LiteGraphProcess);
+                    EnsureProcessIsRunning(_McpEnvironment.McpProcess);
+                    return;
+                }
             }
 
             List<string> startupFailures = new List<string>();
@@ -43,7 +50,7 @@ namespace Test.Shared
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                McpProcessEnvironment environment = CreateMcpProcessEnvironment();
+                McpProcessEnvironment environment = CreateMcpProcessEnvironment(apiKey);
                 _McpEnvironment = environment;
 
                 try
@@ -94,7 +101,7 @@ namespace Test.Shared
                 environmentVariables: new Dictionary<string, string>
                 {
                     { "LITEGRAPH_ENDPOINT", environment.LiteGraphEndpoint },
-                    { "LITEGRAPH_API_KEY", "litegraphadmin" },
+                    { "LITEGRAPH_API_KEY", environment.ApiKey },
                     { "MCP_HTTP_HOSTNAME", "127.0.0.1" },
                     { "MCP_HTTP_PORT", environment.McpHttpPort.ToString() },
                     { "MCP_TCP_ADDRESS", "127.0.0.1" },
@@ -107,7 +114,7 @@ namespace Test.Shared
             _McpClient = await ConnectMcpClientWithRetryAsync(environment, cancellationToken).ConfigureAwait(false);
         }
 
-        private static McpProcessEnvironment CreateMcpProcessEnvironment()
+        private static McpProcessEnvironment CreateMcpProcessEnvironment(string apiKey)
         {
             HashSet<int> reservedPorts = new HashSet<int>();
             int liteGraphPort = ReserveAvailablePort(reservedPorts);
@@ -139,6 +146,7 @@ namespace Test.Shared
                 DatabasePath = Path.Combine(liteGraphWorkingDirectory, "litegraph.db"),
                 LiteGraphAssemblyPath = ResolveBuildOutput("LiteGraph.Server", configuration, targetFramework, "LiteGraph.Server.dll"),
                 McpAssemblyPath = ResolveBuildOutput("LiteGraph.McpServer", configuration, targetFramework, "LiteGraph.McpServer.dll"),
+                ApiKey = apiKey,
                 LiteGraphPort = liteGraphPort,
                 McpHttpPort = mcpHttpPort,
                 McpTcpPort = mcpTcpPort,
@@ -490,6 +498,7 @@ namespace Test.Shared
             public string DatabasePath { get; init; } = String.Empty;
             public string LiteGraphAssemblyPath { get; init; } = String.Empty;
             public string McpAssemblyPath { get; init; } = String.Empty;
+            public string ApiKey { get; init; } = String.Empty;
             public int LiteGraphPort { get; init; }
             public int McpHttpPort { get; init; }
             public int McpTcpPort { get; init; }
