@@ -1,0 +1,53 @@
+# Git and editor state
+.git/
+.gitignore
+.gitattributes
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.swp
+*.swo
+*~
+
+# Build outputs and packages
+**/bin/
+**/obj/
+artifacts/
+publish/
+*.nupkg
+*.snupkg
+
+# Runtime state and local data
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+indexes/
+**/indexes/
+logs/
+**/logs/
+backups/
+**/backups/
+temp/
+**/temp/
+
+# Projects and assets not needed by the MCP image
+/dashboard/
+/docker/
+/www/
+/archive/
+/sdk/js/
+/sdk/python/
+/sdk/csharp/src/Test*/
+/src/Test*/
+/src/LiteGraph.Server/
+/src/LiteGraph.SampleDatabase/
+/src/LiteGraphConsole/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini

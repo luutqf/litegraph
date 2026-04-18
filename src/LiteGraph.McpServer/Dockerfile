@@ -1,6 +1,6 @@
 #
 #
-# Run the docker build command from src, not from the project directory
+# Run the docker build command from the repository root, not from src or the project directory.
 #
 #
 
@@ -11,16 +11,18 @@
 #
 #
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
-WORKDIR /src
+WORKDIR /repo
 
 # Copy source
-COPY . .
+COPY src ./src
+COPY sdk/csharp ./sdk/csharp
+COPY README.md ./README.md
 
 # Restore dependencies
-RUN dotnet restore "LiteGraph.McpServer/LiteGraph.McpServer.csproj"
+RUN dotnet restore "src/LiteGraph.McpServer/LiteGraph.McpServer.csproj"
 
 # Build the application
-WORKDIR /src/LiteGraph.McpServer
+WORKDIR /repo/src/LiteGraph.McpServer
 RUN dotnet build "LiteGraph.McpServer.csproj" -c Release -f net10.0 -o /app/build /p:GeneratePackageOnBuild=false /m:1
 
 
