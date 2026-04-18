@@ -8,44 +8,14 @@ import { createMockInitialState } from '../../store/mockStore';
 import { setupServer } from 'msw/node';
 import { handlers as graphHandlers } from './handler';
 import { commonHandlers } from '@/tests/handler';
-import { setTenant } from '@/lib/sdk/litegraph.service';
+import { sdk, setTenant } from '@/lib/sdk/litegraph.service';
 import { mockGraphData, mockTenantGUID } from '../mockData';
 import LitegraphModal from '@/components/base/modal/Modal';
 import LitegraphButton from '@/components/base/button/Button';
 import LitegraphParagraph from '@/components/base/typograpghy/Paragraph';
 import LitegraphTable from '@/components/base/table/Table';
-import { http, HttpResponse } from 'msw';
-import { mockEndpoint } from '@/tests/config';
 import { SearchData } from '@/components/search/type';
 import { MenuItemProps } from '@/components/menu-item/types';
-
-// Mock RTK Query hooks
-jest.mock('@/lib/store/slice/slice', () => ({
-  useCreateGraphMutation: () => [
-    jest.fn().mockResolvedValue({ data: { GUID: 'new-graph-123' } }),
-    { isLoading: false },
-  ],
-  useUpdateGraphMutation: () => [
-    jest.fn().mockResolvedValue({ data: { GUID: 'updated-graph-123' } }),
-    { isLoading: false },
-  ],
-  useGetGraphByIdQuery: () => ({
-    data: {
-      GUID: 'graph-123',
-      Name: 'Test Graph',
-      Description: 'Test Description',
-      Tags: { tag1: 'value1' },
-      Vectors: ['vector1'],
-      CreatedUtc: '2024-01-01T00:00:00Z',
-      LastUpdateUtc: '2024-01-01T12:00:00Z',
-      Data: { graph: {} },
-      Labels: ['label1'],
-    },
-    isLoading: false,
-    isFetching: false,
-    refetch: jest.fn(),
-  }),
-}));
 
 // Mock react-hot-toast
 jest.mock('react-hot-toast', () => ({
@@ -331,11 +301,7 @@ describe('GraphPage', () => {
   }, 8000);
 
   it('renders fallback on API failure', async () => {
-    server.use(
-      http.post(`${mockEndpoint}v2.0/tenants/${mockTenantGUID}/graphs`, () => {
-        return HttpResponse.error();
-      })
-    );
+    jest.spyOn(sdk.Graph, 'enumerateAndSearch').mockRejectedValueOnce(new Error('Mock error'));
     const { container } = renderWithRedux(<GraphPage />, initialState, undefined, true);
 
     await waitFor(() => {

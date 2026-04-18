@@ -32,7 +32,7 @@ const GraphLoader = ({
   nodes,
   edges,
   groupDragging,
-  legends,
+  legends = {},
 }: GraphLoaderProps) => {
   const { theme } = useAppContext();
   const loadGraph = useLoadGraph();
@@ -132,7 +132,11 @@ const GraphLoader = ({
         graph.setNodeAttribute(e.node, 'highlighted', true);
         // ---- NEW: prepare group-drag state
         e.preventSigmaDefault?.();
-        const startPointer = sigma.viewportToGraph({ x: e.event.x, y: e.event.y });
+        const pointerEvent = e.event || e;
+        const startPointer =
+          typeof pointerEvent.x === 'number' && typeof pointerEvent.y === 'number'
+            ? sigma.viewportToGraph({ x: pointerEvent.x, y: pointerEvent.y })
+            : sigma.viewportToGraph(pointerEvent);
         dragStartGraphPosRef.current = startPointer;
         const selectedNode = nodes.find((node) => node.id === e.node);
         // Define "siblings": here we use graph neighbors; adjust if your domain differs
@@ -148,28 +152,30 @@ const GraphLoader = ({
         // Snapshot starting positions
         const starts = new Map<string, { x: number; y: number }>();
         draggedSet.forEach((id) => {
-          const attrs = graph.getNodeAttributes(id);
+          const attrs =
+            typeof graph.getNodeAttributes === 'function'
+              ? graph.getNodeAttributes(id)
+              : nodes.find((node) => node.id === id);
+          if (!attrs || typeof attrs.x !== 'number' || typeof attrs.y !== 'number') return;
           starts.set(id, { x: attrs.x, y: attrs.y });
         });
         startPosRef.current = starts;
       },
 
       mousemovebody: (e) => {
-        // your tooltip hiding logic
-        const isDraggingSomething = !!draggedNodeRef.current || !!draggedEdge;
-        if (isDraggingSomething) {
+        // ---- NEW: apply delta to the dragged set
+        if (draggedNodeRef.current && dragStartGraphPosRef.current) {
+          isDraggingRef.current = true;
           if (nodeTooltip?.visible) {
             setTooltip({ visible: false, nodeId: '', x: 0, y: 0 });
           }
           if (edgeTooltip?.visible) {
             setEdgeTooltip({ visible: false, edgeId: '', x: 0, y: 0 });
           }
-        }
-
-        // ---- NEW: apply delta to the dragged set
-        if (draggedNodeRef.current && dragStartGraphPosRef.current) {
-          isDraggingRef.current = true;
-          const nowGraph = sigma.viewportToGraph({ x: e.x, y: e.y });
+          const nowGraph =
+            typeof e.x === 'number' && typeof e.y === 'number'
+              ? sigma.viewportToGraph({ x: e.x, y: e.y })
+              : sigma.viewportToGraph(e);
           const dx = nowGraph.x - dragStartGraphPosRef.current.x;
           const dy = nowGraph.y - dragStartGraphPosRef.current.y;
 

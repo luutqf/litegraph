@@ -1,8 +1,9 @@
-﻿namespace LiteGraph.Server.API.REST
+namespace LiteGraph.Server.API.REST
 {
     using System;
     using System.Collections.Generic;
     using System.Collections.Specialized;
+    using System.Diagnostics;
     using System.IO;
     using System.Linq;
     using System.Net;
@@ -23,7 +24,7 @@
     using WatsonWebserver.Core;
     using WatsonWebserver.Core.OpenApi;
 
-    internal class RestServiceHandler : IDisposable
+    internal partial class RestServiceHandler : IDisposable
     {
         #region Internal-Members
 
@@ -40,6 +41,7 @@
         private AuthenticationService _Authentication = null;
         private ServiceHandler _ServiceHandler = null;
         private RequestHistoryService _RequestHistory = null;
+        private ObservabilityService _Observability = null;
 
         private Webserver _Webserver = null;
         private bool _Disposed = false;
@@ -62,7 +64,8 @@
             Serializer serializer,
             AuthenticationService auth,
             ServiceHandler service,
-            RequestHistoryService requestHistory)
+            RequestHistoryService requestHistory,
+            ObservabilityService observability)
         {
             _Settings = settings ?? throw new ArgumentNullException(nameof(settings));
             _Logging = logging ?? throw new ArgumentNullException(nameof(logging));
@@ -71,6 +74,7 @@
             _Authentication = auth ?? throw new ArgumentNullException(nameof(auth));
             _ServiceHandler = service ?? throw new ArgumentNullException(nameof(service));
             _RequestHistory = requestHistory ?? throw new ArgumentNullException(nameof(requestHistory));
+            _Observability = observability ?? throw new ArgumentNullException(nameof(observability));
 
             _Webserver = new Webserver(_Settings.Rest, DefaultRoute);
             _Webserver.Routes.PreRouting = PreRoutingHandler;
@@ -84,7 +88,7 @@
             _Webserver.UseOpenApi(openApi =>
             {
                 openApi.Info.Title = "LiteGraph API";
-                openApi.Info.Version = "v5.0";
+                openApi.Info.Version = "v6.0.0";
                 openApi.Info.Description = "LiteGraph is a lightweight graph database with vector search, multi-tenancy, and AI agent integration. This API provides full CRUD operations for graphs, nodes, edges, labels, tags, and vectors with built-in HNSW vector indexing.";
                 openApi.Info.Contact = new OpenApiContact
                 {
@@ -103,6 +107,7 @@
                 openApi.Tags.Add(new OpenApiTag { Name = "Tenants", Description = "Multi-tenant management and statistics" });
                 openApi.Tags.Add(new OpenApiTag { Name = "Users", Description = "User account management" });
                 openApi.Tags.Add(new OpenApiTag { Name = "Credentials", Description = "Bearer token credential management" });
+                openApi.Tags.Add(new OpenApiTag { Name = "Authorization", Description = "Roles, assignments, and effective permission inspection" });
                 openApi.Tags.Add(new OpenApiTag { Name = "Graphs", Description = "Graph CRUD, search, statistics, and GEXF export" });
                 openApi.Tags.Add(new OpenApiTag { Name = "VectorIndex", Description = "HNSW vector index configuration, rebuild, and statistics" });
                 openApi.Tags.Add(new OpenApiTag { Name = "Nodes", Description = "Node CRUD, search, and batch operations" });
@@ -193,6 +198,10 @@
             _Webserver.Routes.PreAuthentication.Static.Add(HttpMethod.GET, "/", RootRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Server information", "System"));
             _Webserver.Routes.PreAuthentication.Static.Add(HttpMethod.GET, "/favicon.ico", FaviconRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Favicon", "System"));
             _Webserver.Routes.PreAuthentication.Static.Add(HttpMethod.GET, "/v1.0/token/tenants", TokenTenantsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("List tenants for email", "Tokens"));
+            if (_Settings.Observability.Enable && _Settings.Observability.EnablePrometheus)
+            {
+                _Webserver.Routes.PreAuthentication.Static.Add(HttpMethod.GET, _Settings.Observability.MetricsPath, MetricsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Prometheus metrics", "System"));
+            }
 
             #region Tokens
 
@@ -257,6 +266,30 @@
 
             #endregion
 
+            #region Authorization
+
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/roles", AuthorizationRoleCreateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Create authorization role", "Authorization"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/roles", AuthorizationRoleReadManyRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("List authorization roles", "Authorization"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/roles/{roleGuid}", AuthorizationRoleReadRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read authorization role", "Authorization"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/roles/{roleGuid}", AuthorizationRoleUpdateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Update authorization role", "Authorization"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/roles/{roleGuid}", AuthorizationRoleDeleteRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete authorization role", "Authorization"));
+
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/users/{userGuid}/roles", UserRoleAssignmentCreateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Assign user role", "Authorization"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/users/{userGuid}/roles", UserRoleAssignmentReadManyRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("List user role assignments", "Authorization"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/users/{userGuid}/roles/{assignmentGuid}", UserRoleAssignmentReadRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read user role assignment", "Authorization"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/users/{userGuid}/roles/{assignmentGuid}", UserRoleAssignmentUpdateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Update user role assignment", "Authorization"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/users/{userGuid}/roles/{assignmentGuid}", UserRoleAssignmentDeleteRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Revoke user role assignment", "Authorization"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/users/{userGuid}/permissions", UserEffectivePermissionsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("List user effective permissions", "Authorization"));
+
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/credentials/{credentialGuid}/scopes", CredentialScopeAssignmentCreateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Assign credential scope", "Authorization"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/credentials/{credentialGuid}/scopes", CredentialScopeAssignmentReadManyRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("List credential scope assignments", "Authorization"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/credentials/{credentialGuid}/scopes/{assignmentGuid}", CredentialScopeAssignmentReadRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read credential scope assignment", "Authorization"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/credentials/{credentialGuid}/scopes/{assignmentGuid}", CredentialScopeAssignmentUpdateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Update credential scope assignment", "Authorization"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/credentials/{credentialGuid}/scopes/{assignmentGuid}", CredentialScopeAssignmentDeleteRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Revoke credential scope assignment", "Authorization"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/credentials/{credentialGuid}/permissions", CredentialEffectivePermissionsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("List credential effective permissions", "Authorization"));
+
+            #endregion
+
             #region Labels
 
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/labels", LabelCreateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Create label", "Labels"));
@@ -264,6 +297,7 @@
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/labels", LabelReadManyRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("List labels", "Labels"));
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v2.0/tenants/{tenantGuid}/labels", LabelEnumerateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Enumerate labels", "Labels"));
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v2.0/tenants/{tenantGuid}/labels", LabelEnumerateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Enumerate labels (POST)", "Labels"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v2.0/tenants/{tenantGuid}/graphs/{graphGuid}/labels", LabelEnumerateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Enumerate graph labels (POST)", "Labels"));
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/labels/all", LabelReadAllInTenantRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read all labels in tenant", "Labels"));
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/labels/all", LabelReadAllInGraphRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read all labels in graph", "Labels"));
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/labels", LabelReadManyGraphRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read graph labels", "Labels"));
@@ -294,6 +328,7 @@
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/tags", TagReadManyNodeRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read node tags", "Tags"));
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/edges/{edgeGuid}/tags", TagReadManyEdgeRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read edge tags", "Tags"));
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v2.0/tenants/{tenantGuid}/tags", TagEnumerateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Enumerate tags (POST)", "Tags"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v2.0/tenants/{tenantGuid}/graphs/{graphGuid}/tags", TagEnumerateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Enumerate graph tags (POST)", "Tags"));
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/tags/{tagGuid}", TagReadRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read tag", "Tags"));
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.HEAD, "/v1.0/tenants/{tenantGuid}/tags/{tagGuid}", TagExistsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Check if tag exists", "Tags"));
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/tags/{tagGuid}", TagUpdateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Update tag", "Tags"));
@@ -312,9 +347,11 @@
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/vectors", VectorCreateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Create vector", "Vectors"));
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.PUT, "/v1.0/tenants/{tenantGuid}/vectors/bulk", VectorCreateManyRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Create multiple vectors", "Vectors"));
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v1.0/tenants/{tenantGuid}/vectors", VectorSearchRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Search vectors", "Vectors"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectors/search", VectorSearchRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Search graph vectors", "Vectors"));
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/vectors", VectorReadManyRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("List vectors", "Vectors"));
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v2.0/tenants/{tenantGuid}/vectors", VectorEnumerateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Enumerate vectors", "Vectors"));
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v2.0/tenants/{tenantGuid}/vectors", VectorEnumerateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Enumerate vectors (POST)", "Vectors"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v2.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectors", VectorEnumerateRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Enumerate graph vectors (POST)", "Vectors"));
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/vectors/all", VectorReadAllInTenantRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read all vectors in tenant", "Vectors"));
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectors/all", VectorReadAllInGraphRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read all vectors in graph", "Vectors"));
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectors", VectorReadManyGraphRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Read graph vectors", "Vectors"));
@@ -350,6 +387,8 @@
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/all", GraphDeleteAllInTenantRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete all graphs in tenant", "Graphs"));
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.DELETE, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}", GraphDeleteRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Delete graph", "Graphs"));
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/existence", GraphExistenceRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Check batch existence", "Graphs"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/query", GraphQueryRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Execute native graph query", "Graphs"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/transaction", GraphTransactionRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Execute graph transaction", "Graphs"));
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/subgraph", GraphSubgraphRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Get subgraph from node", "Graphs"));
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/subgraph/stats", GraphSubgraphStatisticsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Get subgraph statistics", "Graphs"));
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/export/gexf", GraphGexfExportRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Export graph as GEXF", "Graphs"));
@@ -393,6 +432,7 @@
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/edges/from", EdgesFromNodeRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Get outgoing edges from node", "NodeTraversal"));
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/edges/to", EdgesToNodeRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Get incoming edges to node", "NodeTraversal"));
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/edges", AllEdgesToNodeRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Get all edges for node", "NodeTraversal"));
+            _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.POST, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/edges", AllEdgesToNodeRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Get all edges for node with filters", "NodeTraversal"));
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/neighbors", NodeNeighborsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Get node neighbors", "NodeTraversal"));
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/parents", NodeParentsRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Get parent nodes", "NodeTraversal"));
             _Webserver.Routes.PostAuthentication.Parameter.Add(HttpMethod.GET, "/v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/children", NodeChildrenRoute, ExceptionRoute, openApiMetadata: OpenApiRouteMetadata.Create("Get child nodes", "NodeTraversal"));
@@ -473,8 +513,8 @@
             }
 
             responseHeaders.Add("Access-Control-Allow-Methods", "OPTIONS, HEAD, GET, PUT, POST, DELETE");
-            responseHeaders.Add("Access-Control-Allow-Headers", "*, Content-Type, X-Requested-With, " + headers);
-            responseHeaders.Add("Access-Control-Expose-Headers", "Content-Type, X-Requested-With, " + headers);
+            responseHeaders.Add("Access-Control-Allow-Headers", "*, Content-Type, X-Requested-With, " + Constants.RequestIdHeader + ", " + Constants.CorrelationIdHeader + ", " + Constants.TraceparentHeader + headers);
+            responseHeaders.Add("Access-Control-Expose-Headers", "Content-Type, X-Requested-With, " + Constants.RequestIdHeader + ", " + Constants.CorrelationIdHeader + headers);
             responseHeaders.Add("Access-Control-Allow-Origin", "*");
             responseHeaders.Add("Accept", "*/*");
             responseHeaders.Add("Accept-Language", "en-US, en");
@@ -535,15 +575,35 @@
             }
 
             ctx.Metadata = req;
+            StartRequestActivity(ctx, req);
+            ctx.Response.Headers.Add(Constants.RequestIdHeader, req.RequestId);
+            ctx.Response.Headers.Add(Constants.CorrelationIdHeader, req.CorrelationId);
             if (_Settings.Debug.Requests)
-                _Logging.Debug(_Serializer.SerializeJson(ctx.Request, true));
+                _Logging.Debug(BuildSanitizedRequestDebugLog(ctx));
         }
 
         internal async Task AuthenticateRequest(HttpContextBase ctx)
         {
             RequestContext req = (RequestContext)ctx.Metadata;
 
-            await _Authentication.AuthenticateAndAuthorize(req, CancellationToken.None).ConfigureAwait(false);
+            using (Activity activity = StartInternalActivity("litegraph.auth", req))
+            using (CancellationTokenSource timeoutCts = CreateRequestTimeoutTokenSource())
+            {
+                try
+                {
+                    await _Authentication.AuthenticateAndAuthorize(req, timeoutCts.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                {
+                    ctx.Response.StatusCode = 408;
+                    RecordActivityException(activity, new TimeoutException("Authentication timed out."), ctx.Response.StatusCode);
+                    await ctx.Response.Send(_Serializer.SerializeJson(new ApiErrorResponse(ApiErrorEnum.RequestTimeout), true));
+                    return;
+                }
+
+                _Observability.RecordAuthentication(req.Authentication.Result, req.Authorization.Result);
+                SetAuthenticationActivityTags(activity, req);
+            }
 
             switch (req.Authentication.Result)
             {
@@ -575,7 +635,7 @@
 
                 case AuthorizationResultEnum.Denied:
                     ctx.Response.StatusCode = 401;
-                    await ctx.Response.Send(_Serializer.SerializeJson(new ApiErrorResponse(ApiErrorEnum.AuthorizationFailed), true));
+                    await SendAuthorizationFailed(ctx, req).ConfigureAwait(false);
                     return;
 
                 case AuthorizationResultEnum.NotFound:
@@ -590,7 +650,7 @@
 
         internal async Task DefaultRoute(HttpContextBase ctx)
         {
-            _Logging.Warn(_Header + "unknown verb or endpoint: " + ctx.Request.Method + " " + ctx.Request.Url.RawWithQuery);
+            _Logging.Warn(_Header + "unknown verb or endpoint: " + ctx.Request.Method + " " + OperationalLogRedactor.RedactUrl(ctx.Request.Url.RawWithQuery));
             ctx.Response.StatusCode = 400;
             await ctx.Response.Send(_Serializer.SerializeJson(new ApiErrorResponse(ApiErrorEnum.BadRequest), true));
         }
@@ -598,20 +658,51 @@
         internal async Task PostRoutingHandler(HttpContextBase ctx)
         {
             ctx.Timestamp.End = DateTime.UtcNow;
-
-            string msg =
-                _Header
-                + ctx.Request.Method.ToString() + " " + ctx.Request.Url.RawWithQuery + " "
-                + ctx.Response.StatusCode + " "
-                + ctx.Timestamp.TotalMs + "ms";
-
-            if (ctx.Response.StatusCode > 299 && _Settings.Debug.Requests)
-                msg += Environment.NewLine + ctx.Response.DataAsString;
+            RequestContext req = ctx.Metadata as RequestContext;
+            string msg = OperationalLogFormatter.FormatRequestCompletion(
+                _Header,
+                ctx.Request.Method.ToString(),
+                OperationalLogRedactor.RedactUrl(ctx.Request.Url.RawWithQuery),
+                ctx.Response.StatusCode,
+                ctx.Timestamp.TotalMs,
+                req?.RequestId,
+                req?.CorrelationId,
+                req?.TraceId,
+                ctx.Response.DataAsString,
+                ctx.Response.StatusCode > 299 && _Settings.Debug.Requests,
+                _Settings.Logging.JsonLogOutput);
 
             _Logging.Debug(msg);
 
+            _Observability.RecordHttpRequest(
+                ctx.Request.Method.ToString(),
+                OperationalLogRedactor.RedactUrl(ctx.Request.Url.RawWithoutQuery),
+                ctx.Response.StatusCode,
+                ctx.Timestamp.TotalMs ?? 0);
+
             CaptureRequestHistory(ctx);
+            StopRequestActivity(ctx);
             await Task.CompletedTask;
+        }
+
+        private string BuildSanitizedRequestDebugLog(HttpContextBase ctx)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine(_Header + "request:");
+            sb.AppendLine("| Method         : " + ctx.Request.Method);
+            sb.AppendLine("| URL            : " + OperationalLogRedactor.RedactUrl(ctx.Request.Url.RawWithQuery));
+            sb.AppendLine("| Source IP      : " + ctx.Request.Source?.IpAddress);
+            sb.AppendLine("| Content type   : " + ctx.Request.ContentType);
+            sb.AppendLine("| Content length : " + (ctx.Request.DataAsBytes != null ? ctx.Request.DataAsBytes.LongLength : 0));
+
+            Dictionary<string, string> headers = OperationalLogRedactor.RedactHeaders(ctx.Request.Headers);
+            foreach (KeyValuePair<string, string> header in headers.OrderBy(kvp => kvp.Key, StringComparer.OrdinalIgnoreCase))
+            {
+                sb.AppendLine("| Header " + header.Key + " : " + header.Value);
+            }
+
+            sb.Append("| Body           : <omitted>");
+            return sb.ToString();
         }
 
         private void CaptureRequestHistory(HttpContextBase ctx)
@@ -620,6 +711,7 @@
             {
                 if (_RequestHistory == null || !_Settings.RequestHistory.Enable) return;
                 string path = ctx.Request.Url.RawWithoutQuery;
+                string redactedPath = OperationalLogRedactor.RedactUrl(path);
                 if (_RequestHistory.ShouldSkip(path)) return;
 
                 RequestContext req = ctx.Metadata as RequestContext;
@@ -654,8 +746,8 @@
                     CreatedUtc = ctx.Timestamp.Start,
                     CompletedUtc = ctx.Timestamp.End,
                     Method = ctx.Request.Method.ToString(),
-                    Path = path,
-                    Url = ctx.Request.Url.RawWithQuery,
+                    Path = redactedPath,
+                    Url = OperationalLogRedactor.RedactUrl(ctx.Request.Url.RawWithQuery),
                     SourceIp = ctx.Request.Source?.IpAddress,
                     TenantGUID = tenantGuid,
                     UserGUID = userGuid,
@@ -670,6 +762,9 @@
                     ResponseContentType = ctx.Response.ContentType,
                     RequestHeaders = _RequestHistory.RedactHeaders(ctx.Request.Headers),
                     ResponseHeaders = _RequestHistory.RedactHeaders(ctx.Response.Headers),
+                    RequestId = req?.RequestId,
+                    CorrelationId = req?.CorrelationId,
+                    TraceId = req?.TraceId,
                     RequestBody = reqBody,
                     ResponseBody = respBody
                 };
@@ -715,9 +810,17 @@
                 return;
             }
 
-            AuthenticationToken token = await _Authentication.ReadToken(req.Authentication.SecurityToken, CancellationToken.None).ConfigureAwait(false);
-            ctx.Response.StatusCode = 200;
-            await ctx.Response.Send(_Serializer.SerializeJson(token, true));
+            using CancellationTokenSource timeoutCts = CreateRequestTimeoutTokenSource();
+            try
+            {
+                AuthenticationToken token = await _Authentication.ReadToken(req.Authentication.SecurityToken, timeoutCts.Token).ConfigureAwait(false);
+                ctx.Response.StatusCode = 200;
+                await ctx.Response.Send(_Serializer.SerializeJson(token, true));
+            }
+            catch (OperationCanceledException oce) when (timeoutCts.IsCancellationRequested)
+            {
+                await SendRequestTimeout(ctx, "token detail read", oce).ConfigureAwait(false);
+            }
             return;
         }
 
@@ -856,7 +959,7 @@
             {
                 ctx.Response.StatusCode = 500;
                 await ctx.Response.Send(_Serializer.SerializeJson(new ApiErrorResponse(ApiErrorEnum.InternalError, null, e.Message), true));
-                _Logging.Warn(_Header + "exception encountered for " + ctx.Request.Method.ToString() + " " + ctx.Request.Url.RawWithQuery + Environment.NewLine + e.ToString());
+                _Logging.Warn(_Header + "exception encountered for " + ctx.Request.Method.ToString() + " " + OperationalLogRedactor.RedactUrl(ctx.Request.Url.RawWithQuery) + Environment.NewLine + e.ToString());
             }
         }
 
@@ -871,6 +974,13 @@
             ctx.Response.StatusCode = 200;
             ctx.Response.ContentType = Constants.HtmlContentType;
             await ctx.Response.Send(Constants.DefaultHomepage);
+        }
+
+        private async Task MetricsRoute(HttpContextBase ctx)
+        {
+            ctx.Response.StatusCode = 200;
+            ctx.Response.ContentType = "text/plain; version=0.0.4";
+            await ctx.Response.Send(_Observability.RenderPrometheus());
         }
 
         private async Task FaviconRoute(HttpContextBase ctx)
@@ -889,7 +999,91 @@
         private async Task NotAdmin(HttpContextBase ctx)
         {
             ctx.Response.StatusCode = 401;
-            await ctx.Response.Send(_Serializer.SerializeJson(new ApiErrorResponse(ApiErrorEnum.AuthorizationFailed), true));
+            await SendAuthorizationFailed(ctx, ctx.Metadata as RequestContext, "AdminRequired", "admin", "Administrator authentication is required for this request.").ConfigureAwait(false);
+        }
+
+        private async Task SendAuthorizationFailed(
+            HttpContextBase ctx,
+            RequestContext req,
+            string reason = null,
+            string requiredScope = null,
+            string description = null)
+        {
+            ApiErrorResponse response = AuthorizationFailedResponse(req, reason, requiredScope, description);
+            using CancellationTokenSource timeoutCts = CreateRequestTimeoutTokenSource();
+            await AuditAuthorizationDenied(req, response, ctx.Response.StatusCode, timeoutCts.Token).ConfigureAwait(false);
+            await ctx.Response.Send(_Serializer.SerializeJson(response, true)).ConfigureAwait(false);
+        }
+
+        private static ApiErrorResponse AuthorizationFailedResponse(
+            RequestContext req,
+            string reason = null,
+            string requiredScope = null,
+            string description = null)
+        {
+            reason ??= req?.Authorization?.Reason;
+            requiredScope ??= req?.Authorization?.RequiredScope;
+
+            Dictionary<string, string> context = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            if (!String.IsNullOrEmpty(reason)) context["reason"] = reason;
+            if (!String.IsNullOrEmpty(requiredScope)) context["requiredScope"] = requiredScope;
+            if (req != null)
+            {
+                context["requestType"] = req.RequestType.ToString();
+                if (req.TenantGUID != null) context["tenantGuid"] = req.TenantGUID.Value.ToString();
+                if (req.GraphGUID != null) context["graphGuid"] = req.GraphGUID.Value.ToString();
+            }
+
+            return new ApiErrorResponse(
+                ApiErrorEnum.AuthorizationFailed,
+                context.Count > 0 ? context : null,
+                description ?? "Authorization denied. Inspect the response context for the request type, reason, and required scope when available.");
+        }
+
+        private async Task AuditAuthorizationDenied(RequestContext req, ApiErrorResponse response, int statusCode, CancellationToken token)
+        {
+            if (req == null || response == null || _LiteGraph?.AuthorizationAudit == null) return;
+
+            try
+            {
+                string reason = null;
+                string requiredScope = null;
+                if (response.Context is Dictionary<string, string> context)
+                {
+                    if (context.TryGetValue("reason", out string contextReason)) reason = contextReason;
+                    if (context.TryGetValue("requiredScope", out string contextScope)) requiredScope = contextScope;
+                }
+                if (String.IsNullOrEmpty(reason)) reason = req.Authorization?.Reason;
+                if (String.IsNullOrEmpty(requiredScope)) requiredScope = req.Authorization?.RequiredScope;
+
+                AuthorizationAuditEntry entry = new AuthorizationAuditEntry
+                {
+                    RequestId = req.RequestId,
+                    CorrelationId = req.CorrelationId,
+                    TraceId = req.TraceId,
+                    TenantGUID = req.TenantGUID ?? req.Authentication?.TenantGUID,
+                    GraphGUID = req.GraphGUID,
+                    UserGUID = req.Authentication?.UserGUID,
+                    CredentialGUID = req.Authentication?.CredentialGUID,
+                    RequestType = req.RequestType.ToString(),
+                    Method = req.Http?.Request?.Method.ToString(),
+                    Path = OperationalLogRedactor.RedactUrl(req.Http?.Request?.Url?.RawWithoutQuery),
+                    SourceIp = req.Http?.Request?.Source?.IpAddress,
+                    AuthenticationResult = req.Authentication?.Result.ToString(),
+                    AuthorizationResult = AuthorizationResultEnum.Denied.ToString(),
+                    Reason = reason,
+                    RequiredScope = requiredScope,
+                    IsAdmin = req.Authentication?.IsAdmin ?? false,
+                    StatusCode = statusCode,
+                    Description = response.Description
+                };
+
+                await _LiteGraph.AuthorizationAudit.Insert(entry, token).ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                _Logging.Warn(_Header + "failed to write authorization audit entry:" + Environment.NewLine + e.ToString());
+            }
         }
 
         #endregion
@@ -1287,6 +1481,8 @@
             RequestContext req = (RequestContext)ctx.Metadata;
             if (req.Data != null) req.EnumerationQuery = _Serializer.DeserializeJson<EnumerationRequest>(Encoding.UTF8.GetString(req.Data));
             else req.EnumerationQuery = BuildEnumerationQuery(req);
+            if (req.EnumerationQuery?.GraphGUID != null) req.GraphGUID = req.EnumerationQuery.GraphGUID;
+            if (req.GraphGUID.HasValue) req.EnumerationQuery.GraphGUID = req.GraphGUID;
             await WrappedRequestHandler(ctx, req, _ServiceHandler.LabelEnumerate);
         }
 
@@ -1438,6 +1634,8 @@
             RequestContext req = (RequestContext)ctx.Metadata;
             if (req.Data != null) req.EnumerationQuery = _Serializer.DeserializeJson<EnumerationRequest>(Encoding.UTF8.GetString(req.Data));
             else req.EnumerationQuery = BuildEnumerationQuery(req);
+            if (req.EnumerationQuery?.GraphGUID != null) req.GraphGUID = req.EnumerationQuery.GraphGUID;
+            if (req.GraphGUID.HasValue) req.EnumerationQuery.GraphGUID = req.GraphGUID;
             await WrappedRequestHandler(ctx, req, _ServiceHandler.TagEnumerate);
         }
 
@@ -1589,6 +1787,8 @@
             RequestContext req = (RequestContext)ctx.Metadata;
             if (req.Data != null) req.EnumerationQuery = _Serializer.DeserializeJson<EnumerationRequest>(Encoding.UTF8.GetString(req.Data));
             else req.EnumerationQuery = BuildEnumerationQuery(req);
+            if (req.EnumerationQuery?.GraphGUID != null) req.GraphGUID = req.EnumerationQuery.GraphGUID;
+            if (req.GraphGUID.HasValue) req.EnumerationQuery.GraphGUID = req.GraphGUID;
             await WrappedRequestHandler(ctx, req, _ServiceHandler.VectorEnumerate);
         }
 
@@ -1710,6 +1910,7 @@
 
             req.VectorSearchRequest = _Serializer.DeserializeJson<VectorSearchRequest>(ctx.Request.DataAsString);
             req.VectorSearchRequest.TenantGUID = req.TenantGUID.Value;
+            if (req.GraphGUID.HasValue) req.VectorSearchRequest.GraphGUID = req.GraphGUID.Value;
             await WrappedRequestHandler(ctx, req, _ServiceHandler.VectorSearch);
         }
 
@@ -1756,6 +1957,160 @@
 
             req.ExistenceRequest = _Serializer.DeserializeJson<ExistenceRequest>(ctx.Request.DataAsString);
             await WrappedRequestHandler(ctx, req, _ServiceHandler.GraphExistence);
+        }
+
+        private async Task GraphQueryRoute(HttpContextBase ctx)
+        {
+            RequestContext req = (RequestContext)ctx.Metadata;
+
+            if (String.IsNullOrEmpty(ctx.Request.DataAsString))
+            {
+                await NoRequestBody(ctx);
+                return;
+            }
+
+            GraphQueryRequest query = _Serializer.DeserializeJson<GraphQueryRequest>(ctx.Request.DataAsString);
+            DateTime start = DateTime.UtcNow;
+            string requiredScope = GraphQueryRequiredScope(query);
+            Stopwatch authorizationStopwatch = new Stopwatch();
+            using (Activity activity = StartInternalActivity("litegraph.graph.query", req))
+            using (CancellationTokenSource timeoutCts = CreateRequestTimeoutTokenSource())
+            {
+                activity?.SetTag("litegraph.query.required_scope", requiredScope);
+
+                AuthorizationDecision queryAuthorization;
+                try
+                {
+                    authorizationStopwatch.Start();
+                    queryAuthorization = await _Authentication.AuthorizeRequestScope(
+                        req,
+                        requiredScope,
+                        AuthorizationResourceTypeEnum.Query,
+                        timeoutCts.Token).ConfigureAwait(false);
+                    authorizationStopwatch.Stop();
+                }
+                catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                {
+                    authorizationStopwatch.Stop();
+                    _Observability.RecordGraphQuery(String.Equals(requiredScope, "write", StringComparison.OrdinalIgnoreCase), false, (DateTime.UtcNow - start).TotalMilliseconds);
+                    ctx.Response.StatusCode = 408;
+                    RecordActivityException(activity, new TimeoutException("Graph query authorization timed out."), ctx.Response.StatusCode);
+                    await ctx.Response.Send(_Serializer.SerializeJson(new ApiErrorResponse(ApiErrorEnum.RequestTimeout), true));
+                    return;
+                }
+
+                if (queryAuthorization.Result != AuthorizationResultEnum.Permitted)
+                {
+                    bool writeDenied = String.Equals(requiredScope, "write", StringComparison.OrdinalIgnoreCase);
+                    double deniedDurationMs = (DateTime.UtcNow - start).TotalMilliseconds;
+                    _Observability.RecordGraphQuery(writeDenied, false, deniedDurationMs);
+                    activity?.SetTag("litegraph.query.success", false);
+                    activity?.SetTag("litegraph.query.mutated", writeDenied);
+                    activity?.SetTag("litegraph.query.denied", true);
+                    ctx.Response.StatusCode = 401;
+                    await SendAuthorizationFailed(
+                        ctx,
+                        req,
+                        queryAuthorization.Reason.ToString(),
+                        queryAuthorization.RequiredScope,
+                        "The authenticated principal is not authorized to execute this graph query.").ConfigureAwait(false);
+                    return;
+                }
+
+                GraphQueryResult result;
+                try
+                {
+                    result = await _LiteGraph.Query.Execute(req.TenantGUID.Value, req.GraphGUID.Value, query, timeoutCts.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                {
+                    _Observability.RecordGraphQuery(String.Equals(requiredScope, "write", StringComparison.OrdinalIgnoreCase), false, (DateTime.UtcNow - start).TotalMilliseconds);
+                    ctx.Response.StatusCode = 408;
+                    RecordActivityException(activity, new TimeoutException("Graph query timed out."), ctx.Response.StatusCode);
+                    await ctx.Response.Send(_Serializer.SerializeJson(new ApiErrorResponse(ApiErrorEnum.RequestTimeout), true));
+                    return;
+                }
+
+                double durationMs = (DateTime.UtcNow - start).TotalMilliseconds;
+                if (result.ExecutionProfile != null) result.ExecutionProfile.AuthorizationTimeMs = authorizationStopwatch.Elapsed.TotalMilliseconds;
+                _Observability.RecordGraphQuery(result.Mutated, true, durationMs);
+                activity?.SetTag("litegraph.query.success", true);
+                activity?.SetTag("litegraph.query.mutated", result.Mutated);
+                activity?.SetTag("litegraph.query.row_count", result.RowCount);
+                if (result.Plan != null)
+                {
+                    activity?.SetTag("litegraph.query.kind", result.Plan.Kind.ToString());
+                    activity?.SetTag("litegraph.query.uses_vector_search", result.Plan.UsesVectorSearch);
+                }
+
+                if (result.Plan != null && result.Plan.UsesVectorSearch)
+                {
+                    string domain = result.Plan.VectorDomain.HasValue ? result.Plan.VectorDomain.Value.ToString() : "unknown";
+                    int resultCount = result.VectorSearchResults?.Count ?? result.RowCount;
+                    _Observability.RecordVectorSearch(domain, true, resultCount, durationMs);
+                    activity?.SetTag("litegraph.vector.domain", domain);
+                    activity?.SetTag("litegraph.vector.result_count", resultCount);
+                }
+
+                ctx.Response.StatusCode = 200;
+                string responseBody;
+                if (result.ExecutionProfile != null)
+                {
+                    Stopwatch serializationStopwatch = Stopwatch.StartNew();
+                    responseBody = _Serializer.SerializeJson(result, true);
+                    serializationStopwatch.Stop();
+                    result.ExecutionProfile.SerializationTimeMs = serializationStopwatch.Elapsed.TotalMilliseconds;
+                    responseBody = _Serializer.SerializeJson(result, true);
+                }
+                else
+                {
+                    responseBody = _Serializer.SerializeJson(result, true);
+                }
+
+                await ctx.Response.Send(responseBody);
+            }
+        }
+
+        private async Task GraphTransactionRoute(HttpContextBase ctx)
+        {
+            RequestContext req = (RequestContext)ctx.Metadata;
+
+            if (String.IsNullOrEmpty(ctx.Request.DataAsString))
+            {
+                await NoRequestBody(ctx);
+                return;
+            }
+
+            TransactionRequest transaction = _Serializer.DeserializeJson<TransactionRequest>(ctx.Request.DataAsString);
+            DateTime start = DateTime.UtcNow;
+            using (Activity activity = StartInternalActivity("litegraph.graph.transaction", req))
+            using (CancellationTokenSource timeoutCts = CreateRequestTimeoutTokenSource())
+            {
+                int operationCount = transaction?.Operations?.Count ?? 0;
+                activity?.SetTag("litegraph.transaction.operation_count", operationCount);
+
+                TransactionResult result;
+                try
+                {
+                    result = await _LiteGraph.Transaction.Execute(req.TenantGUID.Value, req.GraphGUID.Value, transaction, timeoutCts.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                {
+                    _Observability.RecordGraphTransaction(false, true, operationCount, (DateTime.UtcNow - start).TotalMilliseconds);
+                    ctx.Response.StatusCode = 408;
+                    RecordActivityException(activity, new TimeoutException("Graph transaction timed out."), ctx.Response.StatusCode);
+                    await ctx.Response.Send(_Serializer.SerializeJson(new ApiErrorResponse(ApiErrorEnum.RequestTimeout), true));
+                    return;
+                }
+
+                _Observability.RecordGraphTransaction(result.Success, result.RolledBack, operationCount, (DateTime.UtcNow - start).TotalMilliseconds);
+                activity?.SetTag("litegraph.transaction.success", result.Success);
+                activity?.SetTag("litegraph.transaction.rolled_back", result.RolledBack);
+                if (result.FailedOperationIndex != null) activity?.SetTag("litegraph.transaction.failed_operation_index", result.FailedOperationIndex.Value);
+
+                ctx.Response.StatusCode = result.Success ? 200 : 409;
+                await ctx.Response.Send(_Serializer.SerializeJson(result, true));
+            }
         }
 
         private async Task GraphSubgraphRoute(HttpContextBase ctx)
@@ -1835,7 +2190,18 @@
             req.Graph.GUID = req.GraphGUID.Value;
 
             // Get current graph to preserve vector index properties
-            Graph currentGraph = await _LiteGraph.Graph.ReadByGuid(req.TenantGUID.Value, req.GraphGUID.Value, token: CancellationToken.None).ConfigureAwait(false);
+            using CancellationTokenSource timeoutCts = CreateRequestTimeoutTokenSource();
+            Graph currentGraph;
+            try
+            {
+                currentGraph = await _LiteGraph.Graph.ReadByGuid(req.TenantGUID.Value, req.GraphGUID.Value, token: timeoutCts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException oce) when (timeoutCts.IsCancellationRequested)
+            {
+                await SendRequestTimeout(ctx, "graph update read", oce).ConfigureAwait(false);
+                return;
+            }
+
             if (currentGraph != null)
             {
                 // Preserve existing vector index properties - these should only be changed through vector index APIs
@@ -1846,6 +2212,9 @@
                 req.Graph.VectorIndexM = currentGraph.VectorIndexM;
                 req.Graph.VectorIndexEf = currentGraph.VectorIndexEf;
                 req.Graph.VectorIndexEfConstruction = currentGraph.VectorIndexEfConstruction;
+                req.Graph.VectorIndexDirty = currentGraph.VectorIndexDirty;
+                req.Graph.VectorIndexDirtyUtc = currentGraph.VectorIndexDirtyUtc;
+                req.Graph.VectorIndexDirtyReason = currentGraph.VectorIndexDirtyReason;
             }
 
             await WrappedRequestHandler(ctx, req, _ServiceHandler.GraphUpdate);
@@ -1874,7 +2243,8 @@
             try
             {
                 RequestContext req = (RequestContext)ctx.Metadata;
-                ResponseContext resp = await _ServiceHandler.GraphGexfExport(req);
+                using CancellationTokenSource timeoutCts = CreateRequestTimeoutTokenSource();
+                ResponseContext resp = await _ServiceHandler.GraphGexfExport(req, timeoutCts.Token).ConfigureAwait(false);
                 if (!resp.Success)
                 {
                     ctx.Response.StatusCode = 500;
@@ -1886,6 +2256,10 @@
                     ctx.Response.StatusCode = 200;
                     await ctx.Response.Send(resp.Data.ToString());
                 }
+            }
+            catch (OperationCanceledException oce)
+            {
+                await SendRequestTimeout(ctx, "GEXF export", oce).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -1899,6 +2273,7 @@
         private async Task GraphEnableVectorIndexRoute(HttpContextBase ctx)
         {
             RequestContext req = (RequestContext)ctx.Metadata;
+            using CancellationTokenSource timeoutCts = CreateRequestTimeoutTokenSource();
 
             try
             {
@@ -1936,11 +2311,15 @@
                     req.TenantGUID.Value,
                     req.GraphGUID.Value,
                     config,
-                    CancellationToken.None).ConfigureAwait(false);
+                    timeoutCts.Token).ConfigureAwait(false);
 
                 ctx.Response.StatusCode = 200;
                 ctx.Response.ContentType = Constants.JsonContentType;
                 await ctx.Response.Send(_Serializer.SerializeJson(config, true));
+            }
+            catch (OperationCanceledException oce) when (timeoutCts.IsCancellationRequested)
+            {
+                await SendRequestTimeout(ctx, "vector index enable", oce).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -1953,6 +2332,7 @@
         private async Task GraphDisableVectorIndexRoute(HttpContextBase ctx)
         {
             RequestContext req = (RequestContext)ctx.Metadata;
+            using CancellationTokenSource timeoutCts = CreateRequestTimeoutTokenSource();
 
             bool deleteFile = false;
             if (!string.IsNullOrEmpty(req.Query["deleteFile"]))
@@ -1960,11 +2340,19 @@
                 bool.TryParse(req.Query["deleteFile"], out deleteFile);
             }
 
-            await _LiteGraph.Graph.DisableVectorIndexing(
-                req.TenantGUID.Value,
-                req.GraphGUID.Value,
-                deleteFile,
-                CancellationToken.None).ConfigureAwait(false);
+            try
+            {
+                await _LiteGraph.Graph.DisableVectorIndexing(
+                    req.TenantGUID.Value,
+                    req.GraphGUID.Value,
+                    deleteFile,
+                    timeoutCts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException oce) when (timeoutCts.IsCancellationRequested)
+            {
+                await SendRequestTimeout(ctx, "vector index disable", oce).ConfigureAwait(false);
+                return;
+            }
 
             ctx.Response.StatusCode = 200;
             await ctx.Response.Send();
@@ -1973,11 +2361,20 @@
         private async Task GraphRebuildVectorIndexRoute(HttpContextBase ctx)
         {
             RequestContext req = (RequestContext)ctx.Metadata;
+            using CancellationTokenSource timeoutCts = CreateRequestTimeoutTokenSource();
 
-            await _LiteGraph.Graph.RebuildVectorIndex(
-                req.TenantGUID.Value,
-                req.GraphGUID.Value,
-                CancellationToken.None).ConfigureAwait(false);
+            try
+            {
+                await _LiteGraph.Graph.RebuildVectorIndex(
+                    req.TenantGUID.Value,
+                    req.GraphGUID.Value,
+                    timeoutCts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException oce) when (timeoutCts.IsCancellationRequested)
+            {
+                await SendRequestTimeout(ctx, "vector index rebuild", oce).ConfigureAwait(false);
+                return;
+            }
 
             ctx.Response.StatusCode = 200;
             await ctx.Response.Send();
@@ -1986,11 +2383,21 @@
         private async Task GraphVectorIndexStatsRoute(HttpContextBase ctx)
         {
             RequestContext req = (RequestContext)ctx.Metadata;
+            using CancellationTokenSource timeoutCts = CreateRequestTimeoutTokenSource();
 
-            VectorIndexStatistics stats = await _LiteGraph.Graph.GetVectorIndexStatistics(
-                req.TenantGUID.Value,
-                req.GraphGUID.Value,
-                CancellationToken.None).ConfigureAwait(false);
+            VectorIndexStatistics stats;
+            try
+            {
+                stats = await _LiteGraph.Graph.GetVectorIndexStatistics(
+                    req.TenantGUID.Value,
+                    req.GraphGUID.Value,
+                    timeoutCts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException oce) when (timeoutCts.IsCancellationRequested)
+            {
+                await SendRequestTimeout(ctx, "vector index statistics", oce).ConfigureAwait(false);
+                return;
+            }
 
             if (stats == null)
             {
@@ -2006,10 +2413,11 @@
         private async Task GraphGetVectorIndexConfigRoute(HttpContextBase ctx)
         {
             RequestContext req = (RequestContext)ctx.Metadata;
+            using CancellationTokenSource timeoutCts = CreateRequestTimeoutTokenSource();
 
             try
             {
-                Graph graph = await _LiteGraph.Graph.ReadByGuid(req.TenantGUID.Value, req.GraphGUID.Value, token: CancellationToken.None).ConfigureAwait(false);
+                Graph graph = await _LiteGraph.Graph.ReadByGuid(req.TenantGUID.Value, req.GraphGUID.Value, token: timeoutCts.Token).ConfigureAwait(false);
                 if (graph == null)
                 {
                     ctx.Response.StatusCode = 404;
@@ -2032,6 +2440,10 @@
                 ctx.Response.StatusCode = 200;
                 ctx.Response.ContentType = Constants.JsonContentType;
                 await ctx.Response.Send(_Serializer.SerializeJson(config, true));
+            }
+            catch (OperationCanceledException oce) when (timeoutCts.IsCancellationRequested)
+            {
+                await SendRequestTimeout(ctx, "vector index config read", oce).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -2404,6 +2816,13 @@
         private async Task AllEdgesToNodeRoute(HttpContextBase ctx)
         {
             RequestContext req = (RequestContext)ctx.Metadata;
+            if (!String.IsNullOrEmpty(ctx.Request.DataAsString))
+            {
+                req.SearchRequest = _Serializer.DeserializeJson<SearchRequest>(ctx.Request.DataAsString);
+                req.SearchRequest.TenantGUID = req.TenantGUID.Value;
+                req.SearchRequest.GraphGUID = req.GraphGUID.Value;
+            }
+
             await WrappedRequestHandler(ctx, req, _ServiceHandler.AllEdgesToNode);
         }
 
@@ -2449,19 +2868,34 @@
 
         private async Task WrappedRequestHandler(HttpContextBase ctx, RequestContext req, Func<RequestContext, CancellationToken, Task<ResponseContext>> func)
         {
+            using (Activity activity = StartInternalActivity("litegraph.rest.handler", req))
+            {
+                await WrappedRequestHandlerInternal(ctx, req, func, activity).ConfigureAwait(false);
+            }
+        }
+
+        private async Task WrappedRequestHandlerInternal(HttpContextBase ctx, RequestContext req, Func<RequestContext, CancellationToken, Task<ResponseContext>> func, Activity activity)
+        {
+            using CancellationTokenSource timeoutCts = CreateRequestTimeoutTokenSource();
+
             try
             {
-                ResponseContext resp = await func(req, CancellationToken.None).ConfigureAwait(false);
+                ResponseContext resp = await func(req, timeoutCts.Token).ConfigureAwait(false);
                 if (resp == null)
                 {
                     _Logging.Warn(_Header + "no response from agnostic handler");
                     ctx.Response.StatusCode = 500;
+                    activity?.SetTag("litegraph.handler.success", false);
+                    activity?.SetTag("http.response.status_code", ctx.Response.StatusCode);
                     await ctx.Response.Send(_Serializer.SerializeJson(new ApiErrorResponse(ApiErrorEnum.InternalError), true));
                     return;
                 }
                 else if (resp.Success)
                 {
                     ctx.Response.StatusCode = resp.StatusCode;
+                    activity?.SetTag("litegraph.handler.success", true);
+                    activity?.SetTag("http.response.status_code", ctx.Response.StatusCode);
+                    RecordEntityCountsFromResponse(resp.Data);
                     if (resp.Data != null) await ctx.Response.Send(_Serializer.SerializeJson(resp.Data, true));
                     else await ctx.Response.Send();
                     return;
@@ -2470,33 +2904,47 @@
                 {
                     if (resp.Error != null) ctx.Response.StatusCode = resp.Error.StatusCode;
                     else ctx.Response.StatusCode = 418;
+                    activity?.SetTag("litegraph.handler.success", false);
+                    activity?.SetTag("http.response.status_code", ctx.Response.StatusCode);
                     if (resp.Error != null && ctx.Request.Method != HttpMethod.HEAD) await ctx.Response.Send(_Serializer.SerializeJson(resp.Error, true));
                     else await ctx.Response.Send();
                     return;
                 }
             }
+            catch (OperationCanceledException oce) when (timeoutCts.IsCancellationRequested)
+            {
+                _Logging.Warn(_Header + "request timed out after " + _Settings.RequestTimeoutSeconds + " seconds");
+                ctx.Response.StatusCode = 408;
+                RecordActivityException(activity, oce, ctx.Response.StatusCode);
+                await ctx.Response.Send(_Serializer.SerializeJson(new ApiErrorResponse(ApiErrorEnum.RequestTimeout), true));
+                return;
+            }
             catch (JsonException je)
             {
                 _Logging.Warn(_Header + "JSON exception: " + Environment.NewLine + je.ToString());
                 ctx.Response.StatusCode = 400;
+                RecordActivityException(activity, je, ctx.Response.StatusCode);
                 await ctx.Response.Send(_Serializer.SerializeJson(new ApiErrorResponse(ApiErrorEnum.DeserializationError, null, je.Message), true));
             }
             catch (FormatException fe)
             {
                 _Logging.Warn(_Header + "format exception: " + Environment.NewLine + fe.ToString());
                 ctx.Response.StatusCode = 400;
+                RecordActivityException(activity, fe, ctx.Response.StatusCode);
                 await ctx.Response.Send(_Serializer.SerializeJson(new ApiErrorResponse(ApiErrorEnum.BadRequest, null, fe.Message), true));
             }
             catch (InvalidOperationException ioe)
             {
                 _Logging.Warn(_Header + "invalid operation exception: " + Environment.NewLine + ioe.ToString());
                 ctx.Response.StatusCode = 409;
+                RecordActivityException(activity, ioe, ctx.Response.StatusCode);
                 await ctx.Response.Send(_Serializer.SerializeJson(new ApiErrorResponse(ApiErrorEnum.Conflict, null, ioe.Message), true));
             }
             catch (FileNotFoundException fnfe)
             {
                 _Logging.Warn(_Header + "file not found exception: " + Environment.NewLine + fnfe.ToString());
                 ctx.Response.StatusCode = 404;
+                RecordActivityException(activity, fnfe, ctx.Response.StatusCode);
                 await ctx.Response.Send(_Serializer.SerializeJson(new ApiErrorResponse(ApiErrorEnum.NotFound, null, fnfe.Message), true));
                 return;
             }
@@ -2504,6 +2952,7 @@
             {
                 _Logging.Warn(_Header + "invalid operation exception: " + Environment.NewLine + knfe.ToString());
                 ctx.Response.StatusCode = 404;
+                RecordActivityException(activity, knfe, ctx.Response.StatusCode);
                 await ctx.Response.Send(_Serializer.SerializeJson(new ApiErrorResponse(ApiErrorEnum.NotFound, null, knfe.Message), true));
                 return;
             }
@@ -2511,6 +2960,7 @@
             {
                 _Logging.Warn(_Header + "argument exception: " + Environment.NewLine + ae.ToString());
                 ctx.Response.StatusCode = 400;
+                RecordActivityException(activity, ae, ctx.Response.StatusCode);
                 await ctx.Response.Send(_Serializer.SerializeJson(new ApiErrorResponse(ApiErrorEnum.BadRequest, null, ae.Message), true));
                 return;
             }
@@ -2518,9 +2968,190 @@
             {
                 _Logging.Warn(_Header + "exception: " + Environment.NewLine + e.ToString());
                 ctx.Response.StatusCode = 400;
+                RecordActivityException(activity, e, ctx.Response.StatusCode);
                 await ctx.Response.Send(_Serializer.SerializeJson(new ApiErrorResponse(ApiErrorEnum.BadRequest, null, e.Message), true));
                 return;
             }
+        }
+
+        private CancellationTokenSource CreateRequestTimeoutTokenSource()
+        {
+            int timeoutSeconds = _Settings?.RequestTimeoutSeconds ?? 60;
+            if (timeoutSeconds < 1) timeoutSeconds = 60;
+            return new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
+        }
+
+        private async Task SendRequestTimeout(HttpContextBase ctx, string operation, OperationCanceledException exception, Activity activity = null)
+        {
+            _Logging.Warn(_Header + operation + " timed out after " + _Settings.RequestTimeoutSeconds + " seconds");
+            ctx.Response.StatusCode = 408;
+            RecordActivityException(activity, exception, ctx.Response.StatusCode);
+            await ctx.Response.Send(_Serializer.SerializeJson(new ApiErrorResponse(ApiErrorEnum.RequestTimeout), true));
+        }
+
+        private void RecordEntityCountsFromResponse(object data)
+        {
+            if (data is TenantStatistics tenantStats)
+            {
+                RecordTenantEntityCounts("tenant", tenantStats);
+            }
+            else if (data is Dictionary<Guid, TenantStatistics> tenantStatsByTenant)
+            {
+                RecordTenantEntityCounts("all_tenants", AggregateTenantStatistics(tenantStatsByTenant.Values));
+            }
+            else if (data is GraphStatistics graphStats)
+            {
+                RecordGraphEntityCounts("graph", graphStats);
+            }
+            else if (data is Dictionary<Guid, GraphStatistics> graphStatsByGraph)
+            {
+                RecordGraphEntityCounts("tenant_graphs", AggregateGraphStatistics(graphStatsByGraph.Values));
+            }
+        }
+
+        private void RecordTenantEntityCounts(string scope, TenantStatistics stats)
+        {
+            if (stats == null) return;
+            _Observability.RecordEntityCount(scope, "graphs", stats.Graphs);
+            _Observability.RecordEntityCount(scope, "nodes", stats.Nodes);
+            _Observability.RecordEntityCount(scope, "edges", stats.Edges);
+            _Observability.RecordEntityCount(scope, "labels", stats.Labels);
+            _Observability.RecordEntityCount(scope, "tags", stats.Tags);
+            _Observability.RecordEntityCount(scope, "vectors", stats.Vectors);
+        }
+
+        private void RecordGraphEntityCounts(string scope, GraphStatistics stats)
+        {
+            if (stats == null) return;
+            _Observability.RecordEntityCount(scope, "nodes", stats.Nodes);
+            _Observability.RecordEntityCount(scope, "edges", stats.Edges);
+            _Observability.RecordEntityCount(scope, "labels", stats.Labels);
+            _Observability.RecordEntityCount(scope, "tags", stats.Tags);
+            _Observability.RecordEntityCount(scope, "vectors", stats.Vectors);
+        }
+
+        private static TenantStatistics AggregateTenantStatistics(IEnumerable<TenantStatistics> stats)
+        {
+            TenantStatistics ret = new TenantStatistics();
+            if (stats == null) return ret;
+
+            foreach (TenantStatistics current in stats)
+            {
+                if (current == null) continue;
+                ret.Graphs += current.Graphs;
+                ret.Nodes += current.Nodes;
+                ret.Edges += current.Edges;
+                ret.Labels += current.Labels;
+                ret.Tags += current.Tags;
+                ret.Vectors += current.Vectors;
+            }
+
+            return ret;
+        }
+
+        private static GraphStatistics AggregateGraphStatistics(IEnumerable<GraphStatistics> stats)
+        {
+            GraphStatistics ret = new GraphStatistics();
+            if (stats == null) return ret;
+
+            foreach (GraphStatistics current in stats)
+            {
+                if (current == null) continue;
+                ret.Nodes += current.Nodes;
+                ret.Edges += current.Edges;
+                ret.Labels += current.Labels;
+                ret.Tags += current.Tags;
+                ret.Vectors += current.Vectors;
+            }
+
+            return ret;
+        }
+
+        private void StartRequestActivity(HttpContextBase ctx, RequestContext req)
+        {
+            if (ctx == null || req == null) return;
+            if (!_Settings.Observability.Enable || !_Settings.Observability.EnableOpenTelemetry) return;
+
+            string traceparent = ctx.Request.HeaderExists(Constants.TraceparentHeader)
+                ? ctx.Request.RetrieveHeaderValue(Constants.TraceparentHeader)
+                : null;
+            string tracestate = ctx.Request.HeaderExists(Constants.TracestateHeader)
+                ? ctx.Request.RetrieveHeaderValue(Constants.TracestateHeader)
+                : null;
+
+            Activity activity;
+            if (ObservabilityService.TryParseTraceContext(traceparent, tracestate, out ActivityContext parentContext))
+            {
+                activity = _Observability.StartActivity(ctx.Request.Method + " " + OperationalLogRedactor.RedactUrl(ctx.Request.Url.RawWithoutQuery), ActivityKind.Server, parentContext);
+            }
+            else
+            {
+                activity = _Observability.StartActivity(ctx.Request.Method + " " + OperationalLogRedactor.RedactUrl(ctx.Request.Url.RawWithoutQuery), ActivityKind.Server);
+            }
+
+            if (activity == null) return;
+
+            activity.SetTag("http.request.method", ctx.Request.Method.ToString());
+            activity.SetTag("url.path", OperationalLogRedactor.RedactUrl(ctx.Request.Url.RawWithoutQuery));
+            activity.SetTag("url.full", OperationalLogRedactor.RedactUrl(ctx.Request.Url.RawWithQuery));
+            activity.SetTag("server.address", _Settings.Rest.Hostname);
+            activity.SetTag("server.port", _Settings.Rest.Port);
+            activity.SetTag("client.address", ctx.Request.Source.IpAddress);
+            activity.SetTag("litegraph.request.id", req.RequestId);
+            activity.SetTag("litegraph.correlation.id", req.CorrelationId);
+            activity.SetTag("litegraph.request.type", req.RequestType.ToString());
+            if (req.TenantGUID != null) activity.SetTag("litegraph.tenant_guid", req.TenantGUID.Value.ToString());
+            if (req.GraphGUID != null) activity.SetTag("litegraph.graph_guid", req.GraphGUID.Value.ToString());
+
+            req.RequestActivity = activity;
+            req.TraceId = activity.TraceId.ToString();
+        }
+
+        private Activity StartInternalActivity(string name, RequestContext req)
+        {
+            if (req == null || req.RequestActivity == null) return null;
+            Activity activity = _Observability.StartActivity(name, ActivityKind.Internal, req.RequestActivity.Context);
+            if (activity == null) return null;
+
+            activity.SetTag("litegraph.request.id", req.RequestId);
+            activity.SetTag("litegraph.correlation.id", req.CorrelationId);
+            activity.SetTag("litegraph.request.type", req.RequestType.ToString());
+            if (req.TenantGUID != null) activity.SetTag("litegraph.tenant_guid", req.TenantGUID.Value.ToString());
+            if (req.GraphGUID != null) activity.SetTag("litegraph.graph_guid", req.GraphGUID.Value.ToString());
+            return activity;
+        }
+
+        private static void SetAuthenticationActivityTags(Activity activity, RequestContext req)
+        {
+            if (activity == null || req == null) return;
+            activity.SetTag("litegraph.authentication.result", req.Authentication.Result.ToString());
+            activity.SetTag("litegraph.authorization.result", req.Authorization.Result.ToString());
+            if (!String.IsNullOrEmpty(req.Authorization.Reason)) activity.SetTag("litegraph.authorization.reason", req.Authorization.Reason);
+            if (!String.IsNullOrEmpty(req.Authorization.RequiredScope)) activity.SetTag("litegraph.authorization.required_scope", req.Authorization.RequiredScope);
+            activity.SetTag("litegraph.authentication.is_admin", req.Authentication.IsAdmin);
+            activity.SetTag("litegraph.authentication.has_credential", req.Authentication.CredentialGUID != null);
+        }
+
+        private static void RecordActivityException(Activity activity, Exception exception, int statusCode)
+        {
+            if (activity == null) return;
+            activity.SetTag("litegraph.handler.success", false);
+            activity.SetTag("http.response.status_code", statusCode);
+            activity.SetTag("exception.type", exception.GetType().FullName);
+            activity.SetTag("exception.message", exception.Message);
+        }
+
+        private static void StopRequestActivity(HttpContextBase ctx)
+        {
+            if (ctx?.Metadata is not RequestContext req) return;
+            Activity activity = req.RequestActivity;
+            if (activity == null) return;
+
+            activity.SetTag("http.response.status_code", ctx.Response.StatusCode);
+            if (ctx.Timestamp.TotalMs != null) activity.SetTag("litegraph.request.duration_ms", ctx.Timestamp.TotalMs.Value);
+            activity.Stop();
+            activity.Dispose();
+            req.RequestActivity = null;
         }
 
         private EnumerationRequest BuildEnumerationQuery(RequestContext req)
@@ -2536,6 +3167,82 @@
                 IncludeSubordinates = req.IncludeSubordinates,
                 ContinuationToken = (!String.IsNullOrEmpty(req.ContinuationToken) ? Guid.Parse(req.ContinuationToken) : null)
             };
+        }
+
+        private static string GraphQueryRequiredScope(GraphQueryRequest query)
+        {
+            if (query == null || String.IsNullOrWhiteSpace(query.Query)) return "read";
+
+            try
+            {
+                LiteGraph.Query.Ast.GraphQueryAst ast = LiteGraph.Query.Parser.Parse(query.Query);
+                return IsWriteQueryKind(ast.Kind) ? "write" : "read";
+            }
+            catch
+            {
+                return QueryContainsMutationKeyword(query.Query) ? "write" : "read";
+            }
+        }
+
+        private static bool IsWriteQueryKind(LiteGraph.Query.GraphQueryKindEnum kind)
+        {
+            switch (kind)
+            {
+                case LiteGraph.Query.GraphQueryKindEnum.CreateNode:
+                case LiteGraph.Query.GraphQueryKindEnum.CreateEdge:
+                case LiteGraph.Query.GraphQueryKindEnum.CreateLabel:
+                case LiteGraph.Query.GraphQueryKindEnum.CreateTag:
+                case LiteGraph.Query.GraphQueryKindEnum.CreateVector:
+                case LiteGraph.Query.GraphQueryKindEnum.UpdateNode:
+                case LiteGraph.Query.GraphQueryKindEnum.UpdateEdge:
+                case LiteGraph.Query.GraphQueryKindEnum.UpdateLabel:
+                case LiteGraph.Query.GraphQueryKindEnum.UpdateTag:
+                case LiteGraph.Query.GraphQueryKindEnum.UpdateVector:
+                case LiteGraph.Query.GraphQueryKindEnum.DeleteNode:
+                case LiteGraph.Query.GraphQueryKindEnum.DeleteEdge:
+                case LiteGraph.Query.GraphQueryKindEnum.DeleteLabel:
+                case LiteGraph.Query.GraphQueryKindEnum.DeleteTag:
+                case LiteGraph.Query.GraphQueryKindEnum.DeleteVector:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private static bool QueryContainsMutationKeyword(string query)
+        {
+            if (String.IsNullOrWhiteSpace(query)) return false;
+
+            try
+            {
+                foreach (LiteGraph.Query.GraphQueryToken token in LiteGraph.Query.Lexer.Tokenize(query))
+                {
+                    if (token.Type == LiteGraph.Query.GraphQueryTokenTypeEnum.Identifier
+                        && IsMutationKeyword(token.Text))
+                    {
+                        return true;
+                    }
+                }
+            }
+            catch
+            {
+                return query.IndexOf("CREATE", StringComparison.OrdinalIgnoreCase) >= 0
+                    || query.IndexOf("MERGE", StringComparison.OrdinalIgnoreCase) >= 0
+                    || query.IndexOf("SET", StringComparison.OrdinalIgnoreCase) >= 0
+                    || query.IndexOf("DELETE", StringComparison.OrdinalIgnoreCase) >= 0
+                    || query.IndexOf("REMOVE", StringComparison.OrdinalIgnoreCase) >= 0;
+            }
+
+            return false;
+        }
+
+        private static bool IsMutationKeyword(string text)
+        {
+            return String.Equals(text, "CREATE", StringComparison.OrdinalIgnoreCase)
+                || String.Equals(text, "MERGE", StringComparison.OrdinalIgnoreCase)
+                || String.Equals(text, "SET", StringComparison.OrdinalIgnoreCase)
+                || String.Equals(text, "DELETE", StringComparison.OrdinalIgnoreCase)
+                || String.Equals(text, "REMOVE", StringComparison.OrdinalIgnoreCase);
         }
 
         #endregion
@@ -2560,10 +3267,14 @@
 
             search.TenantGUID = TenantScopeForRequestHistory(req, q);
 
+            if (!string.IsNullOrEmpty(q?["requestId"])) search.RequestId = q["requestId"];
+            if (!string.IsNullOrEmpty(q?["correlationId"])) search.CorrelationId = q["correlationId"];
+            if (!string.IsNullOrEmpty(q?["traceId"])) search.TraceId = q["traceId"];
             if (!string.IsNullOrEmpty(q?["method"])) search.Method = q["method"];
             if (!string.IsNullOrEmpty(q?["path"])) search.Path = q["path"];
             if (!string.IsNullOrEmpty(q?["sourceIp"])) search.SourceIp = q["sourceIp"];
             if (!string.IsNullOrEmpty(q?["statusCode"]) && int.TryParse(q["statusCode"], out int sc)) search.StatusCode = sc;
+            if (!string.IsNullOrEmpty(q?["success"]) && bool.TryParse(q["success"], out bool success)) search.Success = success;
             if (!string.IsNullOrEmpty(q?["fromUtc"]) && DateTime.TryParse(q["fromUtc"], null, System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal, out DateTime from))
                 search.FromUtc = from;
             if (!string.IsNullOrEmpty(q?["toUtc"]) && DateTime.TryParse(q["toUtc"], null, System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal, out DateTime to))
@@ -2578,9 +3289,17 @@
         {
             RequestContext req = (RequestContext)ctx.Metadata;
             RequestHistorySearchRequest search = BuildRequestHistorySearch(req);
-            RequestHistorySearchResult result = await _LiteGraph.RequestHistory.Search(search, CancellationToken.None).ConfigureAwait(false);
-            ctx.Response.StatusCode = 200;
-            await ctx.Response.Send(_Serializer.SerializeJson(result, true));
+            using CancellationTokenSource timeoutCts = CreateRequestTimeoutTokenSource();
+            try
+            {
+                RequestHistorySearchResult result = await _LiteGraph.RequestHistory.Search(search, timeoutCts.Token).ConfigureAwait(false);
+                ctx.Response.StatusCode = 200;
+                await ctx.Response.Send(_Serializer.SerializeJson(result, true));
+            }
+            catch (OperationCanceledException oce) when (timeoutCts.IsCancellationRequested)
+            {
+                await SendRequestTimeout(ctx, "request history search", oce).ConfigureAwait(false);
+            }
         }
 
         private async Task RequestHistorySummaryRoute(HttpContextBase ctx)
@@ -2598,16 +3317,35 @@
 
             Guid? tenantGuid = TenantScopeForRequestHistory(req, q);
 
-            RequestHistorySummary summary = await _LiteGraph.RequestHistory.GetSummary(tenantGuid, interval, start, end, CancellationToken.None).ConfigureAwait(false);
-            ctx.Response.StatusCode = 200;
-            await ctx.Response.Send(_Serializer.SerializeJson(summary, true));
+            using CancellationTokenSource timeoutCts = CreateRequestTimeoutTokenSource();
+            try
+            {
+                RequestHistorySummary summary = await _LiteGraph.RequestHistory.GetSummary(tenantGuid, interval, start, end, timeoutCts.Token).ConfigureAwait(false);
+                ctx.Response.StatusCode = 200;
+                await ctx.Response.Send(_Serializer.SerializeJson(summary, true));
+            }
+            catch (OperationCanceledException oce) when (timeoutCts.IsCancellationRequested)
+            {
+                await SendRequestTimeout(ctx, "request history summary", oce).ConfigureAwait(false);
+            }
         }
 
         private async Task RequestHistoryReadRoute(HttpContextBase ctx)
         {
             RequestContext req = (RequestContext)ctx.Metadata;
             Guid id = ParseRequestHistoryGuid(req);
-            RequestHistoryEntry entry = await _LiteGraph.RequestHistory.ReadByGuid(id, CancellationToken.None).ConfigureAwait(false);
+            using CancellationTokenSource timeoutCts = CreateRequestTimeoutTokenSource();
+            RequestHistoryEntry entry;
+            try
+            {
+                entry = await _LiteGraph.RequestHistory.ReadByGuid(id, timeoutCts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException oce) when (timeoutCts.IsCancellationRequested)
+            {
+                await SendRequestTimeout(ctx, "request history read", oce).ConfigureAwait(false);
+                return;
+            }
+
             if (entry == null)
             {
                 ctx.Response.StatusCode = 404;
@@ -2617,7 +3355,7 @@
             if (!CanViewRequestHistoryRow(req, entry.TenantGUID))
             {
                 ctx.Response.StatusCode = 401;
-                await ctx.Response.Send(_Serializer.SerializeJson(new ApiErrorResponse(ApiErrorEnum.AuthorizationFailed), true));
+                await SendAuthorizationFailed(ctx, req, "RequestHistoryTenantDenied", "read", "The request history row is outside the authenticated tenant.").ConfigureAwait(false);
                 return;
             }
             ctx.Response.StatusCode = 200;
@@ -2628,7 +3366,18 @@
         {
             RequestContext req = (RequestContext)ctx.Metadata;
             Guid id = ParseRequestHistoryGuid(req);
-            RequestHistoryDetail detail = await _LiteGraph.RequestHistory.ReadDetailByGuid(id, CancellationToken.None).ConfigureAwait(false);
+            using CancellationTokenSource timeoutCts = CreateRequestTimeoutTokenSource();
+            RequestHistoryDetail detail;
+            try
+            {
+                detail = await _LiteGraph.RequestHistory.ReadDetailByGuid(id, timeoutCts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException oce) when (timeoutCts.IsCancellationRequested)
+            {
+                await SendRequestTimeout(ctx, "request history detail read", oce).ConfigureAwait(false);
+                return;
+            }
+
             if (detail == null)
             {
                 ctx.Response.StatusCode = 404;
@@ -2638,7 +3387,7 @@
             if (!CanViewRequestHistoryRow(req, detail.TenantGUID))
             {
                 ctx.Response.StatusCode = 401;
-                await ctx.Response.Send(_Serializer.SerializeJson(new ApiErrorResponse(ApiErrorEnum.AuthorizationFailed), true));
+                await SendAuthorizationFailed(ctx, req, "RequestHistoryTenantDenied", "read", "The request history row is outside the authenticated tenant.").ConfigureAwait(false);
                 return;
             }
             ctx.Response.StatusCode = 200;
@@ -2649,7 +3398,18 @@
         {
             RequestContext req = (RequestContext)ctx.Metadata;
             Guid id = ParseRequestHistoryGuid(req);
-            RequestHistoryEntry entry = await _LiteGraph.RequestHistory.ReadByGuid(id, CancellationToken.None).ConfigureAwait(false);
+            using CancellationTokenSource timeoutCts = CreateRequestTimeoutTokenSource();
+            RequestHistoryEntry entry;
+            try
+            {
+                entry = await _LiteGraph.RequestHistory.ReadByGuid(id, timeoutCts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException oce) when (timeoutCts.IsCancellationRequested)
+            {
+                await SendRequestTimeout(ctx, "request history delete read", oce).ConfigureAwait(false);
+                return;
+            }
+
             if (entry == null)
             {
                 ctx.Response.StatusCode = 404;
@@ -2659,10 +3419,20 @@
             if (!CanViewRequestHistoryRow(req, entry.TenantGUID))
             {
                 ctx.Response.StatusCode = 401;
-                await ctx.Response.Send(_Serializer.SerializeJson(new ApiErrorResponse(ApiErrorEnum.AuthorizationFailed), true));
+                await SendAuthorizationFailed(ctx, req, "RequestHistoryTenantDenied", "write", "The request history row is outside the authenticated tenant.").ConfigureAwait(false);
                 return;
             }
-            await _LiteGraph.RequestHistory.DeleteByGuid(id, CancellationToken.None).ConfigureAwait(false);
+
+            try
+            {
+                await _LiteGraph.RequestHistory.DeleteByGuid(id, timeoutCts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException oce) when (timeoutCts.IsCancellationRequested)
+            {
+                await SendRequestTimeout(ctx, "request history delete", oce).ConfigureAwait(false);
+                return;
+            }
+
             ctx.Response.StatusCode = 204;
             await ctx.Response.Send();
         }
@@ -2678,9 +3448,17 @@
                 search.TenantGUID = req.Authentication.TenantGUID;
             }
 
-            int deleted = await _LiteGraph.RequestHistory.DeleteMany(search, CancellationToken.None).ConfigureAwait(false);
-            ctx.Response.StatusCode = 200;
-            await ctx.Response.Send(_Serializer.SerializeJson(new { Deleted = deleted }, true));
+            using CancellationTokenSource timeoutCts = CreateRequestTimeoutTokenSource();
+            try
+            {
+                int deleted = await _LiteGraph.RequestHistory.DeleteMany(search, timeoutCts.Token).ConfigureAwait(false);
+                ctx.Response.StatusCode = 200;
+                await ctx.Response.Send(_Serializer.SerializeJson(new { Deleted = deleted }, true));
+            }
+            catch (OperationCanceledException oce) when (timeoutCts.IsCancellationRequested)
+            {
+                await SendRequestTimeout(ctx, "request history bulk delete", oce).ConfigureAwait(false);
+            }
         }
 
         private Guid ParseRequestHistoryGuid(RequestContext req)

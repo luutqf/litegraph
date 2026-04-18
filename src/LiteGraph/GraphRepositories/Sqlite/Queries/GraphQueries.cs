@@ -1,4 +1,4 @@
-﻿namespace LiteGraph.GraphRepositories.Sqlite.Queries
+namespace LiteGraph.GraphRepositories.Sqlite.Queries
 {
     using System;
     using System.Collections.Generic;
@@ -26,6 +26,7 @@
                 "INSERT INTO 'graphs' "
                 + "(guid, tenantguid, name, vectorindextype, vectorindexfile, vectorindexthreshold, "
                 + "vectordimensionality, vectorindexm, vectorindexef, vectorindexefconstruction, "
+                + "vectorindexdirty, vectorindexdirtyutc, vectorindexdirtyreason, "
                 + "data, createdutc, lastupdateutc) VALUES "
                 + "('" + graph.GUID + "',"
                 + "'" + graph.TenantGUID + "',"
@@ -51,6 +52,14 @@
             else ret += "null,";
 
             if (graph.VectorIndexEfConstruction.HasValue) ret += graph.VectorIndexEfConstruction.Value + ",";
+            else ret += "null,";
+
+            ret += graph.VectorIndexDirty ? "1," : "0,";
+
+            if (graph.VectorIndexDirtyUtc.HasValue) ret += "'" + graph.VectorIndexDirtyUtc.Value.ToString(TimestampFormat) + "',";
+            else ret += "null,";
+
+            if (!string.IsNullOrEmpty(graph.VectorIndexDirtyReason)) ret += "'" + Sanitizer.Sanitize(graph.VectorIndexDirtyReason) + "',";
             else ret += "null,";
 
             if (graph.Data == null) ret += "null,";
@@ -438,6 +447,14 @@
             if (graph.VectorIndexEfConstruction.HasValue) ret += "vectorindexefconstruction = " + graph.VectorIndexEfConstruction.Value + ", ";
             else ret += "vectorindexefconstruction = null, ";
 
+            ret += "vectorindexdirty = " + (graph.VectorIndexDirty ? "1" : "0") + ", ";
+
+            if (graph.VectorIndexDirtyUtc.HasValue) ret += "vectorindexdirtyutc = '" + graph.VectorIndexDirtyUtc.Value.ToString(TimestampFormat) + "', ";
+            else ret += "vectorindexdirtyutc = null, ";
+
+            if (!string.IsNullOrEmpty(graph.VectorIndexDirtyReason)) ret += "vectorindexdirtyreason = '" + Sanitizer.Sanitize(graph.VectorIndexDirtyReason) + "', ";
+            else ret += "vectorindexdirtyreason = null, ";
+
             if (graph.Data == null) ret += "data = null ";
             else ret += "data = '" + Sanitizer.SanitizeJson(Serializer.SerializeJson(graph.Data, false)) + "' ";
 
@@ -545,6 +562,23 @@
             }
 
             ret += "SELECT * FROM 'graphs' WHERE guid = '" + graph.GUID + "' AND tenantguid = '" + graph.TenantGUID + "';";
+            return ret;
+        }
+
+        internal static string SetVectorIndexDirty(Guid tenantGuid, Guid graphGuid, bool dirty, string reason = null)
+        {
+            DateTime now = DateTime.UtcNow;
+
+            string ret =
+                "UPDATE 'graphs' SET " +
+                "vectorindexdirty = " + (dirty ? "1" : "0") + ", " +
+                "vectorindexdirtyutc = " + (dirty ? "'" + now.ToString(TimestampFormat) + "'" : "null") + ", " +
+                "vectorindexdirtyreason = " + (dirty && !String.IsNullOrEmpty(reason) ? "'" + Sanitizer.Sanitize(reason) + "'" : "null") + ", " +
+                "lastupdateutc = '" + now.ToString(TimestampFormat) + "' " +
+                "WHERE tenantguid = '" + tenantGuid + "' " +
+                "AND guid = '" + graphGuid + "'; ";
+
+            ret += "SELECT * FROM 'graphs' WHERE guid = '" + graphGuid + "' AND tenantguid = '" + tenantGuid + "';";
             return ret;
         }
 
@@ -746,7 +780,7 @@
             }
 
             if ((nodeGuids == null || nodeGuids.Count == 0) && (edgeGuids == null || edgeGuids.Count == 0))
-                ret += "SELECT guid FROM tags WHERE 1=0"; 
+                ret += "SELECT guid FROM tags WHERE 1=0";
 
             ret += ");";
             return ret;

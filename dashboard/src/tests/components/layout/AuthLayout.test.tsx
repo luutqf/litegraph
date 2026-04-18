@@ -88,17 +88,19 @@ describe('AuthLayout', () => {
   });
 
   describe('initializeAuthFromLocalStorage', () => {
-    it('should return null when window is undefined (SSR)', () => {
-      // Mock window as undefined
-      const originalWindow = global.window;
-      // @ts-ignore
-      delete global.window;
+    it('should return null when localStorage is unavailable', () => {
+      Object.defineProperty(window, 'localStorage', {
+        value: undefined,
+        writable: true,
+      });
 
       const result = initializeAuthFromLocalStorage();
       expect(result).toBeNull();
 
-      // Restore window
-      global.window = originalWindow;
+      Object.defineProperty(window, 'localStorage', {
+        value: mockLocalStorage,
+        writable: true,
+      });
     });
 
     it('should return empty auth object when localStorage is empty', () => {

@@ -6,7 +6,11 @@ import PageLoading from '../base/loading/PageLoading';
 import { storeToken, storeTenant, storeAdminAccessKey } from '@/lib/store/litegraph/actions';
 import { setAccessKey, setAccessToken, setEndpoint, setTenant } from '@/lib/sdk/litegraph.service';
 
-const initializeAuthFromLocalStorage = (): LiteGraphStore | null => {
+export const initializeAuthFromLocalStorage = (): LiteGraphStore | null => {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return null;
+  }
+
   const auth: LiteGraphStore = {
     selectedGraph: '',
     tenant: null,
@@ -15,10 +19,11 @@ const initializeAuthFromLocalStorage = (): LiteGraphStore | null => {
     adminAccessKey: null,
   };
   try {
-    const token = localStorage.getItem(localStorageKeys.token);
-    const tenant = localStorage.getItem(localStorageKeys.tenant);
-    const adminAccessKey = localStorage.getItem(localStorageKeys.adminAccessKey);
-    const url = localStorage.getItem(localStorageKeys.serverUrl);
+    const storage = window.localStorage;
+    const token = storage.getItem(localStorageKeys.token);
+    const tenant = storage.getItem(localStorageKeys.tenant);
+    const adminAccessKey = storage.getItem(localStorageKeys.adminAccessKey);
+    const url = storage.getItem(localStorageKeys.serverUrl);
 
     if (token) {
       auth.token = JSON.parse(token);

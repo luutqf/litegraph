@@ -1,4 +1,4 @@
-﻿namespace LiteGraph.Server.Classes
+namespace LiteGraph.Server.Classes
 {
     using System.Runtime.Serialization;
     using System.Text.Json.Serialization;
@@ -64,6 +64,11 @@
         /// </summary>
         [EnumMember(Value = "NotFound")]
         NotFound,
+        /// <summary>
+        /// Request timeout.
+        /// </summary>
+        [EnumMember(Value = "RequestTimeout")]
+        RequestTimeout,
         /// <summary>
         /// Request too large.
         /// </summary>

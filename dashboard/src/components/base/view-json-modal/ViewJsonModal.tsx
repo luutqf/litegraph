@@ -28,6 +28,7 @@ const ViewJsonModal = ({ open, onClose, data, title = 'View JSON' }: ViewJsonMod
       centered
     >
       <pre
+        data-testid="view-json-content"
         style={{
           background: '#f5f5f5',
           padding: 16,

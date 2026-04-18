@@ -2,6 +2,7 @@ namespace LiteGraph.McpServer.Registrations
 {
     using System;
     using System.Collections.Generic;
+    using System.Net.Http;
     using System.Text.Json;
     using LiteGraph.McpServer.Classes;
     using LiteGraph.Sdk;
@@ -79,8 +80,7 @@ namespace LiteGraph.McpServer.Registrations
                     if (!request.ContainsExistenceRequest())
                         throw new ArgumentException("At least one of nodes, edges, or edgesBetween must be provided");
 
-                    ExistenceResult result = sdk.Batch.Existence(tenantGuid, graphGuid, request).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(result, true);
+                    return ReadExistence(sdk, tenantGuid, graphGuid, request);
                 });
         }
 
@@ -123,8 +123,7 @@ namespace LiteGraph.McpServer.Registrations
                 if (!request.ContainsExistenceRequest())
                     throw new ArgumentException("At least one of nodes, edges, or edgesBetween must be provided");
 
-                ExistenceResult result = sdk.Batch.Existence(tenantGuid, graphGuid, request).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(result, true);
+                return ReadExistence(sdk, tenantGuid, graphGuid, request);
             });
         }
 
@@ -167,9 +166,26 @@ namespace LiteGraph.McpServer.Registrations
                 if (!request.ContainsExistenceRequest())
                     throw new ArgumentException("At least one of nodes, edges, or edgesBetween must be provided");
 
-                ExistenceResult result = sdk.Batch.Existence(tenantGuid, graphGuid, request).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(result, true);
+                return ReadExistence(sdk, tenantGuid, graphGuid, request);
             });
+        }
+
+        #endregion
+
+        #region Private-Methods
+
+        private static string ReadExistence(LiteGraphSdk sdk, Guid tenantGuid, Guid graphGuid, ExistenceRequest request)
+        {
+            string body = Serializer.SerializeJson(request, false);
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Post,
+                "/v1.0/tenants/"
+                + LiteGraphMcpRestProxy.Escape(tenantGuid)
+                + "/graphs/"
+                + LiteGraphMcpRestProxy.Escape(graphGuid)
+                + "/existence",
+                body);
         }
 
         #endregion

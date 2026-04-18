@@ -166,7 +166,7 @@
 
             await _Repo.Tenant.DeleteByGuid(guid, force, token).ConfigureAwait(false);
             _Client.Logging.Log(SeverityEnum.Info, "deleted tenant " + guid + " (force " + force + ")");
-            _TenantCache.TryRemove(guid);
+            _TenantCache.TryRemove(guid, out _);
         }
 
         /// <inheritdoc />

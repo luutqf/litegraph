@@ -1,11 +1,6 @@
 'use client';
 import { useMemo, useState } from 'react';
-import {
-  LoadingOutlined,
-  PlusSquareOutlined,
-  RedoOutlined,
-  SearchOutlined,
-} from '@ant-design/icons';
+import { PlusSquareOutlined, SearchOutlined } from '@ant-design/icons';
 import { tableColumns } from './constant';
 import { useGetGraphGexfContentByIdMutation } from '@/lib/store/slice/slice';
 import { GraphData } from '@/types/types';
@@ -172,13 +167,6 @@ const GraphPage = () => {
           <LitegraphTooltip title="Search and filter graphs">
             <SearchOutlined className="cursor-pointer" onClick={() => setShowSearchModal(true)} />
           </LitegraphTooltip>
-          {isGraphsLoading ? (
-            <LoadingOutlined className="loading-icon" />
-          ) : (
-            <LitegraphTooltip title="Refresh Data" placement="right">
-              <RedoOutlined className="cursor-pointer" onClick={refetchGraphs} />
-            </LitegraphTooltip>
-          )}
         </LitegraphFlex>
       }
       pageTitleRightContent={
@@ -228,6 +216,8 @@ const GraphPage = () => {
           loading={isGraphsLoading || isFetchGexfByGraphIdLoading}
           rowKey={'GUID'}
           onRowClick={handleEdit}
+          onRefresh={refetchGraphs}
+          isRefreshing={isGraphsLoading}
           pagination={{
             ...tablePaginationConfig,
             total: data?.TotalRecords,

@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using LiteGraph;
 
     /// <summary>
     /// LiteGraph settings.
@@ -27,18 +28,34 @@
         }
 
         /// <summary>
-        /// Sqlite data repository filename.
+        /// Sqlite data repository filename.  Preserved for compatibility with existing configuration files.
         /// </summary>
         public string GraphRepositoryFilename
         {
             get
             {
-                return _GraphRepositoryFilename;
+                return _Database.Filename;
             }
             set
             {
                 if (String.IsNullOrEmpty(value)) throw new ArgumentNullException(nameof(GraphRepositoryFilename));
-                _GraphRepositoryFilename = value;
+                _Database.Filename = value;
+            }
+        }
+
+        /// <summary>
+        /// Provider-neutral database settings.
+        /// </summary>
+        public DatabaseSettings Database
+        {
+            get
+            {
+                return _Database;
+            }
+            set
+            {
+                if (value == null) throw new ArgumentNullException(nameof(Database));
+                _Database = value;
             }
         }
 
@@ -59,14 +76,24 @@
         /// <summary>
         /// Boolean indicating if the database should be in-memory.
         /// </summary>
-        public bool InMemory { get; set; } = false;
+        public bool InMemory
+        {
+            get
+            {
+                return _Database.InMemory;
+            }
+            set
+            {
+                _Database.InMemory = value;
+            }
+        }
 
         #endregion
 
         #region Private-Members
 
         private string _AdminBearerToken = "litegraphadmin";
-        private string _GraphRepositoryFilename = "litegraph.db";
+        private DatabaseSettings _Database = new DatabaseSettings();
         private int _MaxConcurrentOperations = 4;
 
         #endregion

@@ -422,7 +422,7 @@
             token.ThrowIfCancellationRequested();
             await _Repo.Node.DeleteByGuid(tenantGuid, graphGuid, nodeGuid, token).ConfigureAwait(false);
             _Client.Logging.Log(SeverityEnum.Info, "deleted node " + nodeGuid + " in graph " + graphGuid);
-            _NodeCache.TryRemove(nodeGuid);
+            _NodeCache.TryRemove(nodeGuid, out _);
         }
 
         /// <inheritdoc />
@@ -456,7 +456,7 @@
 
             foreach (Guid nodeGuid in nodeGuids)
             {
-                _NodeCache.TryRemove(nodeGuid);
+                _NodeCache.TryRemove(nodeGuid, out _);
             }
         }
 

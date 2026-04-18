@@ -371,7 +371,8 @@ describe('GraphLoader Component', () => {
     });
 
     const registeredEvents = mockRegisterEvents.mock.calls[0][0];
-    const downNodeEvent = { node: 'node1' };
+    mockViewportToGraph.mockReturnValueOnce({ x: 0, y: 0 }).mockReturnValueOnce({ x: 100, y: 200 });
+    const downNodeEvent = { node: 'node1', event: { x: 0, y: 0 } };
     const mousemoveEvent = {
       preventSigmaDefault: jest.fn(),
       original: {
@@ -438,7 +439,8 @@ describe('GraphLoader Component', () => {
     });
 
     const registeredEvents = mockRegisterEvents.mock.calls[0][0];
-    const downNodeEvent = { node: 'node1' };
+    mockViewportToGraph.mockReturnValueOnce({ x: 0, y: 0 }).mockReturnValueOnce({ x: 100, y: 200 });
+    const downNodeEvent = { node: 'node1', event: { x: 0, y: 0 } };
     const mousemoveEvent = {
       preventSigmaDefault: jest.fn(),
       original: {
@@ -464,14 +466,14 @@ describe('GraphLoader Component', () => {
 
     // Verify viewport conversion and event prevention
     expect(mockViewportToGraph).toHaveBeenCalledWith(mousemoveEvent);
-    expect(mockSetNodeAttribute).toHaveBeenCalledWith('node1', 'x', 100);
-    expect(mockSetNodeAttribute).toHaveBeenCalledWith('node1', 'y', 200);
+    expect(mockSetNodeAttribute).toHaveBeenCalledWith('node1', 'x', 200);
+    expect(mockSetNodeAttribute).toHaveBeenCalledWith('node1', 'y', 300);
     expect(mousemoveEvent.preventSigmaDefault).toHaveBeenCalled();
     expect(mousemoveEvent.original.preventDefault).toHaveBeenCalled();
     expect(mousemoveEvent.original.stopPropagation).toHaveBeenCalled();
   });
 
-  it('clears tooltips on mouse move', async () => {
+  it('keeps clicked tooltips visible on passive mouse move', async () => {
     renderWithRedux(
       <GraphLoader
         gexfContent="test-content"
@@ -498,20 +500,13 @@ describe('GraphLoader Component', () => {
       },
     };
 
+    mockSetTooltip.mockClear();
+    mockSetEdgeTooltip.mockClear();
+
     registeredEvents.mousemovebody(mousemoveEvent);
 
-    expect(mockSetTooltip).toHaveBeenCalledWith({
-      visible: false,
-      nodeId: '',
-      x: 0,
-      y: 0,
-    });
-    expect(mockSetEdgeTooltip).toHaveBeenCalledWith({
-      visible: false,
-      edgeId: '',
-      x: 0,
-      y: 0,
-    });
+    expect(mockSetTooltip).not.toHaveBeenCalled();
+    expect(mockSetEdgeTooltip).not.toHaveBeenCalled();
   });
 
   it('does not clear tooltips when they are not visible', async () => {
@@ -645,7 +640,8 @@ describe('GraphLoader Component', () => {
     });
 
     const registeredEvents = mockRegisterEvents.mock.calls[0][0];
-    const downNodeEvent = { node: 'node1' };
+    mockViewportToGraph.mockReturnValueOnce({ x: 0, y: 0 }).mockReturnValueOnce({ x: 100, y: 200 });
+    const downNodeEvent = { node: 'node1', event: { x: 0, y: 0 } };
     const mousemoveEvent = {
       preventSigmaDefault: jest.fn(),
       original: {
@@ -670,15 +666,7 @@ describe('GraphLoader Component', () => {
     // Now click - should not set tooltip because isDraggingRef.current is true
     registeredEvents.clickNode(clickNodeEvent);
 
-    // The tooltip should not be set when dragging
-    // Note: The clickNode handler resets isDraggingRef.current to false, so tooltip will be set
-    // This test verifies the dragging state is properly managed
-    expect(mockSetTooltip).toHaveBeenCalledWith(
-      expect.objectContaining({
-        visible: true,
-        nodeId: 'node1',
-      })
-    );
+    expect(mockSetTooltip).not.toHaveBeenCalled();
   });
 
   it('properly manages dragging state', async () => {
@@ -700,7 +688,8 @@ describe('GraphLoader Component', () => {
     });
 
     const registeredEvents = mockRegisterEvents.mock.calls[0][0];
-    const downNodeEvent = { node: 'node1' };
+    mockViewportToGraph.mockReturnValueOnce({ x: 0, y: 0 }).mockReturnValueOnce({ x: 100, y: 200 });
+    const downNodeEvent = { node: 'node1', event: { x: 0, y: 0 } };
     const mousemoveEvent = {
       preventSigmaDefault: jest.fn(),
       original: {
@@ -726,8 +715,8 @@ describe('GraphLoader Component', () => {
 
     // Verify that dragging operations are performed
     expect(mockViewportToGraph).toHaveBeenCalledWith(mousemoveEvent);
-    expect(mockSetNodeAttribute).toHaveBeenCalledWith('node1', 'x', 100);
-    expect(mockSetNodeAttribute).toHaveBeenCalledWith('node1', 'y', 200);
+    expect(mockSetNodeAttribute).toHaveBeenCalledWith('node1', 'x', 200);
+    expect(mockSetNodeAttribute).toHaveBeenCalledWith('node1', 'y', 300);
 
     // Stop dragging
     updatedRegisteredEvents.mouseup({});

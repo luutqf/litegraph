@@ -480,7 +480,7 @@
             await _Client.ValidateEdgeExists(tenantGuid, edgeGuid, token).ConfigureAwait(false);
             await _Repo.Edge.DeleteByGuid(tenantGuid, graphGuid, edgeGuid, token).ConfigureAwait(false);
             _Client.Logging.Log(SeverityEnum.Debug, "deleted edge " + edgeGuid + " in graph " + graphGuid);
-            _EdgeCache.TryRemove(edgeGuid);
+            _EdgeCache.TryRemove(edgeGuid, out _);
         }
 
         /// <inheritdoc />
@@ -515,7 +515,7 @@
 
             foreach (Guid edgeGuid in edgeGuids)
             {
-                _EdgeCache.TryRemove(edgeGuid);
+                _EdgeCache.TryRemove(edgeGuid, out _);
             }
         }
 

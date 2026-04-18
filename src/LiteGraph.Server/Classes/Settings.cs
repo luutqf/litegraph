@@ -1,4 +1,4 @@
-﻿namespace LiteGraph.Server.Classes
+namespace LiteGraph.Server.Classes
 {
     using System;
     using WatsonWebserver.Core;
@@ -14,6 +14,22 @@
         /// Timestamp from creation, in UTC time.
         /// </summary>
         public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
+
+        /// <summary>
+        /// Default REST request timeout, in seconds.
+        /// </summary>
+        public int RequestTimeoutSeconds
+        {
+            get
+            {
+                return _RequestTimeoutSeconds;
+            }
+            set
+            {
+                if (value < 1 || value > 3600) throw new ArgumentOutOfRangeException(nameof(RequestTimeoutSeconds));
+                _RequestTimeoutSeconds = value;
+            }
+        }
 
         /// <summary>
         /// Logging settings.
@@ -94,7 +110,7 @@
                 _Encryption = value;
             }
         }
-        
+
         /// <summary>
         /// Storage settings.
         /// </summary>
@@ -143,6 +159,22 @@
             }
         }
 
+        /// <summary>
+        /// Observability settings.
+        /// </summary>
+        public ObservabilitySettings Observability
+        {
+            get
+            {
+                return _Observability;
+            }
+            set
+            {
+                if (value == null) throw new ArgumentNullException(nameof(Observability));
+                _Observability = value;
+            }
+        }
+
         #endregion
 
         #region Private-Members
@@ -155,6 +187,8 @@
         private StorageSettings _Storage = new StorageSettings();
         private DebugSettings _Debug = new DebugSettings();
         private RequestHistorySettings _RequestHistory = new RequestHistorySettings();
+        private ObservabilitySettings _Observability = new ObservabilitySettings();
+        private int _RequestTimeoutSeconds = 60;
 
         #endregion
 

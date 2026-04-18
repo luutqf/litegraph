@@ -5,6 +5,7 @@
     using System;
     using System.Collections.Generic;
     using System.Collections.Specialized;
+    using System.Diagnostics;
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
@@ -21,6 +22,26 @@
         /// Request GUID.
         /// </summary>
         public Guid RequestGuid { get; set; } = Guid.NewGuid();
+
+        /// <summary>
+        /// Request ID for client/server correlation.
+        /// </summary>
+        public string RequestId { get; set; } = null;
+
+        /// <summary>
+        /// Correlation ID for grouping related requests.
+        /// </summary>
+        public string CorrelationId { get; set; } = null;
+
+        /// <summary>
+        /// Trace ID from W3C trace context, if supplied.
+        /// </summary>
+        public string TraceId { get; set; } = null;
+
+        /// <summary>
+        /// Active OpenTelemetry-compatible request activity.
+        /// </summary>
+        public Activity RequestActivity { get; set; } = null;
 
         /// <summary>
         /// API version.
@@ -449,6 +470,7 @@
 
             RequestType = _Url.RequestType;
 
+            SetCorrelationValues();
             SetApiVersion();
             SetAuthValues();
             SetRequestValues();
@@ -464,6 +486,38 @@
         #endregion
 
         #region Private-Methods
+
+        private void SetCorrelationValues()
+        {
+            string requestId = GetHeaderValue(Constants.RequestIdHeader);
+            string correlationId = GetHeaderValue(Constants.CorrelationIdHeader);
+            string traceparent = GetHeaderValue(Constants.TraceparentHeader);
+
+            if (!String.IsNullOrWhiteSpace(requestId) && Guid.TryParse(requestId, out Guid parsedRequestGuid))
+            {
+                RequestGuid = parsedRequestGuid;
+            }
+
+            RequestId = !String.IsNullOrWhiteSpace(requestId) ? requestId : RequestGuid.ToString();
+            CorrelationId = !String.IsNullOrWhiteSpace(correlationId) ? correlationId : RequestId;
+            TraceId = ExtractTraceId(traceparent);
+        }
+
+        private string GetHeaderValue(string headerName)
+        {
+            if (_Http == null || String.IsNullOrEmpty(headerName)) return null;
+            if (!_Http.Request.HeaderExists(headerName)) return null;
+            return _Http.Request.RetrieveHeaderValue(headerName);
+        }
+
+        private static string ExtractTraceId(string traceparent)
+        {
+            if (String.IsNullOrWhiteSpace(traceparent)) return null;
+
+            string[] parts = traceparent.Split('-');
+            if (parts.Length >= 2 && parts[1].Length == 32) return parts[1];
+            return traceparent;
+        }
 
         private void SetApiVersion()
         {

@@ -1,0 +1,1006 @@
+﻿namespace LiteGraph.GraphRepositories.Postgresql
+{
+    using System;
+    using System.Collections;
+    using System.Collections.Generic;
+    using System.Data;
+    using ExpressionTree;
+    using LiteGraph.Serialization;
+
+    internal static class Converters
+    {
+        internal static string TimestampFormat = "yyyy-MM-dd HH:mm:ss.ffffff";
+
+        internal static Serializer Serializer = new Serializer();
+
+        internal static string GetDataRowStringValue(DataRow row, string column)
+        {
+            if (row.Table.Columns.Contains(column))
+            {
+                if (row[column] != null && row[column] != DBNull.Value)
+                {
+                    return row[column].ToString();
+                }
+            }
+            return null;
+        }
+
+        internal static object GetDataRowJsonValue(DataRow row, string column)
+        {
+            if (row.Table.Columns.Contains(column))
+            {
+                if (row[column] != null && row[column] != DBNull.Value)
+                {
+                    return Serializer.DeserializeJson<object>(row[column].ToString());
+                }
+            }
+            return null;
+        }
+
+        internal static List<T> GetDataRowJsonListValue<T>(DataRow row, string column)
+        {
+            string json = GetDataRowStringValue(row, column);
+            if (String.IsNullOrEmpty(json)) return null;
+            return Serializer.DeserializeJson<List<T>>(json);
+        }
+
+        internal static int GetDataRowIntValue(DataRow row, string column)
+        {
+            if (row.Table.Columns.Contains(column))
+            {
+                if (row[column] != null && row[column] != DBNull.Value)
+                {
+                    if (Int32.TryParse(row[column].ToString(), out int val))
+                        return val;
+                }
+            }
+            return 0;
+        }
+
+        internal static int? GetDataRowNullableIntValue(DataRow row, string column)
+        {
+            if (row.Table.Columns.Contains(column))
+            {
+                if (row[column] != null && row[column] != DBNull.Value)
+                {
+                    if (Int32.TryParse(row[column].ToString(), out int val))
+                        return val;
+                }
+            }
+            return null;
+        }
+
+        internal static bool GetDataRowBooleanValue(DataRow row, string column)
+        {
+            if (row.Table.Columns.Contains(column))
+            {
+                if (row[column] != null && row[column] != DBNull.Value)
+                {
+                    string value = row[column].ToString();
+                    if (Int32.TryParse(value, out int intValue)) return intValue != 0;
+                    if (Boolean.TryParse(value, out bool boolValue)) return boolValue;
+                }
+            }
+            return false;
+        }
+
+        internal static DateTime? GetDataRowNullableDateTimeValue(DataRow row, string column)
+        {
+            if (row.Table.Columns.Contains(column))
+            {
+                if (row[column] != null && row[column] != DBNull.Value)
+                {
+                    if (DateTime.TryParse(row[column].ToString(), out DateTime value))
+                        return DateTime.SpecifyKind(value, DateTimeKind.Utc);
+                }
+            }
+            return null;
+        }
+
+        internal static bool IsList(object o)
+        {
+            if (o == null) return false;
+            return o is IList &&
+                   o.GetType().IsGenericType &&
+                   o.GetType().GetGenericTypeDefinition().IsAssignableFrom(typeof(List<>));
+        }
+
+        internal static List<object> ObjectToList(object obj)
+        {
+            if (obj == null) return null;
+            List<object> ret = new List<object>();
+            IEnumerator enumerator = ((IEnumerable)obj).GetEnumerator();
+            while (enumerator.MoveNext())
+            {
+                ret.Add(enumerator.Current);
+            }
+            return ret;
+        }
+
+        internal static string EnumerationOrderToClause(EnumerationOrderEnum order = EnumerationOrderEnum.CreatedDescending)
+        {
+            switch (order)
+            {
+                case EnumerationOrderEnum.CostAscending:
+                    return "cost ASC";
+                case EnumerationOrderEnum.CostDescending:
+                    return "cost DESC";
+                case EnumerationOrderEnum.CreatedAscending:
+                    return "createdutc ASC";
+                case EnumerationOrderEnum.CreatedDescending:
+                    return "createdutc DESC";
+                case EnumerationOrderEnum.GuidAscending:
+                    return "id ASC";
+                case EnumerationOrderEnum.GuidDescending:
+                    return "id DESC";
+                case EnumerationOrderEnum.NameAscending:
+                    return "name ASC";
+                case EnumerationOrderEnum.NameDescending:
+                    return "name DESC";
+                default:
+                    throw new ArgumentException("Unsupported enumeration order '" + order.ToString() + "'.");
+            }
+        }
+
+        internal static string ExpressionToWhereClause(string table, Expr expr)
+        {
+            if (expr == null) return null;
+            if (expr.Left == null) return null;
+
+            string clause = "(";
+
+            if (expr.Left is Expr)
+            {
+                clause += ExpressionToWhereClause(table, (Expr)expr.Left) + " ";
+            }
+            else
+            {
+                if (!(expr.Left is string))
+                {
+                    throw new ArgumentException("Left term must be of type Expression or String");
+                }
+
+                clause += "json_extract(" + table + ".data, '$." + Sanitizer.Sanitize(expr.Left.ToString()) + "') ";
+            }
+
+            switch (expr.Operator)
+            {
+                #region Process-By-Operators
+
+                case OperatorEnum.And:
+                    #region And
+
+                    if (expr.Right == null) return null;
+                    clause += "AND ";
+
+                    if (expr.Right is Expr)
+                    {
+                        clause += ExpressionToWhereClause(table, (Expr)expr.Right);
+                    }
+                    else
+                    {
+                        if (expr.Right is DateTime || expr.Right is DateTime?)
+                        {
+                            clause += "'" + Convert.ToDateTime(expr.Right).ToString(TimestampFormat) + "'";
+                        }
+                        else if (expr.Right is int || expr.Right is long || expr.Right is decimal || expr.Right is double || expr.Right is float)
+                        {
+                            clause += expr.Right.ToString();
+                        }
+                        else if (expr.Right is bool)
+                        {
+                            clause += ((bool)expr.Right) ? "true" : "false";
+                        }
+                        else
+                        {
+                            clause += "'" + Sanitizer.Sanitize(expr.Right.ToString()) + "'";
+                        }
+                    }
+                    break;
+
+                #endregion
+
+                case OperatorEnum.Or:
+                    #region Or
+
+                    if (expr.Right == null) return null;
+                    clause += "OR ";
+                    if (expr.Right is Expr)
+                    {
+                        clause += ExpressionToWhereClause(table, (Expr)expr.Right);
+                    }
+                    else
+                    {
+                        if (expr.Right is DateTime || expr.Right is DateTime?)
+                        {
+                            clause += "'" + Convert.ToDateTime(expr.Right).ToString(TimestampFormat) + "'";
+                        }
+                        else if (expr.Right is int || expr.Right is long || expr.Right is decimal || expr.Right is double || expr.Right is float)
+                        {
+                            clause += expr.Right.ToString();
+                        }
+                        else if (expr.Right is bool)
+                        {
+                            clause += ((bool)expr.Right) ? "true" : "false";
+                        }
+                        else
+                        {
+                            clause += "'" + Sanitizer.Sanitize(expr.Right.ToString()) + "'";
+                        }
+                    }
+                    break;
+
+                #endregion
+
+                case OperatorEnum.Equals:
+                    #region Equals
+
+                    if (expr.Right == null) return null;
+                    clause += "= ";
+                    if (expr.Right is Expr)
+                    {
+                        clause += ExpressionToWhereClause(table, (Expr)expr.Right);
+                    }
+                    else
+                    {
+                        if (expr.Right is DateTime || expr.Right is DateTime?)
+                        {
+                            clause += "'" + Convert.ToDateTime(expr.Right).ToString(TimestampFormat) + "'";
+                        }
+                        else if (expr.Right is int || expr.Right is long || expr.Right is decimal || expr.Right is double || expr.Right is float)
+                        {
+                            clause += expr.Right.ToString();
+                        }
+                        else if (expr.Right is bool)
+                        {
+                            clause += ((bool)expr.Right) ? "true" : "false";
+                        }
+                        else
+                        {
+                            clause += "'" + Sanitizer.Sanitize(expr.Right.ToString()) + "'";
+                        }
+                    }
+                    break;
+
+                #endregion
+
+                case OperatorEnum.NotEquals:
+                    #region NotEquals
+
+                    if (expr.Right == null) return null;
+                    clause += "<> ";
+                    if (expr.Right is Expr)
+                    {
+                        clause += ExpressionToWhereClause(table, (Expr)expr.Right);
+                    }
+                    else
+                    {
+                        if (expr.Right is DateTime || expr.Right is DateTime?)
+                        {
+                            clause += "'" + Convert.ToDateTime(expr.Right).ToString(TimestampFormat) + "'";
+                        }
+                        else if (expr.Right is int || expr.Right is long || expr.Right is decimal || expr.Right is double || expr.Right is float)
+                        {
+                            clause += expr.Right.ToString();
+                        }
+                        else if (expr.Right is bool)
+                        {
+                            clause += ((bool)expr.Right) ? "true" : "false";
+                        }
+                        else
+                        {
+                            clause += "'" + Sanitizer.Sanitize(expr.Right.ToString()) + "'";
+                        }
+                    }
+                    break;
+
+                #endregion
+
+                case OperatorEnum.In:
+                    #region In
+
+                    if (expr.Right == null) return null;
+                    int inAdded = 0;
+                    if (!IsList(expr.Right)) return null;
+                    List<object> inTempList = ObjectToList(expr.Right);
+                    clause += "IN (";
+                    foreach (object currObj in inTempList)
+                    {
+                        if (currObj == null) continue;
+                        if (inAdded > 0) clause += ",";
+
+                        if (currObj is DateTime || currObj is DateTime?)
+                        {
+                            clause += "'" + Convert.ToDateTime(currObj).ToString(TimestampFormat) + "'";
+                        }
+                        else if (currObj is int || currObj is long || currObj is decimal || currObj is double || currObj is float)
+                        {
+                            clause += currObj.ToString();
+                        }
+                        else if (currObj is bool)
+                        {
+                            clause += ((bool)currObj) ? "true" : "false";
+                        }
+                        else
+                        {
+                            clause += "'" + Sanitizer.Sanitize(currObj.ToString()) + "'";
+                        }
+                        inAdded++;
+                    }
+                    clause += ")";
+                    break;
+
+                #endregion
+
+                case OperatorEnum.NotIn:
+                    #region NotIn
+
+                    if (expr.Right == null) return null;
+                    int notInAdded = 0;
+                    if (!IsList(expr.Right)) return null;
+                    List<object> notInTempList = ObjectToList(expr.Right);
+                    clause += "NOT IN (";
+                    foreach (object currObj in notInTempList)
+                    {
+                        if (currObj == null) continue;
+                        if (notInAdded > 0) clause += ",";
+                        if (currObj is DateTime || currObj is DateTime?)
+                        {
+                            clause += "'" + Convert.ToDateTime(currObj).ToString(TimestampFormat) + "'";
+                        }
+                        else if (currObj is int || currObj is long || currObj is decimal || currObj is double || currObj is float)
+                        {
+                            clause += currObj.ToString();
+                        }
+                        else if (currObj is bool)
+                        {
+                            clause += ((bool)currObj) ? "true" : "false";
+                        }
+                        else
+                        {
+                            clause += "'" + Sanitizer.Sanitize(currObj.ToString()) + "'";
+                        }
+                        notInAdded++;
+                    }
+                    clause += ")";
+                    break;
+
+                #endregion
+
+                case OperatorEnum.Contains:
+                    #region Contains
+
+                    if (expr.Right == null) return null;
+                    if (expr.Right is string)
+                    {
+                        clause += "LIKE '%" + Sanitizer.Sanitize(expr.Right.ToString()) + "%'";
+                    }
+                    else
+                    {
+                        return null;
+                    }
+                    break;
+
+                #endregion
+
+                case OperatorEnum.ContainsNot:
+                    #region ContainsNot
+
+                    if (expr.Right == null) return null;
+                    if (expr.Right is string)
+                    {
+                        clause += "NOT LIKE '%" + Sanitizer.Sanitize(expr.Right.ToString()) + "%'";
+                    }
+                    else
+                    {
+                        return null;
+                    }
+                    break;
+
+                #endregion
+
+                case OperatorEnum.StartsWith:
+                    #region StartsWith
+
+                    if (expr.Right == null) return null;
+                    if (expr.Right is string)
+                    {
+                        clause += "LIKE '" + Sanitizer.Sanitize(expr.Right.ToString()) + "%'";
+                    }
+                    else
+                    {
+                        return null;
+                    }
+                    break;
+
+                #endregion
+
+                case OperatorEnum.StartsWithNot:
+                    #region StartsWithNot
+
+                    if (expr.Right == null) return null;
+                    if (expr.Right is string)
+                    {
+                        clause += "NOT LIKE '" + Sanitizer.Sanitize(expr.Right.ToString()) + "%'";
+                    }
+                    else
+                    {
+                        return null;
+                    }
+                    break;
+
+                #endregion
+
+                case OperatorEnum.EndsWith:
+                    #region EndsWith
+
+                    if (expr.Right == null) return null;
+                    if (expr.Right is string)
+                    {
+                        clause += "LIKE '%" + Sanitizer.Sanitize(expr.Right.ToString()) + "'";
+                    }
+                    else
+                    {
+                        return null;
+                    }
+                    break;
+
+                #endregion
+
+                case OperatorEnum.EndsWithNot:
+                    #region EndsWith
+
+                    if (expr.Right == null) return null;
+                    if (expr.Right is string)
+                    {
+                        clause += "NOT LIKE '%" + Sanitizer.Sanitize(expr.Right.ToString()) + "'";
+                    }
+                    else
+                    {
+                        return null;
+                    }
+                    break;
+
+                #endregion
+
+                case OperatorEnum.GreaterThan:
+                    #region GreaterThan
+
+                    if (expr.Right == null) return null;
+                    clause += "> ";
+                    if (expr.Right is Expr)
+                    {
+                        clause += ExpressionToWhereClause(table, (Expr)expr.Right);
+                    }
+                    else
+                    {
+                        if (expr.Right is DateTime || expr.Right is DateTime?)
+                        {
+                            clause += "'" + Convert.ToDateTime(expr.Right).ToString(TimestampFormat) + "'";
+                        }
+                        else if (expr.Right is int || expr.Right is long || expr.Right is decimal || expr.Right is double || expr.Right is float)
+                        {
+                            clause += expr.Right.ToString();
+                        }
+                        else if (expr.Right is bool)
+                        {
+                            clause += ((bool)expr.Right) ? "true" : "false";
+                        }
+                        else
+                        {
+                            clause += "'" + Sanitizer.Sanitize(expr.Right.ToString()) + "'";
+                        }
+                    }
+                    break;
+
+                #endregion
+
+                case OperatorEnum.GreaterThanOrEqualTo:
+                    #region GreaterThanOrEqualTo
+
+                    if (expr.Right == null) return null;
+                    clause += ">= ";
+                    if (expr.Right is Expr)
+                    {
+                        clause += ExpressionToWhereClause(table, (Expr)expr.Right);
+                    }
+                    else
+                    {
+                        if (expr.Right is DateTime || expr.Right is DateTime?)
+                        {
+                            clause += "'" + Convert.ToDateTime(expr.Right).ToString(TimestampFormat) + "'";
+                        }
+                        else if (expr.Right is int || expr.Right is long || expr.Right is decimal || expr.Right is double || expr.Right is float)
+                        {
+                            clause += expr.Right.ToString();
+                        }
+                        else if (expr.Right is bool)
+                        {
+                            clause += ((bool)expr.Right) ? "true" : "false";
+                        }
+                        else
+                        {
+                            clause += "'" + Sanitizer.Sanitize(expr.Right.ToString()) + "'";
+                        }
+                    }
+                    break;
+
+                #endregion
+
+                case OperatorEnum.LessThan:
+                    #region LessThan
+
+                    if (expr.Right == null) return null;
+                    clause += "< ";
+                    if (expr.Right is Expr)
+                    {
+                        clause += ExpressionToWhereClause(table, (Expr)expr.Right);
+                    }
+                    else
+                    {
+                        if (expr.Right is DateTime || expr.Right is DateTime?)
+                        {
+                            clause += "'" + Convert.ToDateTime(expr.Right).ToString(TimestampFormat) + "'";
+                        }
+                        else if (expr.Right is int || expr.Right is long || expr.Right is decimal || expr.Right is double || expr.Right is float)
+                        {
+                            clause += expr.Right.ToString();
+                        }
+                        else if (expr.Right is bool)
+                        {
+                            clause += ((bool)expr.Right) ? "true" : "false";
+                        }
+                        else
+                        {
+                            clause += "'" + Sanitizer.Sanitize(expr.Right.ToString()) + "'";
+                        }
+                    }
+                    break;
+
+                #endregion
+
+                case OperatorEnum.LessThanOrEqualTo:
+                    #region LessThanOrEqualTo
+
+                    if (expr.Right == null) return null;
+                    clause += "<= ";
+                    if (expr.Right is Expr)
+                    {
+                        clause += ExpressionToWhereClause(table, (Expr)expr.Right);
+                    }
+                    else
+                    {
+                        if (expr.Right is DateTime || expr.Right is DateTime?)
+                        {
+                            clause += "'" + Convert.ToDateTime(expr.Right).ToString(TimestampFormat) + "'";
+                        }
+                        else if (expr.Right is int || expr.Right is long || expr.Right is decimal || expr.Right is double || expr.Right is float)
+                        {
+                            clause += expr.Right.ToString();
+                        }
+                        else if (expr.Right is bool)
+                        {
+                            clause += ((bool)expr.Right) ? "true" : "false";
+                        }
+                        else
+                        {
+                            clause += "'" + Sanitizer.Sanitize(expr.Right.ToString()) + "'";
+                        }
+                    }
+                    break;
+
+                #endregion
+
+                case OperatorEnum.IsNull:
+                    #region IsNull
+
+                    clause += "IS NULL";
+                    break;
+
+                #endregion
+
+                case OperatorEnum.IsNotNull:
+                    #region IsNotNull
+
+                    clause += "IS NOT NULL";
+                    break;
+
+                    #endregion
+
+                    #endregion
+            }
+
+            clause += ") ";
+
+            return clause;
+        }
+
+        internal static TenantMetadata TenantFromDataRow(DataRow row)
+        {
+            if (row == null) return null;
+
+            return new TenantMetadata
+            {
+                GUID = Guid.Parse(row["guid"].ToString()),
+                Name = GetDataRowStringValue(row, "name"),
+                Active = (Convert.ToInt32(GetDataRowStringValue(row, "active")) > 0 ? true : false),
+                CreatedUtc = DateTime.Parse(row["createdutc"].ToString()),
+                LastUpdateUtc = DateTime.Parse(row["lastupdateutc"].ToString())
+            };
+        }
+
+        internal static List<TenantMetadata> TenantsFromDataTable(DataTable table)
+        {
+            if (table == null || table.Rows == null || table.Rows.Count < 1) return null;
+
+            List<TenantMetadata> ret = new List<TenantMetadata>();
+
+            foreach (DataRow row in table.Rows)
+                ret.Add(TenantFromDataRow(row));
+
+            return ret;
+        }
+
+        internal static TenantStatistics TenantStatisticsFromDataRow(DataRow row)
+        {
+            if (row == null) throw new ArgumentNullException(nameof(row));
+
+            TenantStatistics stats = new TenantStatistics();
+
+            if (row["graphs"] != null && row["graphs"] != DBNull.Value) stats.Graphs = Convert.ToInt32(row["graphs"]);
+            if (row["nodes"] != null && row["nodes"] != DBNull.Value) stats.Nodes = Convert.ToInt32(row["nodes"]);
+            if (row["edges"] != null && row["edges"] != DBNull.Value) stats.Edges = Convert.ToInt32(row["edges"]);
+            if (row["labels"] != null && row["labels"] != DBNull.Value) stats.Labels = Convert.ToInt32(row["labels"]);
+            if (row["tags"] != null && row["tags"] != DBNull.Value) stats.Tags = Convert.ToInt32(row["tags"]);
+            if (row["vectors"] != null && row["vectors"] != DBNull.Value) stats.Vectors = Convert.ToInt32(row["vectors"]);
+
+            return stats;
+        }
+
+        internal static List<TenantStatistics> TenantStatisticsFromDataTable(DataTable table)
+        {
+            if (table == null || table.Rows == null || table.Rows.Count < 1) return null;
+
+            List<TenantStatistics> ret = new List<TenantStatistics>();
+
+            foreach (DataRow row in table.Rows)
+                ret.Add(TenantStatisticsFromDataRow(row));
+
+            return ret;
+        }
+
+        internal static UserMaster UserFromDataRow(DataRow row)
+        {
+            if (row == null) return null;
+
+            return new UserMaster
+            {
+                GUID = Guid.Parse(row["guid"].ToString()),
+                TenantGUID = Guid.Parse(row["tenantguid"].ToString()),
+                FirstName = GetDataRowStringValue(row, "firstname"),
+                LastName = GetDataRowStringValue(row, "lastname"),
+                Email = GetDataRowStringValue(row, "email"),
+                Password = GetDataRowStringValue(row, "password"),
+                Active = (Convert.ToInt32(GetDataRowStringValue(row, "active")) > 0 ? true : false),
+                CreatedUtc = DateTime.Parse(row["createdutc"].ToString()),
+                LastUpdateUtc = DateTime.Parse(row["lastupdateutc"].ToString())
+            };
+        }
+
+        internal static List<UserMaster> UsersFromDataTable(DataTable table)
+        {
+            if (table == null || table.Rows == null || table.Rows.Count < 1) return null;
+
+            List<UserMaster> ret = new List<UserMaster>();
+
+            foreach (DataRow row in table.Rows)
+                ret.Add(UserFromDataRow(row));
+
+            return ret;
+        }
+
+        internal static Credential CredentialFromDataRow(DataRow row)
+        {
+            if (row == null) return null;
+
+            return new Credential
+            {
+                GUID = Guid.Parse(row["guid"].ToString()),
+                TenantGUID = Guid.Parse(row["tenantguid"].ToString()),
+                UserGUID = Guid.Parse(row["userguid"].ToString()),
+                Name = GetDataRowStringValue(row, "name"),
+                BearerToken = GetDataRowStringValue(row, "bearertoken"),
+                Active = (Convert.ToInt32(GetDataRowStringValue(row, "active")) > 0 ? true : false),
+                Scopes = GetDataRowJsonListValue<string>(row, "scopes"),
+                GraphGUIDs = GetDataRowJsonListValue<Guid>(row, "graphguids"),
+                CreatedUtc = DateTime.Parse(row["createdutc"].ToString()),
+                LastUpdateUtc = DateTime.Parse(row["lastupdateutc"].ToString())
+            };
+        }
+
+        internal static List<Credential> CredentialFromDataTable(DataTable table)
+        {
+            if (table == null || table.Rows == null || table.Rows.Count < 1) return null;
+
+            List<Credential> ret = new List<Credential>();
+
+            foreach (DataRow row in table.Rows)
+                ret.Add(CredentialFromDataRow(row));
+
+            return ret;
+        }
+
+        internal static TagMetadata TagFromDataRow(DataRow row)
+        {
+            if (row == null) return null;
+
+            return new TagMetadata
+            {
+                GUID = Guid.Parse(row["guid"].ToString()),
+                TenantGUID = Guid.Parse(row["tenantguid"].ToString()),
+                GraphGUID = Guid.Parse(row["graphguid"].ToString()),
+                NodeGUID = (!String.IsNullOrEmpty(GetDataRowStringValue(row, "nodeguid")) ? Guid.Parse(row["nodeguid"].ToString()) : null),
+                EdgeGUID = (!String.IsNullOrEmpty(GetDataRowStringValue(row, "edgeguid")) ? Guid.Parse(row["edgeguid"].ToString()) : null),
+                Key = GetDataRowStringValue(row, "tagkey"),
+                Value = GetDataRowStringValue(row, "tagvalue"),
+                CreatedUtc = DateTime.Parse(row["createdutc"].ToString()),
+                LastUpdateUtc = DateTime.Parse(row["lastupdateutc"].ToString())
+            };
+        }
+
+        internal static List<TagMetadata> TagsFromDataTable(DataTable table)
+        {
+            if (table == null || table.Rows == null || table.Rows.Count < 1) return null;
+
+            List<TagMetadata> ret = new List<TagMetadata>();
+
+            foreach (DataRow row in table.Rows)
+                ret.Add(TagFromDataRow(row));
+
+            return ret;
+        }
+
+        internal static LabelMetadata LabelFromDataRow(DataRow row)
+        {
+            if (row == null) return null;
+
+            return new LabelMetadata
+            {
+                GUID = Guid.Parse(row["guid"].ToString()),
+                TenantGUID = Guid.Parse(row["tenantguid"].ToString()),
+                GraphGUID = Guid.Parse(row["graphguid"].ToString()),
+                NodeGUID = (!String.IsNullOrEmpty(GetDataRowStringValue(row, "nodeguid")) ? Guid.Parse(row["nodeguid"].ToString()) : null),
+                EdgeGUID = (!String.IsNullOrEmpty(GetDataRowStringValue(row, "edgeguid")) ? Guid.Parse(row["edgeguid"].ToString()) : null),
+                Label = GetDataRowStringValue(row, "label"),
+                CreatedUtc = DateTime.Parse(row["createdutc"].ToString()),
+                LastUpdateUtc = DateTime.Parse(row["lastupdateutc"].ToString())
+            };
+        }
+
+        internal static List<LabelMetadata> LabelsFromDataTable(DataTable table)
+        {
+            if (table == null || table.Rows == null || table.Rows.Count < 1) return null;
+
+            List<LabelMetadata> ret = new List<LabelMetadata>();
+
+            foreach (DataRow row in table.Rows)
+                ret.Add(LabelFromDataRow(row));
+
+            return ret;
+        }
+
+        internal static VectorMetadata VectorFromDataRow(DataRow row)
+        {
+            if (row == null) return null;
+            return new VectorMetadata
+            {
+                GUID = Guid.Parse(row["guid"].ToString()),
+                TenantGUID = Guid.Parse(row["tenantguid"].ToString()),
+                GraphGUID = Guid.Parse(row["graphguid"].ToString()),
+                NodeGUID = (!String.IsNullOrEmpty(GetDataRowStringValue(row, "nodeguid")) ? Guid.Parse(row["nodeguid"].ToString()) : null),
+                EdgeGUID = (!String.IsNullOrEmpty(GetDataRowStringValue(row, "edgeguid")) ? Guid.Parse(row["edgeguid"].ToString()) : null),
+                Model = GetDataRowStringValue(row, "model"),
+                Dimensionality = GetDataRowIntValue(row, "dimensionality"),
+                Content = GetDataRowStringValue(row, "content"),
+                Vectors = BlobToVector(row["embeddings"] as byte[]),
+                CreatedUtc = DateTime.Parse(row["createdutc"].ToString()),
+                LastUpdateUtc = DateTime.Parse(row["lastupdateutc"].ToString())
+            };
+        }
+
+        internal static List<VectorMetadata> VectorsFromDataTable(DataTable table)
+        {
+            if (table == null || table.Rows == null || table.Rows.Count < 1) return null;
+
+            List<VectorMetadata> ret = new List<VectorMetadata>();
+
+            foreach (DataRow row in table.Rows)
+                ret.Add(VectorFromDataRow(row));
+
+            return ret;
+        }
+
+        internal static byte[] VectorToBlob(List<float> vectors)
+        {
+            if (vectors == null || vectors.Count == 0) return null;
+
+            byte[] bytes = new byte[vectors.Count * 4];
+            for (int i = 0; i < vectors.Count; i++)
+            {
+                byte[] floatBytes = BitConverter.GetBytes(vectors[i]);
+                Buffer.BlockCopy(floatBytes, 0, bytes, i * 4, 4);
+            }
+            return bytes;
+        }
+
+        internal static List<float> BlobToVector(byte[] blob)
+        {
+            if (blob == null || blob.Length == 0) return new List<float>();
+
+            List<float> vectors = new List<float>(blob.Length / 4);
+            for (int i = 0; i < blob.Length; i += 4)
+            {
+                vectors.Add(BitConverter.ToSingle(blob, i));
+            }
+            return vectors;
+        }
+
+        internal static string BytesToHex(byte[] bytes)
+        {
+            if (bytes == null) return "NULL";
+            return "X'" + BitConverter.ToString(bytes).Replace("-", "") + "'";
+        }
+
+        internal static Graph GraphFromDataRow(DataRow row)
+        {
+            if (row == null) return null;
+
+            Graph graph = new Graph
+            {
+                TenantGUID = Guid.Parse(row["tenantguid"].ToString()),
+                GUID = Guid.Parse(row["guid"].ToString()),
+                Name = GetDataRowStringValue(row, "name"),
+                Data = GetDataRowJsonValue(row, "data"),
+                CreatedUtc = DateTime.Parse(row["createdutc"].ToString()),
+                LastUpdateUtc = DateTime.Parse(row["lastupdateutc"].ToString())
+            };
+
+            // Vector index fields
+            if (row.Table.Columns.Contains("vectorindextype") && row["vectorindextype"] != DBNull.Value)
+            {
+                if (Enum.TryParse<Indexing.Vector.VectorIndexTypeEnum>(row["vectorindextype"].ToString(), out Indexing.Vector.VectorIndexTypeEnum indexType))
+                    graph.VectorIndexType = indexType;
+            }
+
+            if (row.Table.Columns.Contains("vectorindexfile"))
+                graph.VectorIndexFile = GetDataRowStringValue(row, "vectorindexfile");
+
+            if (row.Table.Columns.Contains("vectorindexthreshold"))
+                graph.VectorIndexThreshold = GetDataRowNullableIntValue(row, "vectorindexthreshold");
+
+            if (row.Table.Columns.Contains("vectordimensionality"))
+                graph.VectorDimensionality = GetDataRowNullableIntValue(row, "vectordimensionality");
+
+            if (row.Table.Columns.Contains("vectorindexm"))
+                graph.VectorIndexM = GetDataRowNullableIntValue(row, "vectorindexm");
+
+            if (row.Table.Columns.Contains("vectorindexef"))
+                graph.VectorIndexEf = GetDataRowNullableIntValue(row, "vectorindexef");
+
+            if (row.Table.Columns.Contains("vectorindexefconstruction"))
+                graph.VectorIndexEfConstruction = GetDataRowNullableIntValue(row, "vectorindexefconstruction");
+
+            if (row.Table.Columns.Contains("vectorindexdirty"))
+                graph.VectorIndexDirty = GetDataRowBooleanValue(row, "vectorindexdirty");
+
+            if (row.Table.Columns.Contains("vectorindexdirtyutc"))
+                graph.VectorIndexDirtyUtc = GetDataRowNullableDateTimeValue(row, "vectorindexdirtyutc");
+
+            if (row.Table.Columns.Contains("vectorindexdirtyreason"))
+                graph.VectorIndexDirtyReason = GetDataRowStringValue(row, "vectorindexdirtyreason");
+
+            return graph;
+        }
+
+        internal static List<Graph> GraphsFromDataTable(DataTable table)
+        {
+            if (table == null || table.Rows == null || table.Rows.Count < 1) return null;
+
+            List<Graph> ret = new List<Graph>();
+
+            foreach (DataRow row in table.Rows)
+                ret.Add(GraphFromDataRow(row));
+
+            return ret;
+        }
+
+        internal static GraphStatistics GraphStatisticsFromDataRow(DataRow row)
+        {
+            if (row == null) throw new ArgumentNullException(nameof(row));
+
+            GraphStatistics stats = new GraphStatistics();
+
+            if (row["nodes"] != null && row["nodes"] != DBNull.Value) stats.Nodes = Convert.ToInt32(row["nodes"]);
+            if (row["edges"] != null && row["edges"] != DBNull.Value) stats.Edges = Convert.ToInt32(row["edges"]);
+            if (row["labels"] != null && row["labels"] != DBNull.Value) stats.Labels = Convert.ToInt32(row["labels"]);
+            if (row["tags"] != null && row["tags"] != DBNull.Value) stats.Tags = Convert.ToInt32(row["tags"]);
+            if (row["vectors"] != null && row["vectors"] != DBNull.Value) stats.Vectors = Convert.ToInt32(row["vectors"]);
+
+            return stats;
+        }
+
+        internal static List<GraphStatistics> GraphStatisticsFromDataTable(DataTable table)
+        {
+            if (table == null || table.Rows == null || table.Rows.Count < 1) return null;
+
+            List<GraphStatistics> ret = new List<GraphStatistics>();
+
+            foreach (DataRow row in table.Rows)
+                ret.Add(GraphStatisticsFromDataRow(row));
+
+            return ret;
+        }
+
+        internal static Node NodeFromDataRow(DataRow row)
+        {
+            if (row == null) return null;
+
+            return new Node
+            {
+                GUID = Guid.Parse(row["guid"].ToString()),
+                TenantGUID = Guid.Parse(row["tenantguid"].ToString()),
+                GraphGUID = Guid.Parse(row["graphguid"].ToString()),
+                Name = GetDataRowStringValue(row, "name"),
+                EdgesIn = GetDataRowNullableIntValue(row, "edges_in"),
+                EdgesOut = GetDataRowNullableIntValue(row, "edges_out"),
+                Data = GetDataRowJsonValue(row, "data"),
+                CreatedUtc = DateTime.Parse(row["createdutc"].ToString()),
+                LastUpdateUtc = DateTime.Parse(row["lastupdateutc"].ToString())
+            };
+        }
+
+        internal static List<Node> NodesFromDataTable(DataTable table)
+        {
+            if (table == null || table.Rows == null || table.Rows.Count < 1) return null;
+
+            List<Node> ret = new List<Node>();
+
+            foreach (DataRow row in table.Rows)
+                ret.Add(NodeFromDataRow(row));
+
+            return ret;
+        }
+
+        internal static List<Edge> EdgesFromDataTable(DataTable table)
+        {
+            if (table == null || table.Rows == null || table.Rows.Count < 1) return null;
+
+            List<Edge> ret = new List<Edge>();
+
+            foreach (DataRow row in table.Rows)
+                ret.Add(EdgeFromDataRow(row));
+
+            return ret;
+        }
+
+        internal static Edge EdgeFromDataRow(DataRow row)
+        {
+            if (row == null) return null;
+
+            return new Edge
+            {
+                GUID = Guid.Parse(row["guid"].ToString()),
+                TenantGUID = Guid.Parse(row["tenantguid"].ToString()),
+                GraphGUID = Guid.Parse(row["graphguid"].ToString()),
+                Name = GetDataRowStringValue(row, "name"),
+                From = Guid.Parse(row["fromguid"].ToString()),
+                To = Guid.Parse(row["toguid"].ToString()),
+                Cost = Convert.ToInt32(row["cost"].ToString()),
+                Data = GetDataRowJsonValue(row, "data"),
+                CreatedUtc = DateTime.Parse(row["createdutc"].ToString()),
+                LastUpdateUtc = DateTime.Parse(row["lastupdateutc"].ToString())
+            };
+        }
+    }
+}
+

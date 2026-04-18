@@ -23,6 +23,7 @@ export const paths = {
   adminLogin: `/login/admin`,
   adminDashboard: `/admin/dashboard`,
   credentials: `/admin/dashboard/credentials`,
+  authorization: `/admin/dashboard/authorization`,
   users: `/admin/dashboard/users`,
   tenants: `/admin/dashboard/tenants`,
   backups: `/admin/dashboard/backups`,

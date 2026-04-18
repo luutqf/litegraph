@@ -29,6 +29,7 @@ const CopyButton = ({ text, tooltipTitle = 'Copy' }: CopyButtonProps) => {
       <Button
         type="text"
         size="small"
+        aria-label={tooltipTitle}
         icon={
           copied ? (
             <CheckOutlined style={{ color: '#52c41a', fontSize: 12 }} />

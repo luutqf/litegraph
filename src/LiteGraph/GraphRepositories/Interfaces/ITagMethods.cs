@@ -12,7 +12,6 @@
     using ExpressionTree;
     using LiteGraph;
     using LiteGraph.Serialization;
-    using Microsoft.Data.Sqlite;
 
     /// <summary>
     /// Interface for tag methods.

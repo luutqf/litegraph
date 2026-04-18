@@ -28,12 +28,28 @@ namespace LiteGraph.Indexing.Vector
         Task AddAsync(Guid vectorId, List<float> vector, CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// Add a single vector entry to the index.
+        /// </summary>
+        /// <param name="entry">Vector entry.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>Task.</returns>
+        Task AddAsync(VectorIndexEntry entry, CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Add multiple vectors to the index in batch.
         /// </summary>
         /// <param name="vectors">Dictionary of vector IDs to vector data.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Task.</returns>
         Task AddBatchAsync(Dictionary<Guid, List<float>> vectors, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Add multiple vector entries to the index in batch.
+        /// </summary>
+        /// <param name="entries">Vector entries.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>Task.</returns>
+        Task AddBatchAsync(IEnumerable<VectorIndexEntry> entries, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update an existing vector in the index.
@@ -43,6 +59,14 @@ namespace LiteGraph.Indexing.Vector
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Task.</returns>
         Task UpdateAsync(Guid vectorId, List<float> vector, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Update an existing vector entry in the index.
+        /// </summary>
+        /// <param name="entry">Vector entry.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>Task.</returns>
+        Task UpdateAsync(VectorIndexEntry entry, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Remove a vector from the index.

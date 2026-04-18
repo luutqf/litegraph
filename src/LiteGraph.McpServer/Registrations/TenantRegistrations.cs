@@ -2,6 +2,7 @@ namespace LiteGraph.McpServer.Registrations
 {
     using System;
     using System.Collections.Generic;
+    using System.Net.Http;
     using System.Text.Json;
     using LiteGraph.McpServer.Classes;
     using LiteGraph.Sdk;
@@ -40,8 +41,7 @@ namespace LiteGraph.McpServer.Registrations
 
                     string? name = nameProp.GetString();
                     TenantMetadata tenant = new TenantMetadata { Name = name };
-                    TenantMetadata created = sdk.Tenant.Create(tenant).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(created, true);
+                    return CreateTenant(sdk, tenant);
                 });
 
             server.RegisterTool(
@@ -62,8 +62,7 @@ namespace LiteGraph.McpServer.Registrations
                         throw new ArgumentException("Tenant GUID is required");
 
                     Guid tenantGuid = Guid.Parse(guidProp.GetString()!);
-                    TenantMetadata tenant = sdk.Tenant.ReadByGuid(tenantGuid).GetAwaiter().GetResult();
-                    return tenant != null ? Serializer.SerializeJson(tenant, true) : "null";
+                    return ReadTenant(sdk, tenantGuid);
                 });
 
             server.RegisterTool(
@@ -85,8 +84,7 @@ namespace LiteGraph.McpServer.Registrations
                         ? LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value)
                         : (EnumerationOrderEnum.CreatedDescending, 0);
                     
-                    List<TenantMetadata> tenants = sdk.Tenant.ReadMany(order, skip).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(tenants, true);
+                    return ReadTenants(sdk, order, skip);
                 });
 
             server.RegisterTool(
@@ -107,8 +105,7 @@ namespace LiteGraph.McpServer.Registrations
                         throw new ArgumentException("Tenant JSON string is required");
                     string tenantJson = tenantProp.GetString() ?? throw new ArgumentException("Tenant JSON string cannot be null");
                     TenantMetadata tenant = Serializer.DeserializeJson<TenantMetadata>(tenantJson);
-                    TenantMetadata updated = sdk.Tenant.Update(tenant).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(updated, true);
+                    return UpdateTenant(sdk, tenant);
                 });
 
             server.RegisterTool(
@@ -131,7 +128,7 @@ namespace LiteGraph.McpServer.Registrations
                     
                     Guid tenantGuid = Guid.Parse(guidProp.GetString()!);
                     bool force = args.Value.TryGetProperty("force", out JsonElement forceProp) && forceProp.GetBoolean();
-                    sdk.Tenant.DeleteByGuid(tenantGuid, force).GetAwaiter().GetResult();
+                    DeleteTenant(sdk, tenantGuid, force);
                     return true;
                 });
 
@@ -155,8 +152,7 @@ namespace LiteGraph.McpServer.Registrations
                     string queryJson = queryProp.GetString() ?? throw new ArgumentException("Query JSON string cannot be null");
                     EnumerationRequest query = Serializer.DeserializeJson<EnumerationRequest>(queryJson) ?? new EnumerationRequest();
 
-                    EnumerationResult<TenantMetadata> result = sdk.Tenant.Enumerate(query).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(result, true);
+                    return EnumerateTenants(sdk, query);
                 });
 
             server.RegisterTool(
@@ -177,8 +173,7 @@ namespace LiteGraph.McpServer.Registrations
                         throw new ArgumentException("Tenant GUID is required");
                     
                     Guid tenantGuid = Guid.Parse(guidProp.GetString()!);
-                    bool exists = sdk.Tenant.ExistsByGuid(tenantGuid).GetAwaiter().GetResult();
-                    return exists.ToString().ToLower();
+                    return TenantExists(sdk, tenantGuid);
                 });
 
             server.RegisterTool(
@@ -199,8 +194,7 @@ namespace LiteGraph.McpServer.Registrations
                         throw new ArgumentException("Tenant GUID is required");
                     
                     Guid tenantGuid = Guid.Parse(guidProp.GetString()!);
-                    TenantStatistics stats = sdk.Tenant.GetStatistics(tenantGuid).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(stats, true);
+                    return ReadTenantStatistics(sdk, tenantGuid);
                 });
 
             server.RegisterTool(
@@ -214,8 +208,7 @@ namespace LiteGraph.McpServer.Registrations
                 },
                 (args) =>
                 {
-                    Dictionary<Guid, TenantStatistics> allStats = sdk.Tenant.GetStatistics().GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(allStats, true);
+                    return ReadAllTenantStatistics(sdk);
                 });
 
             server.RegisterTool(
@@ -236,8 +229,7 @@ namespace LiteGraph.McpServer.Registrations
                         throw new ArgumentException("Tenant GUIDs array is required");
                     
                     List<Guid> guids = Serializer.DeserializeJson<List<Guid>>(guidsProp.GetRawText());
-                    List<TenantMetadata> tenants = sdk.Tenant.ReadByGuids(guids).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(tenants, true);
+                    return ReadTenantsByGuids(sdk, guids);
                 });
         }
 
@@ -259,8 +251,7 @@ namespace LiteGraph.McpServer.Registrations
 
                 string? name = nameProp.GetString();
                 TenantMetadata tenant = new TenantMetadata { Name = name };
-                TenantMetadata created = sdk.Tenant.Create(tenant).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(created, true);
+                return CreateTenant(sdk, tenant);
             });
 
             server.RegisterMethod("tenant/get", (args) =>
@@ -269,8 +260,7 @@ namespace LiteGraph.McpServer.Registrations
                     throw new ArgumentException("Tenant GUID is required");
 
                 Guid tenantGuid = Guid.Parse(guidProp.GetString()!);
-                TenantMetadata tenant = sdk.Tenant.ReadByGuid(tenantGuid).GetAwaiter().GetResult();
-                return tenant != null ? Serializer.SerializeJson(tenant, true) : "null";
+                return ReadTenant(sdk, tenantGuid);
             });
 
             server.RegisterMethod("tenant/all", (args) =>
@@ -279,8 +269,7 @@ namespace LiteGraph.McpServer.Registrations
                     ? LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value)
                     : (EnumerationOrderEnum.CreatedDescending, 0);
                 
-                List<TenantMetadata> tenants = sdk.Tenant.ReadMany(order, skip).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(tenants, true);
+                return ReadTenants(sdk, order, skip);
             });
 
             server.RegisterMethod("tenant/update", (args) =>
@@ -289,8 +278,7 @@ namespace LiteGraph.McpServer.Registrations
                     throw new ArgumentException("Tenant JSON string is required");
                 string tenantJson = tenantProp.GetString() ?? throw new ArgumentException("Tenant JSON string cannot be null");
                 TenantMetadata tenant = Serializer.DeserializeJson<TenantMetadata>(tenantJson);
-                TenantMetadata updated = sdk.Tenant.Update(tenant).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(updated, true);
+                return UpdateTenant(sdk, tenant);
             });
 
             server.RegisterMethod("tenant/delete", (args) =>
@@ -299,7 +287,7 @@ namespace LiteGraph.McpServer.Registrations
                     throw new ArgumentException("Tenant GUID is required");
                 Guid tenantGuid = Guid.Parse(guidProp.GetString()!);
                 bool force = args.Value.TryGetProperty("force", out JsonElement forceProp) && forceProp.GetBoolean();
-                sdk.Tenant.DeleteByGuid(tenantGuid, force).GetAwaiter().GetResult();
+                DeleteTenant(sdk, tenantGuid, force);
                 return true;
             });
 
@@ -311,8 +299,7 @@ namespace LiteGraph.McpServer.Registrations
                 string queryJson = queryProp.GetString() ?? throw new ArgumentException("Query JSON string cannot be null");
                 EnumerationRequest query = Serializer.DeserializeJson<EnumerationRequest>(queryJson) ?? new EnumerationRequest();
 
-                EnumerationResult<TenantMetadata> result = sdk.Tenant.Enumerate(query).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(result, true);
+                return EnumerateTenants(sdk, query);
             });
 
             server.RegisterMethod("tenant/exists", (args) =>
@@ -320,8 +307,7 @@ namespace LiteGraph.McpServer.Registrations
                 if (!args.HasValue || !args.Value.TryGetProperty("tenantGuid", out JsonElement guidProp))
                     throw new ArgumentException("Tenant GUID is required");
                 Guid tenantGuid = Guid.Parse(guidProp.GetString()!);
-                bool exists = sdk.Tenant.ExistsByGuid(tenantGuid).GetAwaiter().GetResult();
-                return exists.ToString().ToLower();
+                return TenantExists(sdk, tenantGuid);
             });
 
             server.RegisterMethod("tenant/statistics", (args) =>
@@ -330,14 +316,12 @@ namespace LiteGraph.McpServer.Registrations
                     throw new ArgumentException("Tenant GUID is required");
                 
                 Guid tenantGuid = Guid.Parse(guidProp.GetString()!);
-                TenantStatistics stats = sdk.Tenant.GetStatistics(tenantGuid).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(stats, true);
+                return ReadTenantStatistics(sdk, tenantGuid);
             });
 
             server.RegisterMethod("tenant/statisticsall", (args) =>
             {
-                Dictionary<Guid, TenantStatistics> allStats = sdk.Tenant.GetStatistics().GetAwaiter().GetResult();
-                return Serializer.SerializeJson(allStats, true);
+                return ReadAllTenantStatistics(sdk);
             });
 
             server.RegisterMethod("tenant/getmany", (args) =>
@@ -346,8 +330,7 @@ namespace LiteGraph.McpServer.Registrations
                     throw new ArgumentException("Tenant GUIDs array is required");
                 
                 List<Guid> guids = Serializer.DeserializeJson<List<Guid>>(guidsProp.GetRawText());
-                List<TenantMetadata> tenants = sdk.Tenant.ReadByGuids(guids).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(tenants, true);
+                return ReadTenantsByGuids(sdk, guids);
             });
         }
 
@@ -369,8 +352,7 @@ namespace LiteGraph.McpServer.Registrations
 
                 string? name = nameProp.GetString();
                 TenantMetadata tenant = new TenantMetadata { Name = name };
-                TenantMetadata created = sdk.Tenant.Create(tenant).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(created, true);
+                return CreateTenant(sdk, tenant);
             });
 
             server.RegisterMethod("tenant/get", (args) =>
@@ -379,8 +361,7 @@ namespace LiteGraph.McpServer.Registrations
                     throw new ArgumentException("Tenant GUID is required");
 
                 Guid tenantGuid = Guid.Parse(guidProp.GetString()!);
-                TenantMetadata tenant = sdk.Tenant.ReadByGuid(tenantGuid).GetAwaiter().GetResult();
-                return tenant != null ? Serializer.SerializeJson(tenant, true) : "null";
+                return ReadTenant(sdk, tenantGuid);
             });
 
             server.RegisterMethod("tenant/all", (args) =>
@@ -389,8 +370,7 @@ namespace LiteGraph.McpServer.Registrations
                     ? LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value)
                     : (EnumerationOrderEnum.CreatedDescending, 0);
                 
-                List<TenantMetadata> tenants = sdk.Tenant.ReadMany(order, skip).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(tenants, true);
+                return ReadTenants(sdk, order, skip);
             });
 
             server.RegisterMethod("tenant/update", (args) =>
@@ -399,8 +379,7 @@ namespace LiteGraph.McpServer.Registrations
                     throw new ArgumentException("Tenant JSON string is required");
                 string tenantJson = tenantProp.GetString() ?? throw new ArgumentException("Tenant JSON string cannot be null");
                 TenantMetadata tenant = Serializer.DeserializeJson<TenantMetadata>(tenantJson);
-                TenantMetadata updated = sdk.Tenant.Update(tenant).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(updated, true);
+                return UpdateTenant(sdk, tenant);
             });
 
             server.RegisterMethod("tenant/delete", (args) =>
@@ -409,7 +388,7 @@ namespace LiteGraph.McpServer.Registrations
                     throw new ArgumentException("Tenant GUID is required");
                 Guid tenantGuid = Guid.Parse(guidProp.GetString()!);
                 bool force = args.Value.TryGetProperty("force", out JsonElement forceProp) && forceProp.GetBoolean();
-                sdk.Tenant.DeleteByGuid(tenantGuid, force).GetAwaiter().GetResult();
+                DeleteTenant(sdk, tenantGuid, force);
                 return true;
             });
 
@@ -421,8 +400,7 @@ namespace LiteGraph.McpServer.Registrations
                 string queryJson = queryProp.GetString() ?? throw new ArgumentException("Query JSON string cannot be null");
                 EnumerationRequest query = Serializer.DeserializeJson<EnumerationRequest>(queryJson) ?? new EnumerationRequest();
 
-                EnumerationResult<TenantMetadata> result = sdk.Tenant.Enumerate(query).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(result, true);
+                return EnumerateTenants(sdk, query);
             });
 
             server.RegisterMethod("tenant/exists", (args) =>
@@ -430,8 +408,7 @@ namespace LiteGraph.McpServer.Registrations
                 if (!args.HasValue || !args.Value.TryGetProperty("tenantGuid", out JsonElement guidProp))
                     throw new ArgumentException("Tenant GUID is required");
                 Guid tenantGuid = Guid.Parse(guidProp.GetString()!);
-                bool exists = sdk.Tenant.ExistsByGuid(tenantGuid).GetAwaiter().GetResult();
-                return exists.ToString().ToLower();
+                return TenantExists(sdk, tenantGuid);
             });
 
             server.RegisterMethod("tenant/statistics", (args) =>
@@ -440,14 +417,12 @@ namespace LiteGraph.McpServer.Registrations
                     throw new ArgumentException("Tenant GUID is required");
                 
                 Guid tenantGuid = Guid.Parse(guidProp.GetString()!);
-                TenantStatistics stats = sdk.Tenant.GetStatistics(tenantGuid).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(stats, true);
+                return ReadTenantStatistics(sdk, tenantGuid);
             });
 
             server.RegisterMethod("tenant/statisticsall", (args) =>
             {
-                Dictionary<Guid, TenantStatistics> allStats = sdk.Tenant.GetStatistics().GetAwaiter().GetResult();
-                return Serializer.SerializeJson(allStats, true);
+                return ReadAllTenantStatistics(sdk);
             });
 
             server.RegisterMethod("tenant/getmany", (args) =>
@@ -456,12 +431,103 @@ namespace LiteGraph.McpServer.Registrations
                     throw new ArgumentException("Tenant GUIDs array is required");
                 
                 List<Guid> guids = Serializer.DeserializeJson<List<Guid>>(guidsProp.GetRawText());
-                List<TenantMetadata> tenants = sdk.Tenant.ReadByGuids(guids).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(tenants, true);
+                return ReadTenantsByGuids(sdk, guids);
             });
+        }
+
+        #endregion
+
+        #region Private-Methods
+
+        private static string CreateTenant(LiteGraphSdk sdk, TenantMetadata tenant)
+        {
+            if (tenant == null) throw new ArgumentNullException(nameof(tenant));
+
+            string body = Serializer.SerializeJson(tenant, false);
+            return LiteGraphMcpRestProxy.SendJson(sdk, HttpMethod.Put, "/v1.0/tenants", body);
+        }
+
+        private static string ReadTenant(LiteGraphSdk sdk, Guid tenantGuid)
+        {
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Get,
+                "/v1.0/tenants/" + LiteGraphMcpRestProxy.Escape(tenantGuid));
+        }
+
+        private static string ReadTenants(LiteGraphSdk sdk, EnumerationOrderEnum order, int skip)
+        {
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Get,
+                "/v1.0/tenants?order="
+                + LiteGraphMcpRestProxy.Escape(order.ToString())
+                + "&skip="
+                + skip);
+        }
+
+        private static string EnumerateTenants(LiteGraphSdk sdk, EnumerationRequest query)
+        {
+            string body = Serializer.SerializeJson(query ?? new EnumerationRequest(), false);
+            return LiteGraphMcpRestProxy.SendJson(sdk, HttpMethod.Post, "/v2.0/tenants", body);
+        }
+
+        private static string TenantExists(LiteGraphSdk sdk, Guid tenantGuid)
+        {
+            bool exists = LiteGraphMcpRestProxy.HeadExists(
+                sdk,
+                "/v1.0/tenants/" + LiteGraphMcpRestProxy.Escape(tenantGuid));
+
+            return exists.ToString().ToLowerInvariant();
+        }
+
+        private static string ReadTenantStatistics(LiteGraphSdk sdk, Guid tenantGuid)
+        {
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Get,
+                "/v1.0/tenants/" + LiteGraphMcpRestProxy.Escape(tenantGuid) + "/stats");
+        }
+
+        private static string ReadAllTenantStatistics(LiteGraphSdk sdk)
+        {
+            return LiteGraphMcpRestProxy.SendJson(sdk, HttpMethod.Get, "/v1.0/tenants/stats");
+        }
+
+        private static string ReadTenantsByGuids(LiteGraphSdk sdk, List<Guid> guids)
+        {
+            if (guids == null) throw new ArgumentNullException(nameof(guids));
+
+            List<TenantMetadata> tenants = new List<TenantMetadata>();
+            foreach (Guid guid in guids)
+            {
+                string body = ReadTenant(sdk, guid);
+                TenantMetadata tenant = Serializer.DeserializeJson<TenantMetadata>(body);
+                if (tenant != null) tenants.Add(tenant);
+            }
+
+            return Serializer.SerializeJson(tenants, true);
+        }
+
+        private static string UpdateTenant(LiteGraphSdk sdk, TenantMetadata tenant)
+        {
+            if (tenant == null) throw new ArgumentNullException(nameof(tenant));
+
+            string body = Serializer.SerializeJson(tenant, false);
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Put,
+                "/v1.0/tenants/" + LiteGraphMcpRestProxy.Escape(tenant.GUID),
+                body);
+        }
+
+        private static void DeleteTenant(LiteGraphSdk sdk, Guid tenantGuid, bool force)
+        {
+            string path = "/v1.0/tenants/" + LiteGraphMcpRestProxy.Escape(tenantGuid);
+            if (force) path += "?force";
+            LiteGraphMcpRestProxy.SendJson(sdk, HttpMethod.Delete, path);
         }
 
         #endregion
     }
 }
-

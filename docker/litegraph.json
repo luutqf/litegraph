@@ -1,5 +1,6 @@
 {
   "CreatedUtc": "2025-01-27T22:19:01.489573Z",
+  "RequestTimeoutSeconds": 60,
   "Logging": {
     "Enable": true,
     "Servers": [
@@ -12,6 +13,7 @@
     "LogFilename": "litegraph.log",
     "ConsoleLogging": true,
     "EnableColors": true,
+    "JsonLogOutput": false,
     "MinimumSeverity": 0,
     "Header": "[LiteGraph] ",
     "LogQueries": false,
@@ -67,6 +69,20 @@
   "LiteGraph": {
     "AdminBearerToken": "litegraphadmin",
     "GraphRepositoryFilename": "litegraph.db",
+    "Database": {
+      "Type": "Sqlite",
+      "Filename": "litegraph.db",
+      "InMemory": false,
+      "Hostname": "localhost",
+      "Port": null,
+      "DatabaseName": "litegraph",
+      "Username": null,
+      "Password": null,
+      "Schema": "litegraph",
+      "ConnectionString": null,
+      "MaxConnections": 32,
+      "CommandTimeoutSeconds": 30
+    },
     "MaxConcurrentOperations": 4,
     "InMemory": false
   },
@@ -82,5 +98,24 @@
     "Exceptions": true,
     "Requests": false,
     "DatabaseQueries": false
+  },
+  "RequestHistory": {
+    "Enable": true,
+    "MaxRequestBodyBytes": 131072,
+    "MaxResponseBodyBytes": 131072,
+    "RetentionDays": 30,
+    "PurgeIntervalMinutes": 60
+  },
+  "Observability": {
+    "Enable": true,
+    "EnablePrometheus": true,
+    "EnableOpenTelemetry": true,
+    "EnableOtlpExporter": false,
+    "OtlpEndpoint": null,
+    "OtlpProtocol": "grpc",
+    "OtlpHeaders": null,
+    "OtlpTimeoutMilliseconds": 10000,
+    "MetricsPath": "/metrics",
+    "ServiceName": "LiteGraph.Server"
   }
 }

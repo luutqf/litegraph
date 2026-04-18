@@ -19,15 +19,18 @@
         {
             string ret =
                 "INSERT INTO 'creds' "
+                + "(guid, tenantguid, userguid, name, bearertoken, active, scopes, graphguids, createdutc, lastupdateutc) "
                 + "VALUES ("
-                + "'" + cred.GUID + "',"
-                + "'" + cred.TenantGUID + "',"
-                + "'" + cred.UserGUID + "',"
-                + "'" + Sanitizer.Sanitize(cred.Name) + "',"
-                + "'" + Sanitizer.Sanitize(cred.BearerToken) + "',"
+                + SqlString(cred.GUID.ToString()) + ","
+                + SqlString(cred.TenantGUID.ToString()) + ","
+                + SqlString(cred.UserGUID.ToString()) + ","
+                + SqlString(cred.Name) + ","
+                + SqlString(cred.BearerToken) + ","
                 + (cred.Active ? "1" : "0") + ","
-                + "'" + Sanitizer.Sanitize(cred.CreatedUtc.ToString(TimestampFormat)) + "',"
-                + "'" + Sanitizer.Sanitize(cred.LastUpdateUtc.ToString(TimestampFormat)) + "'"
+                + SqlJson(Serializer.SerializeJson(cred.Scopes, false)) + ","
+                + SqlJson(Serializer.SerializeJson(cred.GraphGUIDs, false)) + ","
+                + SqlString(cred.CreatedUtc.ToString(TimestampFormat)) + ","
+                + SqlString(cred.LastUpdateUtc.ToString(TimestampFormat))
                 + ") "
                 + "RETURNING *;";
 
@@ -148,7 +151,9 @@
                 "UPDATE 'creds' SET "
                 + "lastupdateutc = '" + DateTime.UtcNow.ToString(TimestampFormat) + "',"
                 + "name = '" + Sanitizer.Sanitize(cred.Name) + "',"
-                + "active = " + (cred.Active ? "1" : "0") + " "
+                + "active = " + (cred.Active ? "1" : "0") + ","
+                + "scopes = " + SqlJson(Serializer.SerializeJson(cred.Scopes, false)) + ","
+                + "graphguids = " + SqlJson(Serializer.SerializeJson(cred.GraphGUIDs, false)) + " "
                 + "WHERE guid = '" + cred.GUID + "' "
                 + "RETURNING *;";
         }
@@ -217,6 +222,18 @@
                 default:
                     return "guid IS NOT NULL ";
             }
+        }
+
+        private static string SqlString(string val)
+        {
+            if (String.IsNullOrEmpty(val)) return "NULL";
+            return "'" + Sanitizer.Sanitize(val) + "'";
+        }
+
+        private static string SqlJson(string json)
+        {
+            if (String.IsNullOrEmpty(json)) return "NULL";
+            return "'" + Sanitizer.SanitizeJson(json) + "'";
         }
     }
 }

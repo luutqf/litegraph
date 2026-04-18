@@ -2,6 +2,7 @@ namespace LiteGraph.McpServer.Registrations
 {
     using System;
     using System.Collections.Generic;
+    using System.Net.Http;
     using System.Text.Json;
     using LiteGraph.McpServer.Classes;
     using LiteGraph.Sdk;
@@ -44,8 +45,7 @@ namespace LiteGraph.McpServer.Registrations
                     Guid tenantGuid = Guid.Parse(tenantGuidProp.GetString()!);
                     string? name = nameProp.GetString();
                     Graph graph = new Graph { TenantGUID = tenantGuid, Name = name };
-                    Graph created = sdk.Graph.Create(graph).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(created, true);
+                    return CreateGraph(sdk, tenantGuid, graph);
                 });
 
             server.RegisterTool(
@@ -75,8 +75,7 @@ namespace LiteGraph.McpServer.Registrations
                     bool includeData = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeData", false);
                     bool includeSubordinates = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeSubordinates", false);
 
-                    Graph graph = sdk.Graph.ReadByGuid(tenantGuid, graphGuid, includeData, includeSubordinates).GetAwaiter().GetResult();
-                    return graph != null ? Serializer.SerializeJson(graph, true) : "null";
+                    return ReadGraph(sdk, tenantGuid, graphGuid, includeData, includeSubordinates);
                 });
 
             server.RegisterTool(
@@ -167,8 +166,7 @@ namespace LiteGraph.McpServer.Registrations
                         throw new ArgumentException("Graph JSON string is required");
                     string graphJson = graphProp.GetString() ?? throw new ArgumentException("Graph JSON string cannot be null");
                     Graph graph = Serializer.DeserializeJson<Graph>(graphJson);
-                    Graph updated = sdk.Graph.Update(graph).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(updated, true);
+                    return UpdateGraph(sdk, graph);
                 });
 
             server.RegisterTool(
@@ -195,7 +193,7 @@ namespace LiteGraph.McpServer.Registrations
                     Guid tenantGuid = Guid.Parse(tenantGuidProp.GetString()!);
                     Guid graphGuid = Guid.Parse(graphGuidProp.GetString()!);
                     bool force = args.Value.TryGetProperty("force", out JsonElement forceProp) && forceProp.GetBoolean();
-                    sdk.Graph.DeleteByGuid(tenantGuid, graphGuid, force).GetAwaiter().GetResult();
+                    DeleteGraph(sdk, tenantGuid, graphGuid, force);
                     return true;
                 });
 
@@ -577,8 +575,7 @@ namespace LiteGraph.McpServer.Registrations
                 Guid tenantGuid = Guid.Parse(tenantGuidProp.GetString()!);
                 string? name = nameProp.GetString();
                 Graph graph = new Graph { TenantGUID = tenantGuid, Name = name };
-                Graph created = sdk.Graph.Create(graph).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(created, true);
+                return CreateGraph(sdk, tenantGuid, graph);
             });
 
             server.RegisterMethod("graph/get", (args) =>
@@ -593,8 +590,7 @@ namespace LiteGraph.McpServer.Registrations
                 bool includeData = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeData", false);
                 bool includeSubordinates = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeSubordinates", false);
 
-                Graph graph = sdk.Graph.ReadByGuid(tenantGuid, graphGuid, includeData, includeSubordinates).GetAwaiter().GetResult();
-                return graph != null ? Serializer.SerializeJson(graph, true) : "null";
+                return ReadGraph(sdk, tenantGuid, graphGuid, includeData, includeSubordinates);
             });
 
             server.RegisterMethod("graph/all", (args) =>
@@ -635,8 +631,7 @@ namespace LiteGraph.McpServer.Registrations
                     throw new ArgumentException("Graph JSON string is required");
                 string graphJson = graphProp.GetString() ?? throw new ArgumentException("Graph JSON string cannot be null");
                 Graph graph = Serializer.DeserializeJson<Graph>(graphJson);
-                Graph updated = sdk.Graph.Update(graph).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(updated, true);
+                return UpdateGraph(sdk, graph);
             });
 
             server.RegisterMethod("graph/delete", (args) =>
@@ -648,7 +643,7 @@ namespace LiteGraph.McpServer.Registrations
                 Guid tenantGuid = Guid.Parse(tenantGuidProp.GetString()!);
                 Guid graphGuid = Guid.Parse(graphGuidProp.GetString()!);
                 bool force = args.Value.TryGetProperty("force", out JsonElement forceProp) && forceProp.GetBoolean();
-                sdk.Graph.DeleteByGuid(tenantGuid, graphGuid, force).GetAwaiter().GetResult();
+                DeleteGraph(sdk, tenantGuid, graphGuid, force);
                 return true;
             });
 
@@ -846,8 +841,7 @@ namespace LiteGraph.McpServer.Registrations
                 Guid tenantGuid = Guid.Parse(tenantGuidProp.GetString()!);
                 string? name = nameProp.GetString();
                 Graph graph = new Graph { TenantGUID = tenantGuid, Name = name };
-                Graph created = sdk.Graph.Create(graph).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(created, true);
+                return CreateGraph(sdk, tenantGuid, graph);
             });
 
             server.RegisterMethod("graph/get", (args) =>
@@ -862,8 +856,7 @@ namespace LiteGraph.McpServer.Registrations
                 bool includeData = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeData", false);
                 bool includeSubordinates = LiteGraphMcpServerHelpers.GetBoolOrDefault(args.Value, "includeSubordinates", false);
 
-                Graph graph = sdk.Graph.ReadByGuid(tenantGuid, graphGuid, includeData, includeSubordinates).GetAwaiter().GetResult();
-                return graph != null ? Serializer.SerializeJson(graph, true) : "null";
+                return ReadGraph(sdk, tenantGuid, graphGuid, includeData, includeSubordinates);
             });
 
             server.RegisterMethod("graph/all", (args) =>
@@ -904,8 +897,7 @@ namespace LiteGraph.McpServer.Registrations
                     throw new ArgumentException("Graph JSON string is required");
                 string graphJson = graphProp.GetString() ?? throw new ArgumentException("Graph JSON string cannot be null");
                 Graph graph = Serializer.DeserializeJson<Graph>(graphJson);
-                Graph updated = sdk.Graph.Update(graph).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(updated, true);
+                return UpdateGraph(sdk, graph);
             });
 
             server.RegisterMethod("graph/delete", (args) =>
@@ -917,7 +909,7 @@ namespace LiteGraph.McpServer.Registrations
                 Guid tenantGuid = Guid.Parse(tenantGuidProp.GetString()!);
                 Guid graphGuid = Guid.Parse(graphGuidProp.GetString()!);
                 bool force = args.Value.TryGetProperty("force", out JsonElement forceProp) && forceProp.GetBoolean();
-                sdk.Graph.DeleteByGuid(tenantGuid, graphGuid, force).GetAwaiter().GetResult();
+                DeleteGraph(sdk, tenantGuid, graphGuid, force);
                 return true;
             });
 
@@ -1072,6 +1064,68 @@ namespace LiteGraph.McpServer.Registrations
         }
 
         #endregion
+
+        #region Private-Methods
+
+        private static string CreateGraph(LiteGraphSdk sdk, Guid tenantGuid, Graph graph)
+        {
+            string body = Serializer.SerializeJson(graph, false);
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Put,
+                "/v1.0/tenants/"
+                + LiteGraphMcpRestProxy.Escape(tenantGuid)
+                + "/graphs",
+                body);
+        }
+
+        private static string ReadGraph(
+            LiteGraphSdk sdk,
+            Guid tenantGuid,
+            Guid graphGuid,
+            bool includeData,
+            bool includeSubordinates)
+        {
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Get,
+                "/v1.0/tenants/"
+                + LiteGraphMcpRestProxy.Escape(tenantGuid)
+                + "/graphs/"
+                + LiteGraphMcpRestProxy.Escape(graphGuid)
+                + "?incldata="
+                + includeData.ToString().ToLowerInvariant()
+                + "&inclsub="
+                + includeSubordinates.ToString().ToLowerInvariant());
+        }
+
+        private static string UpdateGraph(LiteGraphSdk sdk, Graph graph)
+        {
+            if (graph == null) throw new ArgumentNullException(nameof(graph));
+
+            string body = Serializer.SerializeJson(graph, false);
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Put,
+                "/v1.0/tenants/"
+                + LiteGraphMcpRestProxy.Escape(graph.TenantGUID)
+                + "/graphs/"
+                + LiteGraphMcpRestProxy.Escape(graph.GUID),
+                body);
+        }
+
+        private static void DeleteGraph(LiteGraphSdk sdk, Guid tenantGuid, Guid graphGuid, bool force)
+        {
+            LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Delete,
+                "/v1.0/tenants/"
+                + LiteGraphMcpRestProxy.Escape(tenantGuid)
+                + "/graphs/"
+                + LiteGraphMcpRestProxy.Escape(graphGuid)
+                + (force ? "?force" : String.Empty));
+        }
+
+        #endregion
     }
 }
-

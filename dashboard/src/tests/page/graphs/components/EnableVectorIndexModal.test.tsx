@@ -171,7 +171,7 @@ describe('EnableVectorIndexModal Component', () => {
       expect(screen.getByText('Unable to retrieve configuration details')).toBeInTheDocument();
     });
 
-    it('displays configuration data in read-only fields', () => {
+    it('displays configuration data in read-only fields', async () => {
       const mockConfig = {
         VectorIndexType: VectorIndexType.HnswRam,
         VectorIndexFile: 'test.db',
@@ -192,14 +192,15 @@ describe('EnableVectorIndexModal Component', () => {
 
       renderWithRedux(<EnableVectorIndexModal {...viewModeProps} />);
 
-      // Check that fields display the configuration values
-      expect(screen.getByDisplayValue(VectorIndexType.HnswRam)).toBeInTheDocument();
-      expect(screen.getByDisplayValue('test.db')).toBeInTheDocument();
-      expect(screen.getByDisplayValue('0.5')).toBeInTheDocument();
-      expect(screen.getByDisplayValue('768')).toBeInTheDocument();
-      expect(screen.getByDisplayValue('32')).toBeInTheDocument();
-      expect(screen.getByDisplayValue('150')).toBeInTheDocument();
-      expect(screen.getByDisplayValue('300')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('HNSW (RAM)')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('test.db')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('0.5')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('768')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('32')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('150')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('300')).toBeInTheDocument();
+      });
     });
 
     it('has OK button that acts as close button in view mode', () => {

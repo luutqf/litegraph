@@ -4,6 +4,13 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { tableColumns } from '@/page/edges/constant';
 import { EdgeType } from '@/types/types';
 
+const getColumnTitleText = (title: any): string => {
+  if (!React.isValidElement(title)) return title;
+  const tooltipChild = title.props.children;
+  if (React.isValidElement(tooltipChild)) return tooltipChild.props.children;
+  return tooltipChild;
+};
+
 // Mock the components
 jest.mock('@/components/base/tag/Tag', () => {
   return function MockTag({ label }: { label: string }) {
@@ -347,7 +354,7 @@ describe('Edge Constants', () => {
       const scoreColumn = columns.find((col) => col.key === 'Score');
 
       expect(scoreColumn).toBeDefined();
-      expect(scoreColumn?.title).toBe('Score');
+      expect(getColumnTitleText(scoreColumn?.title)).toBe('Score');
     });
 
     it('includes distance column when hasScoreOrDistance is true', () => {
@@ -355,7 +362,7 @@ describe('Edge Constants', () => {
       const distanceColumn = columns.find((col) => col.key === 'Distance');
 
       expect(distanceColumn).toBeDefined();
-      expect(distanceColumn?.title).toBe('Distance');
+      expect(getColumnTitleText(distanceColumn?.title)).toBe('Distance');
     });
 
     it('renders score correctly', () => {
@@ -453,16 +460,18 @@ describe('Edge Constants', () => {
       const columns = tableColumns(mockHandleEdit, mockHandleDelete, false, false);
 
       expect(columns).toHaveLength(10); // Actual column count
-      expect(columns[0].title).toBe('Name');
-      expect(columns[1].title).toBe('GUID');
-      expect(columns[2].title).toBe('From');
-      expect(columns[3].title).toBe('To');
-      expect(columns[4].title).toBe('Cost');
-      expect(columns[5].title).toBe('Labels');
-      expect(columns[6].title).toBe('Tags');
-      expect(columns[7].title).toBe('Vectors');
-      expect(columns[8].title).toBe('Created UTC');
-      expect(columns[9].title).toBe('Actions');
+      expect(columns.map((column) => getColumnTitleText(column.title))).toEqual([
+        'Name',
+        'GUID',
+        'From',
+        'To',
+        'Cost',
+        'Labels',
+        'Tags',
+        'Vectors',
+        'Created UTC',
+        'Actions',
+      ]);
     });
 
     it('has correct responsive properties', () => {

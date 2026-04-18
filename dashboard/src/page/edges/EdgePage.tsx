@@ -1,12 +1,6 @@
 'use client';
 import { useMemo, useState } from 'react';
-import {
-  CloseOutlined,
-  LoadingOutlined,
-  PlusSquareOutlined,
-  RedoOutlined,
-  SearchOutlined,
-} from '@ant-design/icons';
+import { PlusSquareOutlined, SearchOutlined } from '@ant-design/icons';
 import { useAppSelector } from '@/lib/store/hooks';
 import { RootState } from '@/lib/store/store';
 import LitegraphTable from '@/components/base/table/Table';
@@ -119,13 +113,6 @@ const EdgePage = () => {
               <SearchOutlined className="cursor-pointer" onClick={() => setShowSearchModal(true)} />
             </LitegraphTooltip>
           )}
-          {isEdgesLoading ? (
-            <LoadingOutlined className="loading-icon" />
-          ) : (
-            <LitegraphTooltip title="Refresh Data" placement="right">
-              <RedoOutlined className="cursor-pointer" onClick={fetchEdgesList} />
-            </LitegraphTooltip>
-          )}
         </LitegraphFlex>
       }
       pageTitleRightContent={
@@ -177,6 +164,8 @@ const EdgePage = () => {
             loading={isEdgesLoading}
             rowKey={'GUID'}
             onRowClick={handleEditEdge}
+            onRefresh={fetchEdgesList}
+            isRefreshing={isEdgesLoading}
             pagination={{
               ...tablePaginationConfig,
               total: edgesList?.TotalRecords,

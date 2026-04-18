@@ -1,11 +1,12 @@
 'use client';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button, Input, Select, Space, Tag, Typography, Tooltip, message } from 'antd';
+import { Alert, Button, Input, Select, Space, Tag, Typography, Tooltip, message } from 'antd';
 import { CopyOutlined, SendOutlined, ReloadOutlined, ClearOutlined } from '@ant-design/icons';
 import PageContainer from '@/components/base/pageContainer/PageContainer';
 import { sdk } from '@/lib/sdk/litegraph.service';
 import { flattenOpenApi, buildRequestUrl } from './openApi';
 import { generateSnippet, CodeLanguage } from './codeSnippets';
+import { getQueryErrorSummary, getTransactionFailureSummary } from './responseSummaries';
 import { ApiOperation, ApiResponseState, RecentRequest } from './types';
 import styles from './ApiExplorerPage.module.scss';
 
@@ -214,6 +215,14 @@ const ApiExplorerPage: React.FC = () => {
       return JSON.stringify(response.json, null, 2);
     }
     return response.text;
+  }, [response]);
+
+  const transactionFailure = useMemo(() => {
+    return response?.json ? getTransactionFailureSummary(response.json) : null;
+  }, [response]);
+
+  const queryError = useMemo(() => {
+    return response?.json ? getQueryErrorSummary(response.json) : null;
   }, [response]);
 
   const grouped = useMemo(() => {
@@ -429,6 +438,22 @@ const ApiExplorerPage: React.FC = () => {
             ))}
           </div>
           <div className={styles.cardBody}>
+            {transactionFailure && (
+              <Alert
+                type="error"
+                showIcon
+                message="Transaction failed"
+                description={transactionFailure}
+              />
+            )}
+            {queryError && (
+              <Alert
+                type="error"
+                showIcon
+                message="Query failed"
+                description={queryError}
+              />
+            )}
             {activeTab === 'preview' && (
               <pre className={styles.codeBlock}>{previewText || '(no response yet)'}</pre>
             )}

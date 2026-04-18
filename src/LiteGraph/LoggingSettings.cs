@@ -1,4 +1,4 @@
-﻿namespace LiteGraph
+namespace LiteGraph
 {
     using System;
     using System.Collections.Generic;
@@ -52,6 +52,11 @@
         public bool EnableColors { get; set; } = true;
 
         /// <summary>
+        /// Emit supported operational logs as single-line JSON records.
+        /// </summary>
+        public bool JsonLogOutput { get; set; } = false;
+
+        /// <summary>
         /// Minimum severity.
         /// </summary>
         public int MinimumSeverity
@@ -103,7 +108,7 @@
         #region Private-Members
 
         private string _Header = "[LiteGraph] ";
-        private int _MinimumSeverity = 0; 
+        private int _MinimumSeverity = 0;
         private List<SyslogServer> _Servers = new List<SyslogServer>()
         {
             new SyslogServer

@@ -2,6 +2,24 @@
   border-right: 1px solid var(--ant-color-border);
   box-shadow: 1px 0 4px rgba(0, 0, 0, 0.03);
 }
+
+.sidebarLight {
+  :global(.ant-menu-light .ant-menu-item-selected),
+  :global(.ant-menu-light .ant-menu-item-selected:hover) {
+    background-color: var(--color-primary-dark) !important;
+    color: #fff !important;
+  }
+
+  :global(.ant-menu-light .ant-menu-item-selected a),
+  :global(.ant-menu-light .ant-menu-item-selected .ant-menu-title-content),
+  :global(.ant-menu-light .ant-menu-item-selected .ant-menu-item-icon),
+  :global(.ant-menu-light .ant-menu-item-selected .anticon),
+  :global(.ant-menu-light .ant-menu-item-selected svg) {
+    color: #fff !important;
+    fill: currentColor;
+  }
+}
+
 .logoContainer {
   height: 64px;
   border-bottom: 1px solid var(--ant-color-border);

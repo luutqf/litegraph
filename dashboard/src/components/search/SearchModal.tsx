@@ -5,7 +5,7 @@ import LitegraphModal from '@/components/base/modal/Modal';
 import LabelInput from '../inputs/label-input/LabelInput';
 import TagsInput from '../inputs/tags-input/TagsInput';
 import LitegraphFormItem from '@/components/base/form/FormItem';
-import { JsonEditor } from 'jsoneditor-react';
+import JsonEditorWithAce from '@/components/inputs/json-editor/JsonEditorWithAce';
 import { v4 } from 'uuid';
 import { initialSearchData, validateAtLeastOne } from './constants';
 import { SearchData } from './type';
@@ -46,7 +46,6 @@ const SearchModal = ({
 
   return (
     <LitegraphModal
-      maskClosable={false}
       destroyOnClose={false}
       forceRender
       title="Search"
@@ -97,7 +96,7 @@ const SearchModal = ({
               </>
             }
           >
-            <JsonEditor
+            <JsonEditorWithAce
               key={uniqueKey.current}
               value={form.getFieldValue('expr')}
               onChange={(json: any) => {
@@ -115,7 +114,7 @@ const SearchModal = ({
           name="embeddings"
           rules={[{ validator: validateAtLeastOne(form) }]}
         >
-          <JsonEditor
+          <JsonEditorWithAce
             key={uniqueKey.current}
             value={form.getFieldValue('embeddings') || {}}
             onChange={(json: any) => {

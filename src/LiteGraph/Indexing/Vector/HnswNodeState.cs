@@ -17,5 +17,20 @@
         /// The vector data for the node.
         /// </summary>
         public List<float> Vector { get; set; } = new List<float>();
+
+        /// <summary>
+        /// Human-readable vector name.
+        /// </summary>
+        public string Name { get; set; } = null;
+
+        /// <summary>
+        /// Classification labels.
+        /// </summary>
+        public List<string> Labels { get; set; } = null;
+
+        /// <summary>
+        /// Arbitrary key/value metadata.
+        /// </summary>
+        public Dictionary<string, object> Tags { get; set; } = null;
     }
 }

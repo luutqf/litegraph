@@ -2,7 +2,9 @@ namespace LiteGraph.McpServer.Registrations
 {
     using System;
     using System.Collections.Generic;
+    using System.Net.Http;
     using System.Text.Json;
+    using LiteGraph.McpServer.Classes;
     using LiteGraph.Sdk;
     using Voltaic;
 
@@ -146,8 +148,7 @@ namespace LiteGraph.McpServer.Registrations
                 },
                 (args) =>
                 {
-                    sdk.Admin.FlushDatabase().GetAwaiter().GetResult();
-                    return string.Empty;
+                    return FlushDatabase(sdk);
                 });
         }
 
@@ -222,8 +223,7 @@ namespace LiteGraph.McpServer.Registrations
 
             server.RegisterMethod("admin/flush", (args) =>
             {
-                sdk.Admin.FlushDatabase().GetAwaiter().GetResult();
-                return string.Empty;
+                return FlushDatabase(sdk);
             });
         }
 
@@ -298,12 +298,19 @@ namespace LiteGraph.McpServer.Registrations
 
             server.RegisterMethod("admin/flush", (args) =>
             {
-                sdk.Admin.FlushDatabase().GetAwaiter().GetResult();
-                return string.Empty;
+                return FlushDatabase(sdk);
             });
+        }
+
+        #endregion
+
+        #region Private-Methods
+
+        private static string FlushDatabase(LiteGraphSdk sdk)
+        {
+            return LiteGraphMcpRestProxy.SendJson(sdk, HttpMethod.Post, "/v1.0/flush");
         }
 
         #endregion
     }
 }
-

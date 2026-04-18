@@ -16,7 +16,7 @@
     /// LiteGraph client.
     /// The LiteGraph client leverages an underlying graph repository base class, which provides primitives.
     /// </summary>
-    public class LiteGraphClient : IDisposable
+    public class LiteGraphClient : IDisposable, IAsyncDisposable
     {
         #region Public-Members
 
@@ -87,7 +87,7 @@
         /// <summary>
         /// Base URL of the LiteGraph server.
         /// </summary>
-        public string Endpoint { get; private set; }  
+        public string Endpoint { get; private set; }
 
         /// <inheritdoc />
         public IAdminMethods Admin { get; }
@@ -125,6 +125,12 @@
         /// <inheritdoc />
         public IVectorIndexMethods VectorIndex { get; }
 
+        /// <inheritdoc />
+        public IQueryMethods Query { get; }
+
+        /// <inheritdoc />
+        public ITransactionMethods Transaction { get; }
+
         /// <summary>
         /// Request history methods.
         /// </summary>
@@ -133,6 +139,28 @@
             get
             {
                 return _Repo?.RequestHistory;
+            }
+        }
+
+        /// <summary>
+        /// Authorization audit methods.
+        /// </summary>
+        public LiteGraph.GraphRepositories.Interfaces.IAuthorizationAuditMethods AuthorizationAudit
+        {
+            get
+            {
+                return _Repo?.AuthorizationAudit;
+            }
+        }
+
+        /// <summary>
+        /// Authorization role methods.
+        /// </summary>
+        public LiteGraph.GraphRepositories.Interfaces.IAuthorizationRoleMethods AuthorizationRoles
+        {
+            get
+            {
+                return _Repo?.AuthorizationRoles;
             }
         }
 
@@ -219,6 +247,8 @@
             User = new UserMethods(this, _Repo);
             Vector = new VectorMethods(this, _Repo);
             VectorIndex = new VectorIndexMethods(this, _Repo);
+            Query = new QueryMethods(this, _Repo);
+            Transaction = new TransactionMethods(_Repo);
         }
 
         /// <summary>
@@ -295,11 +325,60 @@
         }
 
         /// <summary>
+        /// Tear down the client and dispose of resources asynchronously.
+        /// </summary>
+        /// <returns>Value task.</returns>
+        public async ValueTask DisposeAsync()
+        {
+            if (_Disposed) return;
+
+            Exception disposalException = null;
+
+            try
+            {
+                if (_Repo != null)
+                {
+                    _Repo.Logging = null;
+                    if (_DisposeRepository) await _Repo.DisposeAsync().ConfigureAwait(false);
+                }
+            }
+            catch (Exception e)
+            {
+                disposalException = e;
+            }
+            finally
+            {
+                _TenantCache = null;
+                _GraphCache = null;
+                _NodeCache = null;
+                _EdgeCache = null;
+
+                _Repo = null;
+                _Disposed = true;
+            }
+
+            GC.SuppressFinalize(this);
+
+            if (disposalException != null)
+                throw new InvalidOperationException("An error occurred while disposing the LiteGraph client.", disposalException);
+        }
+
+        /// <summary>
         /// Initialize the repository.
         /// </summary>
         public void InitializeRepository()
         {
             _Repo.InitializeRepository();
+        }
+
+        /// <summary>
+        /// Initialize the repository asynchronously.
+        /// </summary>
+        /// <param name="token">Cancellation token.</param>
+        /// <returns>Task.</returns>
+        public async Task InitializeRepositoryAsync(CancellationToken token = default)
+        {
+            await _Repo.InitializeRepositoryAsync(token).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -325,9 +404,9 @@
         /// <param name="token">Cancellation token.</param>
         /// <returns>Task.</returns>
         public async Task ExportGraphToGexfFile(
-            Guid tenantGuid, 
-            Guid graphGuid, 
-            string filename, 
+            Guid tenantGuid,
+            Guid graphGuid,
+            string filename,
             bool includeData,
             bool includeSubordinates,
             CancellationToken token = default)
@@ -356,6 +435,16 @@
         public void Flush()
         {
             _Repo.Flush();
+        }
+
+        /// <summary>
+        /// Flush the database to disk asynchronously.  Only useful when using an in-memory LiteGraph instance.
+        /// </summary>
+        /// <param name="token">Cancellation token.</param>
+        /// <returns>Task.</returns>
+        public async Task FlushAsync(CancellationToken token = default)
+        {
+            await _Repo.FlushAsync(token).ConfigureAwait(false);
         }
 
         #endregion
@@ -387,7 +476,7 @@
                 if (String.IsNullOrEmpty(vector.Content)) throw new ArgumentException("The supplied vector object does not contain any content.");
             }
         }
-        
+
         internal async Task ValidateTenantExists(Guid tenantGuid, CancellationToken token = default)
         {
             if (TenantCacheTryGet(tenantGuid, out TenantMetadata _)) return;
@@ -405,7 +494,7 @@
         internal async Task ValidateGraphExists(Guid tenantGuid, Guid? graphGuid, CancellationToken token = default)
         {
             if (graphGuid == null) return;
-            if (GraphCacheTryGet(graphGuid.Value, out Graph _)) return; 
+            if (GraphCacheTryGet(graphGuid.Value, out Graph _)) return;
             Graph graph = await _Repo.Graph.ReadByGuid(tenantGuid, graphGuid.Value, token).ConfigureAwait(false);
             if (graph == null) throw new ArgumentException("No graph with GUID '" + graphGuid.Value + "' exists.");
             GraphCacheAdd(graph);
@@ -450,7 +539,7 @@
 
         private void TenantCacheRemove(Guid guid)
         {
-            if (_TenantCache != null) _TenantCache.TryRemove(guid);
+            if (_TenantCache != null) _TenantCache.TryRemove(guid, out _);
         }
 
         private void GraphCacheAdd(Graph obj)
@@ -470,7 +559,7 @@
 
         private void GraphCacheRemove(Guid guid)
         {
-            if (_GraphCache != null) _GraphCache.TryRemove(guid);
+            if (_GraphCache != null) _GraphCache.TryRemove(guid, out _);
         }
 
         private void NodeCacheAdd(Node obj)
@@ -490,7 +579,7 @@
 
         private void NodeCacheRemove(Guid guid)
         {
-            if (_NodeCache != null) _NodeCache.TryRemove(guid);
+            if (_NodeCache != null) _NodeCache.TryRemove(guid, out _);
         }
 
         private void EdgeCacheAdd(Edge obj)
@@ -510,7 +599,7 @@
 
         private void EdgeCacheRemove(Guid guid)
         {
-            if (_EdgeCache != null) _EdgeCache.TryRemove(guid);
+            if (_EdgeCache != null) _EdgeCache.TryRemove(guid, out _);
         }
 
         #endregion

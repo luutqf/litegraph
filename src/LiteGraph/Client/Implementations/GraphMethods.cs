@@ -311,7 +311,7 @@
 
             await _Repo.Graph.DeleteByGuid(tenantGuid, graphGuid, token).ConfigureAwait(false);
             _Client.Logging.Log(SeverityEnum.Info, "deleted graph " + graphGuid + " (force " + force + ")");
-            _GraphCache.TryRemove(graphGuid);
+            _GraphCache.TryRemove(graphGuid, out _);
         }
 
         /// <inheritdoc />

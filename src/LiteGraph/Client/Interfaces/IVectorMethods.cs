@@ -95,7 +95,7 @@
         /// <param name="token">Cancellation token.</param>
         /// <returns>Vectors.</returns>
         IAsyncEnumerable<VectorMetadata> ReadManyGraph(
-            Guid tenantGuid, 
+            Guid tenantGuid,
             Guid graphGuid,
             EnumerationOrderEnum order = EnumerationOrderEnum.CreatedDescending,
             int skip = 0,
@@ -112,8 +112,8 @@
         /// <param name="token">Cancellation token.</param>
         /// <returns>Vectors.</returns>
         IAsyncEnumerable<VectorMetadata> ReadManyNode(
-            Guid tenantGuid, 
-            Guid graphGuid, 
+            Guid tenantGuid,
+            Guid graphGuid,
             Guid nodeGuid,
             EnumerationOrderEnum order = EnumerationOrderEnum.CreatedDescending,
             int skip = 0,
@@ -130,8 +130,8 @@
         /// <param name="token">Cancellation token.</param>
         /// <returns>Vectors.</returns>
         IAsyncEnumerable<VectorMetadata> ReadManyEdge(
-            Guid tenantGuid, 
-            Guid graphGuid, 
+            Guid tenantGuid,
+            Guid graphGuid,
             Guid edgeGuid,
             EnumerationOrderEnum order = EnumerationOrderEnum.CreatedDescending,
             int skip = 0,

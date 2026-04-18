@@ -2,6 +2,45 @@
 
 ## Current Version
 
+v6.0.0
+
+- Native graph query language
+  - Added LiteGraph-native graph query execution with read and mutation support
+  - Added query documentation in `DSL.md`
+  - Added SDK and REST/MCP boundary support where appropriate
+
+- Graph transactions
+  - Added graph-scoped transaction support for child objects including nodes, edges, tags, labels, and vectors
+  - Added transaction request/result models and client helpers
+  - Added rollback-aware vector index dirty tracking and rebuild paths
+
+- Authorization and credentials
+  - Added RBAC roles, scoped credential assignment, authorization audit models, and dashboard authorization management
+  - Added immutable built-in role handling and authorization UI support
+
+- Storage architecture
+  - Added provider-neutral repository selection and storage settings
+  - Added PostgreSQL repository implementation alongside SQLite
+  - Added placeholders for future MySQL and SQL Server providers
+
+- Observability and operations
+  - Added Prometheus metrics at `/metrics`
+  - Added OpenTelemetry-compatible activities and metrics
+  - Added Grafana dashboard assets and Docker Compose provisioning for Prometheus and Grafana OSS
+  - Set Docker Compose LiteGraph and MCP images to `jchristn77/litegraph:v6.0.0` and `jchristn77/litegraph-mcp:v6.0.0`
+  - Integrated request history with administrator dashboard monitoring workflows
+
+- LiteGraphConsole
+  - Added `LiteGraphConsole`, an interactive terminal shell installable as the `lg` global tool
+  - Added scripts to install, reinstall, and remove the console tool
+
+- Dashboard
+  - Improved authorization tables and JSON viewing
+  - Improved request history metrics, filters, table layout, and detail modal wrapping
+  - Added GitHub link and consistent icon-only logout controls
+
+## Previous Versions
+
 v5.0.x
 
 - Breaking changes: full API migration to async/await
@@ -16,8 +55,6 @@ v5.0.x
   - Supports HTTP, TCP, and WebSocket transport protocols
   - Docker image available at `jchristn77/litegraph-mcp`
   - Ideal for knowledge graphs, RAG applications, and AI-powered data exploration
-
-## Previous Versions
 
 v4.x
 

@@ -1,21 +1,64 @@
 'use client';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Input, Select, Space, Table, Tag, Tooltip, Typography, Popconfirm } from 'antd';
-import { DeleteOutlined, ReloadOutlined, EyeOutlined } from '@ant-design/icons';
+import { Alert, Button, Dropdown, Input, Modal, Select, Space, Tag, Typography } from 'antd';
+import { CodeOutlined, DeleteOutlined, EyeOutlined, MoreOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import toast from 'react-hot-toast';
 import PageContainer from '@/components/base/pageContainer/PageContainer';
+import LitegraphTable from '@/components/base/table/Table';
+import ViewJsonModal from '@/components/base/view-json-modal/ViewJsonModal';
 import { globalToastId } from '@/constants/config';
 import RequestHistoryChart from './RequestHistoryChart';
 import RequestHistoryDetailModal from './RequestHistoryDetailModal';
 import {
   deleteRequestHistory,
+  getMetricsEndpointUrl,
   listRequestHistory,
   RequestHistoryEntry,
   RequestHistorySearchResult,
 } from '@/lib/sdk/requestHistory';
 
 const { Text } = Typography;
+
+const noWrapStyle: React.CSSProperties = { whiteSpace: 'nowrap' };
+
+const summaryToolbarStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'flex-start',
+  justifyContent: 'space-between',
+  gap: 12,
+  marginBottom: 12,
+  flexWrap: 'wrap',
+};
+
+const summaryStatsStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 12,
+  flex: '1 1 520px',
+  flexWrap: 'wrap',
+};
+
+const filterControlsStyle: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'flex-end',
+  gap: 8,
+  flex: '1 1 440px',
+  flexWrap: 'wrap',
+};
+
+const statBubbleStyle: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  borderRadius: 999,
+  background: 'var(--ant-color-fill-quaternary)',
+  border: '1px solid var(--ant-color-border-secondary)',
+  padding: '1px 8px',
+  fontFamily: 'monospace',
+  fontSize: 12,
+  lineHeight: 1.6,
+  marginLeft: 4,
+};
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All statuses' },
@@ -27,6 +70,12 @@ const STATUS_OPTIONS = [
   { value: '403', label: '403' },
   { value: '404', label: '404' },
   { value: '500', label: '500' },
+];
+
+const OUTCOME_OPTIONS = [
+  { value: '', label: 'All outcomes' },
+  { value: 'true', label: 'Successful' },
+  { value: 'false', label: 'Errors' },
 ];
 
 const METHOD_OPTIONS = [
@@ -62,6 +111,19 @@ const methodColor = (method: string): string => {
   }
 };
 
+const percentile = (values: number[], pct: number): number => {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const index = Math.min(sorted.length - 1, Math.ceil((pct / 100) * sorted.length) - 1);
+  return sorted[index];
+};
+
+const StatValue = ({ children }: { children: React.ReactNode }) => (
+  <span data-testid="request-history-stat-value" style={statBubbleStyle}>
+    {children}
+  </span>
+);
+
 type Props = {
   tenantScope?: string;
   mode: 'admin' | 'tenant';
@@ -72,12 +134,15 @@ const RequestHistoryPage: React.FC<Props> = ({ tenantScope, mode }) => {
   const [pageSize, setPageSize] = useState(25);
   const [method, setMethod] = useState<string>('');
   const [statusCode, setStatusCode] = useState<string>('');
+  const [outcome, setOutcome] = useState<string>('');
   const [path, setPath] = useState<string>('');
   const [result, setResult] = useState<RequestHistorySearchResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [selected, setSelected] = useState<RequestHistoryEntry | null>(null);
+  const [jsonViewRecord, setJsonViewRecord] = useState<RequestHistoryEntry | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const metricsEndpointUrl = useMemo(() => getMetricsEndpointUrl(), []);
 
   const fetchList = useCallback(() => {
     setLoading(true);
@@ -86,6 +151,7 @@ const RequestHistoryPage: React.FC<Props> = ({ tenantScope, mode }) => {
       pageSize,
       method: method || undefined,
       statusCode: statusCode ? Number(statusCode) : undefined,
+      success: outcome ? outcome === 'true' : undefined,
       path: path || undefined,
       tenantGuid: mode === 'tenant' ? tenantScope : undefined,
     })
@@ -95,7 +161,7 @@ const RequestHistoryPage: React.FC<Props> = ({ tenantScope, mode }) => {
         toast.error('Unable to load request history', { id: globalToastId });
       })
       .finally(() => setLoading(false));
-  }, [page, pageSize, method, statusCode, path, mode, tenantScope, refreshKey]);
+  }, [page, pageSize, method, statusCode, outcome, path, mode, tenantScope, refreshKey]);
 
   useEffect(() => {
     fetchList();
@@ -116,19 +182,41 @@ const RequestHistoryPage: React.FC<Props> = ({ tenantScope, mode }) => {
     setDetailOpen(true);
   };
 
+  const confirmDelete = (entry: RequestHistoryEntry) => {
+    Modal.confirm({
+      title: 'Delete request history entry?',
+      content: entry.Path,
+      okText: 'Delete',
+      cancelText: 'Cancel',
+      okButtonProps: { danger: true },
+      maskClosable: true,
+      onOk: () => onDelete(entry.GUID),
+    });
+  };
+
   const columns: ColumnsType<RequestHistoryEntry> = useMemo(
     () => [
       {
         title: 'Time',
         dataIndex: 'CreatedUtc',
         width: 170,
-        render: (v: string) => new Date(v).toLocaleString(),
+        onHeaderCell: () => ({ style: noWrapStyle }),
+        render: (v: string) => (
+          <span data-testid="request-history-time" style={noWrapStyle}>
+            {new Date(v).toLocaleString()}
+          </span>
+        ),
       },
       {
         title: 'Method',
         dataIndex: 'Method',
         width: 80,
-        render: (v: string) => <Tag color={methodColor(v)}>{v}</Tag>,
+        onHeaderCell: () => ({ style: noWrapStyle }),
+        render: (v: string) => (
+          <Tag color={methodColor(v)} data-testid="request-history-method" style={noWrapStyle}>
+            {v}
+          </Tag>
+        ),
       },
       {
         title: 'Path',
@@ -173,84 +261,162 @@ const RequestHistoryPage: React.FC<Props> = ({ tenantScope, mode }) => {
         : []),
       {
         title: 'Actions',
-        width: 120,
+        width: 90,
         fixed: 'right' as const,
-        render: (_: unknown, r: RequestHistoryEntry) => (
-          <Space size="small">
-            <Tooltip title="View detail">
-              <Button
-                size="small"
-                type="text"
-                icon={<EyeOutlined />}
-                onClick={() => onView(r)}
-              />
-            </Tooltip>
-            <Popconfirm
-              title="Delete this entry?"
-              onConfirm={() => onDelete(r.GUID)}
-              okText="Delete"
-              cancelText="Cancel"
-            >
-              <Button size="small" type="text" danger icon={<DeleteOutlined />} />
-            </Popconfirm>
-          </Space>
-        ),
+        render: (_: unknown, r: RequestHistoryEntry) => {
+          const items = [
+            {
+              key: 'view',
+              label: 'View',
+              icon: <EyeOutlined />,
+              onClick: () => onView(r),
+            },
+            {
+              key: 'view-json',
+              label: 'View JSON',
+              icon: <CodeOutlined />,
+              onClick: () => setJsonViewRecord(r),
+            },
+            {
+              key: 'delete',
+              label: 'Delete',
+              icon: <DeleteOutlined />,
+              danger: true,
+              onClick: () => confirmDelete(r),
+            },
+          ];
+
+          return (
+            <span data-row-click-ignore="true" onClick={(event) => event.stopPropagation()}>
+              <Dropdown menu={{ items }} trigger={['click']} placement="bottomRight">
+                <Button
+                  size="small"
+                  type="text"
+                  aria-label="Request actions"
+                  icon={<MoreOutlined style={{ fontSize: 18 }} />}
+                />
+              </Dropdown>
+            </span>
+          );
+        },
       },
     ],
     [mode]
   );
 
+  const visibleStats = useMemo(() => {
+    const rows = result?.Objects || [];
+    const durations = rows.map((entry) => entry.ProcessingTimeMs).filter((value) => value >= 0);
+    const failures = rows.filter((entry) => !entry.Success).length;
+    const averageDuration =
+      durations.length === 0
+        ? 0
+        : durations.reduce((sum, value) => sum + value, 0) / durations.length;
+
+    return {
+      total: rows.length,
+      failures,
+      errorRate: rows.length === 0 ? 0 : (failures / rows.length) * 100,
+      averageDuration,
+      p95Duration: percentile(durations, 95),
+    };
+  }, [result]);
+
   return (
-    <PageContainer
-      id="request-history"
-      pageTitle={
-        <Space>
-          <span>Request History</span>
-          <Tooltip title="Refresh">
-            <Button
-              type="text"
-              icon={<ReloadOutlined spin={loading} />}
-              onClick={() => setRefreshKey((n) => n + 1)}
-            />
-          </Tooltip>
-        </Space>
-      }
-    >
+    <PageContainer id="request-history" pageTitle="Request History">
       <RequestHistoryChart
         tenantGuid={mode === 'tenant' ? tenantScope : undefined}
         refreshKey={refreshKey}
       />
 
-      <Space style={{ marginBottom: 12, flexWrap: 'wrap' }}>
-        <Select
-          style={{ width: 140 }}
-          value={method}
-          onChange={(v) => {
-            setMethod(v);
-            setPage(0);
-          }}
-          options={METHOD_OPTIONS}
-        />
-        <Select
-          style={{ width: 140 }}
-          value={statusCode}
-          onChange={(v) => {
-            setStatusCode(v);
-            setPage(0);
-          }}
-          options={STATUS_OPTIONS}
-        />
-        <Input
-          placeholder="Path contains..."
-          value={path}
-          onChange={(e) => setPath(e.target.value)}
-          onPressEnter={() => setPage(0)}
-          style={{ width: 280 }}
-          allowClear
-        />
-      </Space>
+      <Alert
+        type="info"
+        showIcon
+        style={{ marginBottom: 12 }}
+        message="Operational telemetry"
+        description={
+          <Space size="middle" wrap>
+            <Typography.Link href={metricsEndpointUrl} target="_blank" rel="noreferrer">
+              Prometheus metrics
+            </Typography.Link>
+            <Typography.Link
+              href="https://opentelemetry.io/docs/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              OpenTelemetry setup
+            </Typography.Link>
+            <Text type="secondary">
+              Request history is for recent request inspection; metrics and traces are for
+              aggregate monitoring.
+            </Text>
+          </Space>
+        }
+      />
 
-      <Table<RequestHistoryEntry>
+      <div style={summaryToolbarStyle}>
+        <div
+          data-testid="request-history-observability-summary"
+          style={summaryStatsStyle}
+        >
+          <Text>
+            Visible requests: <StatValue>{visibleStats.total.toLocaleString()}</StatValue>
+          </Text>
+          <Text>
+            Visible errors: <StatValue>{visibleStats.failures.toLocaleString()}</StatValue>
+          </Text>
+          <Text>
+            Error rate: <StatValue>{visibleStats.errorRate.toFixed(1)}%</StatValue>
+          </Text>
+          <Text>
+            Average duration:{' '}
+            <StatValue>{visibleStats.averageDuration.toFixed(1)} ms</StatValue>
+          </Text>
+          <Text>
+            P95 duration: <StatValue>{visibleStats.p95Duration.toFixed(1)} ms</StatValue>
+          </Text>
+        </div>
+
+        <div data-testid="request-history-filter-controls" style={filterControlsStyle}>
+          <Select
+            style={{ width: 140 }}
+            value={method}
+            onChange={(v) => {
+              setMethod(v);
+              setPage(0);
+            }}
+            options={METHOD_OPTIONS}
+          />
+          <Select
+            style={{ width: 140 }}
+            value={statusCode}
+            onChange={(v) => {
+              setStatusCode(v);
+              setPage(0);
+            }}
+            options={STATUS_OPTIONS}
+          />
+          <Select
+            style={{ width: 150 }}
+            value={outcome}
+            onChange={(v) => {
+              setOutcome(v);
+              setPage(0);
+            }}
+            options={OUTCOME_OPTIONS}
+          />
+          <Input
+            placeholder="Path contains..."
+            value={path}
+            onChange={(e) => setPath(e.target.value)}
+            onPressEnter={() => setPage(0)}
+            style={{ width: 280, maxWidth: '100%' }}
+            allowClear
+          />
+        </div>
+      </div>
+
+      <LitegraphTable<RequestHistoryEntry>
         loading={loading}
         columns={columns}
         dataSource={result?.Objects || []}
@@ -259,12 +425,19 @@ const RequestHistoryPage: React.FC<Props> = ({ tenantScope, mode }) => {
         scroll={{ x: 1000 }}
         onRow={(record) => ({
           onClick: (e) => {
-            const target = e.target as HTMLElement;
-            if (target.closest('button') || target.closest('.ant-popover')) return;
+            const target = e.target;
+            if (
+              target instanceof Element &&
+              target.closest('button, .ant-popover, [data-row-click-ignore="true"]')
+            ) {
+              return;
+            }
             onView(record);
           },
           style: { cursor: 'pointer' },
         })}
+        onRefresh={() => setRefreshKey((n) => n + 1)}
+        isRefreshing={loading}
         pagination={{
           current: page + 1,
           pageSize,
@@ -282,6 +455,12 @@ const RequestHistoryPage: React.FC<Props> = ({ tenantScope, mode }) => {
         entry={selected}
         open={detailOpen}
         onClose={() => setDetailOpen(false)}
+      />
+      <ViewJsonModal
+        open={!!jsonViewRecord}
+        onClose={() => setJsonViewRecord(null)}
+        data={jsonViewRecord}
+        title="Request History Entry JSON"
       />
     </PageContainer>
   );

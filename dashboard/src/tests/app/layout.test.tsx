@@ -36,6 +36,27 @@ jest.mock('next/font/google', () => ({
 // Mock the global CSS import
 jest.mock('@/assets/css/globals.scss', () => ({}));
 
+const getRootLayoutElement = (children: React.ReactNode = <div>Test children</div>) =>
+  RootLayout({ children }) as React.ReactElement<any>;
+
+const getDocumentParts = (children?: React.ReactNode) => {
+  const html = getRootLayoutElement(children);
+  const htmlChildren = React.Children.toArray(html.props.children) as React.ReactElement<any>[];
+  const head = htmlChildren.find((child) => React.isValidElement(child) && child.type === 'head');
+  const body = htmlChildren.find((child) => React.isValidElement(child) && child.type === 'body');
+
+  if (!head || !body) {
+    throw new Error('RootLayout did not return the expected document structure.');
+  }
+
+  return { html, head, body };
+};
+
+const getHeadLinks = (head: React.ReactElement<any>) =>
+  React.Children.toArray(head.props.children).filter(
+    (child): child is React.ReactElement<any> => React.isValidElement(child) && child.type === 'link'
+  );
+
 describe('RootLayout Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -52,74 +73,47 @@ describe('RootLayout Component', () => {
   });
 
   it('renders html element with correct lang attribute', () => {
-    const { container } = render(
-      <RootLayout>
-        <div>Test children</div>
-      </RootLayout>
-    );
-
-    const htmlElement = container.querySelector('html');
-    expect(htmlElement).toHaveAttribute('lang', 'en');
+    const { html } = getDocumentParts();
+    expect(html.type).toBe('html');
+    expect(html.props.lang).toBe('en');
   });
 
   it('renders head element with favicon links', () => {
-    const { container } = render(
-      <RootLayout>
-        <div>Test children</div>
-      </RootLayout>
-    );
+    const { head } = getDocumentParts();
+    const headLinks = getHeadLinks(head);
 
-    const headElement = container.querySelector('head');
-    expect(headElement).toBeInTheDocument();
-
-    const faviconLink = container.querySelector('link[rel="icon"]');
-    expect(faviconLink).toHaveAttribute('href', '/favicon.png');
-    expect(faviconLink).toHaveAttribute('sizes', 'any');
+    const faviconLink = headLinks.find((link) => link.props.rel === 'icon');
+    expect(head.type).toBe('head');
+    expect(faviconLink?.props.href).toBe('/favicon.png');
+    expect(faviconLink?.props.sizes).toBe('any');
   });
 
   it('renders apple touch icon link', () => {
-    const { container } = render(
-      <RootLayout>
-        <div>Test children</div>
-      </RootLayout>
-    );
+    const { head } = getDocumentParts();
+    const appleTouchIcon = getHeadLinks(head).find((link) => link.props.rel === 'apple-touch-icon');
 
-    const appleTouchIcon = container.querySelector('link[rel="apple-touch-icon"]');
-    expect(appleTouchIcon).toHaveAttribute('href', '/bombe-icon-3x.png?<generated>');
-    expect(appleTouchIcon).toHaveAttribute('type', 'image/<generated>');
-    expect(appleTouchIcon).toHaveAttribute('sizes', '<generated>');
+    expect(appleTouchIcon?.props.href).toBe('/bombe-icon-3x.png?<generated>');
+    expect(appleTouchIcon?.props.type).toBe('image/<generated>');
+    expect(appleTouchIcon?.props.sizes).toBe('<generated>');
   });
 
   it('renders Google Fonts preconnect links', () => {
-    const { container } = render(
-      <RootLayout>
-        <div>Test children</div>
-      </RootLayout>
-    );
+    const { head } = getDocumentParts();
+    const preconnectLinks = getHeadLinks(head).filter((link) => link.props.rel === 'preconnect');
 
-    const preconnectLinks = container.querySelectorAll('link[rel="preconnect"]');
     expect(preconnectLinks).toHaveLength(2);
 
-    const googleFontsLink = Array.from(preconnectLinks).find(
-      (link: any) => link.getAttribute('href') === 'https://fonts.googleapis.com'
-    );
-    expect(googleFontsLink).toBeInTheDocument();
+    const googleFontsLink = preconnectLinks.find((link) => link.props.href === 'https://fonts.googleapis.com');
+    expect(googleFontsLink).toBeDefined();
 
-    const googleStaticLink = Array.from(preconnectLinks).find(
-      (link: any) => link.getAttribute('href') === 'https://fonts.gstatic.com'
-    );
-    expect(googleStaticLink).toHaveAttribute('crossOrigin', 'anonymous');
+    const googleStaticLink = preconnectLinks.find((link) => link.props.href === 'https://fonts.gstatic.com');
+    expect(googleStaticLink?.props.crossOrigin).toBe('anonymous');
   });
 
   it('renders body element with Inter font class', () => {
-    const { container } = render(
-      <RootLayout>
-        <div>Test children</div>
-      </RootLayout>
-    );
-
-    const bodyElement = container.querySelector('body');
-    expect(bodyElement).toHaveClass('inter-font-class');
+    const { body } = getDocumentParts();
+    expect(body.type).toBe('body');
+    expect(body.props.className).toBe('inter-font-class');
   });
 
   it('renders AppProviders wrapper with complete provider hierarchy', () => {
@@ -210,9 +204,10 @@ describe('RootLayout Component', () => {
 
   it('renders empty children', () => {
     const { container } = render(<RootLayout>{null}</RootLayout>);
+    const { html } = getDocumentParts(null);
 
     expect(container).toBeInTheDocument();
-    expect(container.querySelector('html')).toBeInTheDocument();
+    expect(html.type).toBe('html');
   });
 
   it('renders with React fragments as children', () => {
@@ -230,32 +225,17 @@ describe('RootLayout Component', () => {
   });
 
   it('maintains proper HTML structure', () => {
-    const { container } = render(
-      <RootLayout>
-        <div>Test content</div>
-      </RootLayout>
-    );
+    const { html, head, body } = getDocumentParts(<div>Test content</div>);
 
-    const html = container.querySelector('html');
-    const head = container.querySelector('head');
-    const body = container.querySelector('body');
-
-    expect(html).toBeInTheDocument();
-    expect(head).toBeInTheDocument();
-    expect(body).toBeInTheDocument();
-    expect(html).toContainElement(head);
-    expect(html).toContainElement(body);
+    expect(html.type).toBe('html');
+    expect(head.type).toBe('head');
+    expect(body.type).toBe('body');
+    expect(React.Children.toArray(html.props.children)).toEqual(expect.arrayContaining([head, body]));
   });
 
   it('applies correct font styling', () => {
-    const { container } = render(
-      <RootLayout>
-        <div>Test content</div>
-      </RootLayout>
-    );
-
-    const body = container.querySelector('body');
-    expect(body).toHaveClass('inter-font-class');
+    const { body } = getDocumentParts(<div>Test content</div>);
+    expect(body.props.className).toBe('inter-font-class');
   });
 
   it('renders Toaster component for notifications', () => {
@@ -380,16 +360,14 @@ describe('RootLayout Component', () => {
         <div>Test content</div>
       </RootLayout>
     );
+    const { html, head, body } = getDocumentParts(<div>Test content</div>);
 
-    const html = container.querySelector('html');
-    const head = container.querySelector('head');
-    const body = container.querySelector('body');
     const appProviders = container.querySelector('[data-testid="app-providers"]');
 
-    expect(html).toBeInTheDocument();
-    expect(head).toBeInTheDocument();
-    expect(body).toBeInTheDocument();
+    expect(html.type).toBe('html');
+    expect(head.type).toBe('head');
+    expect(body.type).toBe('body');
     expect(appProviders).toBeInTheDocument();
-    expect(body).toContainElement(appProviders);
+    expect(body.props.children.type.name).toBe('MockAppProviders');
   });
 });

@@ -112,6 +112,122 @@ export default class LiteGraphSdk extends SdkBase {
         EdgesBetween: EdgeBetween[];
     }, cancellationToken?: AbortController): Promise<any>;
     /**
+     * Create a graph-scoped transaction builder.
+     * @param {string} graphGuid - The GUID of the graph.
+     * @param {Object} [options] - Transaction defaults.
+     * @param {number} [options.MaxOperations=1000] - Maximum operation count.
+     * @param {number} [options.TimeoutSeconds=60] - Transaction timeout in seconds.
+     * @returns {GraphTransactionBuilder} - Transaction builder.
+     */
+    transaction(graphGuid: string, options?: {
+        MaxOperations?: number;
+        TimeoutSeconds?: number;
+    }): GraphTransactionBuilder;
+    /**
+     * Execute a graph-scoped transaction.
+     * @param {string} graphGuid - The GUID of the graph.
+     * @param {Object} request - Transaction request.
+     * @param {Array<Object>} request.Operations - Operations to execute atomically.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<TransactionResult>} - Transaction result.
+     */
+    executeTransaction(graphGuid: string, request: {
+        Operations: Array<any>;
+    }, cancellationToken?: AbortController): Promise<TransactionResult>;
+    /**
+     * Create a native graph query request.
+     * @param {string} query - Query text.
+     * @param {Object} [parameters] - Query parameters.
+     * @param {Object} [options] - Query execution options.
+     * @returns {Object} - Query request.
+     */
+    queryRequest(query: string, parameters?: any, options?: {
+        MaxResults?: number;
+        maxResults?: number;
+        TimeoutSeconds?: number;
+        timeoutSeconds?: number;
+        IncludeProfile?: boolean;
+        includeProfile?: boolean;
+    }): any;
+    /**
+     * Execute a native graph query.
+     * @param {string} graphGuid - The GUID of the graph.
+     * @param {Object|string} request - Query request or query text.
+     * @param {Object} [parameters] - Query parameters when request is query text.
+     * @param {Object} [options] - Query execution options.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<GraphQueryResult>} - Query result.
+     */
+    executeQuery(graphGuid: string, request: any | string, parameters?: any, options?: any, cancellationToken?: AbortController): Promise<GraphQueryResult>;
+    /**
+     * List authorization roles for the configured tenant.
+     */
+    listAuthorizationRoles(options?: any, cancellationToken?: AbortController): Promise<AuthorizationRoleSearchResult>;
+    /**
+     * Create an authorization role.
+     */
+    createAuthorizationRole(role: any, cancellationToken?: AbortController): Promise<AuthorizationRole>;
+    /**
+     * Read an authorization role.
+     */
+    readAuthorizationRole(roleGuid: string, cancellationToken?: AbortController): Promise<AuthorizationRole>;
+    /**
+     * Update an authorization role.
+     */
+    updateAuthorizationRole(role: any, cancellationToken?: AbortController): Promise<AuthorizationRole>;
+    /**
+     * Delete an authorization role.
+     */
+    deleteAuthorizationRole(roleGuid: string, cancellationToken?: AbortController): Promise<void>;
+    /**
+     * List user role assignments.
+     */
+    listUserRoleAssignments(userGuid: string, options?: any, cancellationToken?: AbortController): Promise<UserRoleAssignmentSearchResult>;
+    /**
+     * Create a user role assignment.
+     */
+    createUserRoleAssignment(userGuid: string, assignment: any, cancellationToken?: AbortController): Promise<UserRoleAssignment>;
+    /**
+     * Read a user role assignment.
+     */
+    readUserRoleAssignment(userGuid: string, assignmentGuid: string, cancellationToken?: AbortController): Promise<UserRoleAssignment>;
+    /**
+     * Update a user role assignment.
+     */
+    updateUserRoleAssignment(userGuid: string, assignment: any, cancellationToken?: AbortController): Promise<UserRoleAssignment>;
+    /**
+     * Delete a user role assignment.
+     */
+    deleteUserRoleAssignment(userGuid: string, assignmentGuid: string, cancellationToken?: AbortController): Promise<void>;
+    /**
+     * Read effective permissions for a user.
+     */
+    getUserEffectivePermissions(userGuid: string, graphGuid?: string, cancellationToken?: AbortController): Promise<AuthorizationEffectivePermissionsResult>;
+    /**
+     * List credential scope assignments.
+     */
+    listCredentialScopeAssignments(credentialGuid: string, options?: any, cancellationToken?: AbortController): Promise<CredentialScopeAssignmentSearchResult>;
+    /**
+     * Create a credential scope assignment.
+     */
+    createCredentialScopeAssignment(credentialGuid: string, assignment: any, cancellationToken?: AbortController): Promise<CredentialScopeAssignment>;
+    /**
+     * Read a credential scope assignment.
+     */
+    readCredentialScopeAssignment(credentialGuid: string, assignmentGuid: string, cancellationToken?: AbortController): Promise<CredentialScopeAssignment>;
+    /**
+     * Update a credential scope assignment.
+     */
+    updateCredentialScopeAssignment(credentialGuid: string, assignment: any, cancellationToken?: AbortController): Promise<CredentialScopeAssignment>;
+    /**
+     * Delete a credential scope assignment.
+     */
+    deleteCredentialScopeAssignment(credentialGuid: string, assignmentGuid: string, cancellationToken?: AbortController): Promise<void>;
+    /**
+     * Read effective permissions for a credential.
+     */
+    getCredentialEffectivePermissions(credentialGuid: string, graphGuid?: string, cancellationToken?: AbortController): Promise<AuthorizationEffectivePermissionsResult>;
+    /**
      * Check if a node exists by GUID.
      * @param {string} graphGuid - The GUID of the graph.
      * @param {string} guid - The GUID of the node.
@@ -712,12 +828,301 @@ export default class LiteGraphSdk extends SdkBase {
      * @returns {Promise<TenantMetaData[]>} Array of tenants associated with the email
      */
     getTenantsForEmail(email: string, cancellationToken?: AbortController): Promise<TenantMetaData[]>;
+    /**
+     * List all available backups.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<Array>} List of backup metadata.
+     */
+    listBackups(cancellationToken?: AbortController): Promise<any[]>;
+    /**
+     * Create a new database backup.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<Object>} Backup metadata.
+     */
+    createBackup(cancellationToken?: AbortController): Promise<any>;
+    /**
+     * Read a specific backup file.
+     * @param {string} backupFilename - The backup filename.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<Object>} Backup data.
+     */
+    readBackup(backupFilename: string, cancellationToken?: AbortController): Promise<any>;
+    /**
+     * Check if a backup file exists.
+     * @param {string} backupFilename - The backup filename.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<boolean>} True if the backup exists.
+     */
+    backupExists(backupFilename: string, cancellationToken?: AbortController): Promise<boolean>;
+    /**
+     * Delete a backup file.
+     * @param {string} backupFilename - The backup filename.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<void>}
+     */
+    deleteBackup(backupFilename: string, cancellationToken?: AbortController): Promise<void>;
+    /**
+     * Flush the in-memory database to disk.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<void>}
+     */
+    flushDatabase(cancellationToken?: AbortController): Promise<void>;
+    /**
+     * Enable vector indexing on a graph.
+     * @param {string} tenantGuid - Tenant GUID.
+     * @param {string} graphGuid - Graph GUID.
+     * @param {Object} config - Vector index configuration.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<Object>} Result.
+     */
+    enableVectorIndex(tenantGuid: string, graphGuid: string, config: any, cancellationToken?: AbortController): Promise<any>;
+    /**
+     * Disable vector indexing on a graph.
+     * @param {string} tenantGuid - Tenant GUID.
+     * @param {string} graphGuid - Graph GUID.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<void>}
+     */
+    disableVectorIndex(tenantGuid: string, graphGuid: string, cancellationToken?: AbortController): Promise<void>;
+    /**
+     * Rebuild the vector index for a graph.
+     * @param {string} tenantGuid - Tenant GUID.
+     * @param {string} graphGuid - Graph GUID.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<Object>} Result.
+     */
+    rebuildVectorIndex(tenantGuid: string, graphGuid: string, cancellationToken?: AbortController): Promise<any>;
+    /**
+     * Get the vector index configuration for a graph.
+     * @param {string} tenantGuid - Tenant GUID.
+     * @param {string} graphGuid - Graph GUID.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<Object>} Vector index configuration.
+     */
+    getVectorIndexConfig(tenantGuid: string, graphGuid: string, cancellationToken?: AbortController): Promise<any>;
+    /**
+     * Get vector index statistics for a graph.
+     * @param {string} tenantGuid - Tenant GUID.
+     * @param {string} graphGuid - Graph GUID.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<Object>} Vector index statistics.
+     */
+    getVectorIndexStats(tenantGuid: string, graphGuid: string, cancellationToken?: AbortController): Promise<any>;
+    /**
+     * Get a subgraph starting from a specific node.
+     * @param {string} tenantGuid - Tenant GUID.
+     * @param {string} graphGuid - Graph GUID.
+     * @param {string} nodeGuid - Starting node GUID.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<Object>} Subgraph data.
+     */
+    getSubgraph(tenantGuid: string, graphGuid: string, nodeGuid: string, cancellationToken?: AbortController): Promise<any>;
+    /**
+     * Get subgraph statistics starting from a specific node.
+     * @param {string} tenantGuid - Tenant GUID.
+     * @param {string} graphGuid - Graph GUID.
+     * @param {string} nodeGuid - Starting node GUID.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<Object>} Subgraph statistics.
+     */
+    getSubgraphStatistics(tenantGuid: string, graphGuid: string, nodeGuid: string, cancellationToken?: AbortController): Promise<any>;
+    /**
+     * Get statistics for a specific graph.
+     * @param {string} tenantGuid - Tenant GUID.
+     * @param {string} graphGuid - Graph GUID.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<Object>} Graph statistics.
+     */
+    getGraphStatistics(tenantGuid: string, graphGuid: string, cancellationToken?: AbortController): Promise<any>;
+    /**
+     * Get statistics for all graphs in a tenant.
+     * @param {string} tenantGuid - Tenant GUID.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<Object>} All graph statistics.
+     */
+    getAllGraphStatistics(tenantGuid: string, cancellationToken?: AbortController): Promise<any>;
+    /**
+     * Get the most connected nodes in a graph.
+     * @param {string} tenantGuid - Tenant GUID.
+     * @param {string} graphGuid - Graph GUID.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<Array>} List of most connected nodes.
+     */
+    getMostConnectedNodes(tenantGuid: string, graphGuid: string, cancellationToken?: AbortController): Promise<any[]>;
+    /**
+     * Get the least connected nodes in a graph.
+     * @param {string} tenantGuid - Tenant GUID.
+     * @param {string} graphGuid - Graph GUID.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<Array>} List of least connected nodes.
+     */
+    getLeastConnectedNodes(tenantGuid: string, graphGuid: string, cancellationToken?: AbortController): Promise<any[]>;
+    /**
+     * Read labels for a specific graph.
+     * @param {string} tenantGuid - Tenant GUID.
+     * @param {string} graphGuid - Graph GUID.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<LabelMetadata[]>} List of labels.
+     */
+    readGraphLabels(tenantGuid: string, graphGuid: string, cancellationToken?: AbortController): Promise<LabelMetadata[]>;
+    /**
+     * Read labels for a specific node.
+     * @param {string} tenantGuid - Tenant GUID.
+     * @param {string} graphGuid - Graph GUID.
+     * @param {string} nodeGuid - Node GUID.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<LabelMetadata[]>} List of labels.
+     */
+    readNodeLabels(tenantGuid: string, graphGuid: string, nodeGuid: string, cancellationToken?: AbortController): Promise<LabelMetadata[]>;
+    /**
+     * Read labels for a specific edge.
+     * @param {string} tenantGuid - Tenant GUID.
+     * @param {string} graphGuid - Graph GUID.
+     * @param {string} edgeGuid - Edge GUID.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<LabelMetadata[]>} List of labels.
+     */
+    readEdgeLabels(tenantGuid: string, graphGuid: string, edgeGuid: string, cancellationToken?: AbortController): Promise<LabelMetadata[]>;
+    /**
+     * Delete all labels for a specific graph.
+     * @param {string} tenantGuid - Tenant GUID.
+     * @param {string} graphGuid - Graph GUID.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<void>}
+     */
+    deleteGraphLabels(tenantGuid: string, graphGuid: string, cancellationToken?: AbortController): Promise<void>;
+    /**
+     * Delete all labels for a specific node.
+     * @param {string} tenantGuid - Tenant GUID.
+     * @param {string} graphGuid - Graph GUID.
+     * @param {string} nodeGuid - Node GUID.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<void>}
+     */
+    deleteNodeLabels(tenantGuid: string, graphGuid: string, nodeGuid: string, cancellationToken?: AbortController): Promise<void>;
+    /**
+     * Delete all labels for a specific edge.
+     * @param {string} tenantGuid - Tenant GUID.
+     * @param {string} graphGuid - Graph GUID.
+     * @param {string} edgeGuid - Edge GUID.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<void>}
+     */
+    deleteEdgeLabels(tenantGuid: string, graphGuid: string, edgeGuid: string, cancellationToken?: AbortController): Promise<void>;
+    /**
+     * Read tags for a specific graph.
+     * @param {string} tenantGuid - Tenant GUID.
+     * @param {string} graphGuid - Graph GUID.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<TagMetaData[]>} List of tags.
+     */
+    readGraphTags(tenantGuid: string, graphGuid: string, cancellationToken?: AbortController): Promise<TagMetaData[]>;
+    /**
+     * Read tags for a specific node.
+     * @param {string} tenantGuid - Tenant GUID.
+     * @param {string} graphGuid - Graph GUID.
+     * @param {string} nodeGuid - Node GUID.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<TagMetaData[]>} List of tags.
+     */
+    readNodeTags(tenantGuid: string, graphGuid: string, nodeGuid: string, cancellationToken?: AbortController): Promise<TagMetaData[]>;
+    /**
+     * Read tags for a specific edge.
+     * @param {string} tenantGuid - Tenant GUID.
+     * @param {string} graphGuid - Graph GUID.
+     * @param {string} edgeGuid - Edge GUID.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<TagMetaData[]>} List of tags.
+     */
+    readEdgeTags(tenantGuid: string, graphGuid: string, edgeGuid: string, cancellationToken?: AbortController): Promise<TagMetaData[]>;
+    /**
+     * Delete all tags for a specific graph.
+     * @param {string} tenantGuid - Tenant GUID.
+     * @param {string} graphGuid - Graph GUID.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<void>}
+     */
+    deleteGraphTags(tenantGuid: string, graphGuid: string, cancellationToken?: AbortController): Promise<void>;
+    /**
+     * Delete all tags for a specific node.
+     * @param {string} tenantGuid - Tenant GUID.
+     * @param {string} graphGuid - Graph GUID.
+     * @param {string} nodeGuid - Node GUID.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<void>}
+     */
+    deleteNodeTags(tenantGuid: string, graphGuid: string, nodeGuid: string, cancellationToken?: AbortController): Promise<void>;
+    /**
+     * Delete all tags for a specific edge.
+     * @param {string} tenantGuid - Tenant GUID.
+     * @param {string} graphGuid - Graph GUID.
+     * @param {string} edgeGuid - Edge GUID.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<void>}
+     */
+    deleteEdgeTags(tenantGuid: string, graphGuid: string, edgeGuid: string, cancellationToken?: AbortController): Promise<void>;
+    /**
+     * Read vectors for a specific graph.
+     * @param {string} tenantGuid - Tenant GUID.
+     * @param {string} graphGuid - Graph GUID.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<VectorMetadata[]>} List of vectors.
+     */
+    readGraphVectors(tenantGuid: string, graphGuid: string, cancellationToken?: AbortController): Promise<VectorMetadata[]>;
+    /**
+     * Read vectors for a specific node.
+     * @param {string} tenantGuid - Tenant GUID.
+     * @param {string} graphGuid - Graph GUID.
+     * @param {string} nodeGuid - Node GUID.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<VectorMetadata[]>} List of vectors.
+     */
+    readNodeVectors(tenantGuid: string, graphGuid: string, nodeGuid: string, cancellationToken?: AbortController): Promise<VectorMetadata[]>;
+    /**
+     * Read vectors for a specific edge.
+     * @param {string} tenantGuid - Tenant GUID.
+     * @param {string} graphGuid - Graph GUID.
+     * @param {string} edgeGuid - Edge GUID.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<VectorMetadata[]>} List of vectors.
+     */
+    readEdgeVectors(tenantGuid: string, graphGuid: string, edgeGuid: string, cancellationToken?: AbortController): Promise<VectorMetadata[]>;
+    /**
+     * Delete all vectors for a specific graph.
+     * @param {string} tenantGuid - Tenant GUID.
+     * @param {string} graphGuid - Graph GUID.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<void>}
+     */
+    deleteGraphVectors(tenantGuid: string, graphGuid: string, cancellationToken?: AbortController): Promise<void>;
+    /**
+     * Delete all vectors for a specific node.
+     * @param {string} tenantGuid - Tenant GUID.
+     * @param {string} graphGuid - Graph GUID.
+     * @param {string} nodeGuid - Node GUID.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<void>}
+     */
+    deleteNodeVectors(tenantGuid: string, graphGuid: string, nodeGuid: string, cancellationToken?: AbortController): Promise<void>;
+    /**
+     * Delete all vectors for a specific edge.
+     * @param {string} tenantGuid - Tenant GUID.
+     * @param {string} graphGuid - Graph GUID.
+     * @param {string} edgeGuid - Edge GUID.
+     * @param {AbortController} [cancellationToken] - Optional cancellation token for cancelling the request.
+     * @returns {Promise<void>}
+     */
+    deleteEdgeVectors(tenantGuid: string, graphGuid: string, edgeGuid: string, cancellationToken?: AbortController): Promise<void>;
 }
 import SdkBase from './SdkBase';
 import { VectorMetadata } from '../models/VectorMetadata';
 import Graph from '../models/Graph';
 import SearchResult from '../models/SearchResult';
 import EdgeBetween from '../models/EdgeBetween';
+import GraphTransactionBuilder from '../models/GraphTransactionBuilder';
+import GraphQueryResult from '../models/GraphQueryResult';
+import TransactionResult from '../models/TransactionResult';
+import { AuthorizationEffectivePermissionsResult, AuthorizationRole, AuthorizationRoleSearchResult, CredentialScopeAssignment, CredentialScopeAssignmentSearchResult, UserRoleAssignment, UserRoleAssignmentSearchResult } from '../models/AuthorizationModels';
 import Node from '../models/Node';
 import Edge from '../models/Edge';
 import RouteResult from '../models/RouteResult';

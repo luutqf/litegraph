@@ -2,6 +2,8 @@
 
 This directory contains official client SDKs for interacting with the LiteGraph REST API.
 
+Current release: v6.0.0.
+
 ## Available SDKs
 
 | SDK | Language | Package | Documentation |
@@ -60,6 +62,9 @@ All SDKs provide:
 - Authentication via bearer tokens
 - Search and filtering capabilities
 - Route finding and graph traversal
+- Native graph query and graph transaction workflows
+- Authorization roles, scoped credentials, and effective-permission inspection
+- Request history access where supported
 - GEXF export support
 - Error handling and retry mechanisms
 

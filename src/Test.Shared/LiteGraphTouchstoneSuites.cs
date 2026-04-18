@@ -207,6 +207,8 @@ namespace Test.Shared
             ("MCP.Graph.GetMany", "MCP.Graph.GetMany", TestMcpGraphGetMany),
             ("MCP.Graph.Search", "MCP.Graph.Search", TestMcpGraphSearch),
             ("MCP.Graph.ReadFirst", "MCP.Graph.ReadFirst", TestMcpGraphReadFirst),
+            ("MCP.Graph.Query", "MCP.Graph.Query", TestMcpGraphQuery),
+            ("MCP.Graph.Transaction", "MCP.Graph.Transaction", TestMcpGraphTransaction),
             ("MCP.Node.Create", "MCP.Node.Create", TestMcpNodeCreate),
             ("MCP.Node.Get", "MCP.Node.Get", TestMcpNodeGet),
             ("MCP.Node.All", "MCP.Node.All", TestMcpNodeAll),
@@ -341,6 +343,7 @@ namespace Test.Shared
                         inMemory: false),
                     CreateMcpExecutionSuite(),
                     CreateRouteAuthenticationSuite(),
+                    CreateImprovementFoundationSuite(),
                     CreateVectorSearchSuite(),
                     CreateVectorIndexImplementationSuite(),
                     CreateVectorIndexSearchSuite()
@@ -519,13 +522,24 @@ namespace Test.Shared
                 "PUT /v1.0/tenants",
                 "GET /v1.0/tenants/{tenantGuid}/graphs/{graphGuid}",
                 "PUT /v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectorindex/enable",
+                "GET /v1.0/tenants/{tenantGuid}/roles",
+                "PUT /v1.0/tenants/{tenantGuid}/roles",
+                "GET /v1.0/tenants/{tenantGuid}/users/{userGuid}/roles",
+                "GET /v1.0/tenants/{tenantGuid}/credentials/{credentialGuid}/scopes",
+                "POST /v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/query",
+                "POST /v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/transaction",
                 "GET /v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}",
+                "POST /v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/nodes/{nodeGuid}/edges",
+                "POST /v2.0/tenants/{tenantGuid}/graphs/{graphGuid}/labels",
+                "POST /v2.0/tenants/{tenantGuid}/graphs/{graphGuid}/tags",
+                "POST /v2.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectors",
+                "POST /v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/vectors/search",
                 "POST /v1.0/tenants/{tenantGuid}/graphs/{graphGuid}/routes"
             };
 
             AssertEqual(expectedPreAuthenticationRoutes.Count, preAuthenticationRoutes.Count, "Unauthenticated route count");
             AssertTrue(expectedPreAuthenticationRoutes.SetEquals(preAuthenticationRoutes), "Unauthenticated route set");
-            AssertEqual(170, postAuthenticationRoutes.Count, "Authenticated route count");
+            AssertEqual(200, postAuthenticationRoutes.Count, "Authenticated route count");
             AssertFalse(preAuthenticationRoutes.Overlaps(postAuthenticationRoutes), "Route auth buckets should not overlap");
 
             foreach (string route in criticalAuthenticatedRoutes)
@@ -3541,6 +3555,130 @@ namespace Test.Shared
 
             Graph? graph = _McpSerializer.DeserializeJson<Graph>(result);
             AssertNotNull(graph, "Graph should not be null");
+        }
+
+        private static async Task TestMcpGraphQuery()
+        {
+            await InitializeMcpServer();
+            if (_McpClient == null) throw new InvalidOperationException("MCP client is null");
+            if (_McpTestTenantGuid == Guid.Empty)
+            {
+                await TestMcpTenantCreate();
+            }
+            if (_McpTestGraphGuid == Guid.Empty)
+            {
+                await TestMcpGraphCreate();
+            }
+
+            GraphQueryRequest createRequest = new GraphQueryRequest
+            {
+                Query = "CREATE (n:Person { name: $name }) RETURN n",
+                Parameters = new Dictionary<string, object>
+                {
+                    ["name"] = "MCP Query Node"
+                },
+                MaxResults = 5
+            };
+
+            string createRequestJson = _McpSerializer.SerializeJson(createRequest, false);
+            string createResultJson = await _McpClient.CallAsync<string>("graph/query", new
+            {
+                tenantGuid = _McpTestTenantGuid.ToString(),
+                graphGuid = _McpTestGraphGuid.ToString(),
+                request = createRequestJson
+            });
+
+            AssertNotNull(createResultJson, "Create query result should not be null");
+            GraphQueryResult? createResult = _McpSerializer.DeserializeJson<GraphQueryResult>(createResultJson);
+            AssertNotNull(createResult, "Create query result should deserialize");
+            AssertTrue(createResult!.Mutated, "Create query should mutate graph child objects");
+            AssertEqual(1, createResult.RowCount, "Create query row count");
+            AssertTrue(createResult.Nodes.Count == 1, "Create query should return one node");
+
+            GraphQueryRequest matchRequest = new GraphQueryRequest
+            {
+                Query = "MATCH (n:Person) WHERE n.name = $name RETURN n LIMIT 5",
+                Parameters = new Dictionary<string, object>
+                {
+                    ["name"] = "MCP Query Node"
+                },
+                MaxResults = 5
+            };
+
+            string matchRequestJson = _McpSerializer.SerializeJson(matchRequest, false);
+            string matchResultJson = await _McpClient.CallAsync<string>("graph/query", new
+            {
+                tenantGuid = _McpTestTenantGuid.ToString(),
+                graphGuid = _McpTestGraphGuid.ToString(),
+                request = matchRequestJson
+            });
+
+            AssertNotNull(matchResultJson, "Match query result should not be null");
+            GraphQueryResult? matchResult = _McpSerializer.DeserializeJson<GraphQueryResult>(matchResultJson);
+            AssertNotNull(matchResult, "Match query result should deserialize");
+            AssertFalse(matchResult!.Mutated, "Match query should not mutate graph child objects");
+            AssertTrue(matchResult.RowCount >= 1, "Match query should return at least one row");
+            AssertNotNull(matchResult.Plan, "Match query should include a plan summary");
+        }
+
+        private static async Task TestMcpGraphTransaction()
+        {
+            await InitializeMcpServer();
+            if (_McpClient == null) throw new InvalidOperationException("MCP client is null");
+            if (_McpTestTenantGuid == Guid.Empty)
+            {
+                await TestMcpTenantCreate();
+            }
+            if (_McpTestGraphGuid == Guid.Empty)
+            {
+                await TestMcpGraphCreate();
+            }
+
+            Guid nodeGuid = Guid.NewGuid();
+            TransactionRequest transaction = new TransactionRequest
+            {
+                Operations = new List<TransactionOperation>
+                {
+                    new TransactionOperation
+                    {
+                        OperationType = TransactionOperationTypeEnum.Create,
+                        ObjectType = TransactionObjectTypeEnum.Node,
+                        Payload = new Node
+                        {
+                            GUID = nodeGuid,
+                            Name = "MCP Transaction Node"
+                        }
+                    }
+                },
+                MaxOperations = 5
+            };
+
+            string transactionJson = _McpSerializer.SerializeJson(transaction, false);
+            string resultJson = await _McpClient.CallAsync<string>("graph/transaction", new
+            {
+                tenantGuid = _McpTestTenantGuid.ToString(),
+                graphGuid = _McpTestGraphGuid.ToString(),
+                request = transactionJson
+            });
+
+            AssertNotNull(resultJson, "Transaction result should not be null");
+            TransactionResult? result = _McpSerializer.DeserializeJson<TransactionResult>(resultJson);
+            AssertNotNull(result, "Transaction result should deserialize");
+            AssertTrue(result!.Success, "Transaction should commit");
+            AssertFalse(result.RolledBack, "Committed transaction should not roll back");
+            AssertEqual(1, result.Operations.Count, "Transaction operation count");
+            AssertEqual(nodeGuid, result.Operations[0].GUID.GetValueOrDefault(), "Created node GUID");
+
+            string nodeJson = await _McpClient.CallAsync<string>("node/get", new
+            {
+                tenantGuid = _McpTestTenantGuid.ToString(),
+                graphGuid = _McpTestGraphGuid.ToString(),
+                nodeGuid = nodeGuid.ToString()
+            });
+
+            Node? node = _McpSerializer.DeserializeJson<Node>(nodeJson);
+            AssertNotNull(node, "Transaction-created node should be readable");
+            AssertEqual("MCP Transaction Node", node!.Name, "Transaction-created node name");
         }
 
         private static async Task TestMcpNodeCreateMany()

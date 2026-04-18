@@ -15,8 +15,16 @@ import LitegraphTitle from '@/components/base/typograpghy/Title';
 export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const searchParams = useSearchParams();
-  const apikey = searchParams?.get('apikey');
-  const endpoint = searchParams?.get('endpoint');
+  const decodeParam = (value: string | null | undefined) => {
+    if (!value) return value;
+    try {
+      return decodeURIComponent(value);
+    } catch {
+      return value;
+    }
+  };
+  const apikey = decodeParam(searchParams?.get('apikey'));
+  const endpoint = decodeParam(searchParams?.get('endpoint'));
   const { loginWithApiKey } = useApiKeyToLogin();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 

@@ -6,18 +6,19 @@
     using System.Collections.Specialized;
     using System.Data;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using ExpressionTree;
     using LiteGraph;
     using LiteGraph.GraphRepositories.Interfaces;
     using LiteGraph.Serialization;
-    using Microsoft.Data.Sqlite;
 
     /// <summary>
     /// Graph repository base class.
     /// The graph repository base class is only responsible for primitives.
     /// Validation and cross-cutting functions should be performed in LiteGraphClient rather than in the graph repository base.
     /// </summary>
-    public abstract class GraphRepositoryBase : IDisposable
+    public abstract class GraphRepositoryBase : IDisposable, IAsyncDisposable
     {
         #region Public-Members
 
@@ -118,6 +119,49 @@
         /// </summary>
         public abstract IRequestHistoryMethods RequestHistory { get; }
 
+        /// <summary>
+        /// Authorization audit methods.
+        /// </summary>
+        public abstract IAuthorizationAuditMethods AuthorizationAudit { get; }
+
+        /// <summary>
+        /// Authorization role methods.
+        /// </summary>
+        public abstract IAuthorizationRoleMethods AuthorizationRoles { get; }
+
+        /// <summary>
+        /// Indicates whether a graph-scoped repository transaction is currently active.
+        /// </summary>
+        public virtual bool GraphTransactionActive
+        {
+            get
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Tenant GUID for the active graph transaction, if any.
+        /// </summary>
+        public virtual Guid? GraphTransactionTenantGUID
+        {
+            get
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Graph GUID for the active graph transaction, if any.
+        /// </summary>
+        public virtual Guid? GraphTransactionGraphGUID
+        {
+            get
+            {
+                return null;
+            }
+        }
+
         #endregion
 
         #region Private-Members
@@ -136,9 +180,65 @@
         public abstract void InitializeRepository();
 
         /// <summary>
+        /// Initialize the repository asynchronously.
+        /// </summary>
+        /// <param name="token">Cancellation token.</param>
+        /// <returns>Task.</returns>
+        public virtual Task InitializeRepositoryAsync(CancellationToken token = default)
+        {
+            token.ThrowIfCancellationRequested();
+            InitializeRepository();
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
         /// Flush database contents to disk.  Only required if using an in-memory instance of a LiteGraph database.
         /// </summary>
         public abstract void Flush();
+
+        /// <summary>
+        /// Flush database contents asynchronously.
+        /// </summary>
+        /// <param name="token">Cancellation token.</param>
+        /// <returns>Task.</returns>
+        public virtual Task FlushAsync(CancellationToken token = default)
+        {
+            token.ThrowIfCancellationRequested();
+            Flush();
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Begin a graph-scoped transaction.  Transactions are limited to one tenant and one graph.
+        /// </summary>
+        /// <param name="tenantGuid">Tenant GUID.</param>
+        /// <param name="graphGuid">Graph GUID.</param>
+        /// <param name="token">Cancellation token.</param>
+        /// <returns>Task.</returns>
+        public virtual Task BeginGraphTransaction(Guid tenantGuid, Guid graphGuid, CancellationToken token = default)
+        {
+            throw new NotSupportedException(GetType().Name + " does not support graph-scoped transactions.");
+        }
+
+        /// <summary>
+        /// Commit the active graph-scoped transaction.
+        /// </summary>
+        /// <param name="token">Cancellation token.</param>
+        /// <returns>Task.</returns>
+        public virtual Task CommitGraphTransaction(CancellationToken token = default)
+        {
+            throw new NotSupportedException(GetType().Name + " does not support graph-scoped transactions.");
+        }
+
+        /// <summary>
+        /// Roll back the active graph-scoped transaction.
+        /// </summary>
+        /// <param name="token">Cancellation token.</param>
+        /// <returns>Task.</returns>
+        public virtual Task RollbackGraphTransaction(CancellationToken token = default)
+        {
+            throw new NotSupportedException(GetType().Name + " does not support graph-scoped transactions.");
+        }
 
         /// <summary>
         /// Dispose resources owned by the repository.
@@ -146,6 +246,17 @@
         public void Dispose()
         {
             Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Dispose resources owned by the repository asynchronously.
+        /// </summary>
+        /// <returns>Value task.</returns>
+        public async ValueTask DisposeAsync()
+        {
+            await DisposeAsyncCore().ConfigureAwait(false);
+            if (!Disposed) Dispose(true);
             GC.SuppressFinalize(this);
         }
 
@@ -160,6 +271,15 @@
         protected virtual void Dispose(bool disposing)
         {
             _Disposed = true;
+        }
+
+        /// <summary>
+        /// Dispose async resources owned by the repository.
+        /// </summary>
+        /// <returns>Value task.</returns>
+        protected virtual ValueTask DisposeAsyncCore()
+        {
+            return ValueTask.CompletedTask;
         }
 
         /// <summary>

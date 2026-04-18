@@ -18,7 +18,7 @@ import AddEditEdge from '@/page/edges/components/AddEditEdge';
 import { EdgeType } from '@/types/types';
 import DeleteEdge from '@/page/edges/components/DeleteEdge';
 import LitegraphTooltip from '@/components/base/tooltip/Tooltip';
-import { JsonEditor } from 'jsoneditor-react';
+import JsonEditorWithAce from '@/components/inputs/json-editor/JsonEditorWithAce';
 import styles from './tooltip.module.scss';
 import classNames from 'classnames';
 import {
@@ -261,7 +261,7 @@ const EdgeToolTip = ({
                 <LitegraphText>
                   <strong>Tags: </strong>
                   {Object.keys(displayEdge?.Tags || {}).length > 0 ? (
-                    <JsonEditor
+                    <JsonEditorWithAce
                       key={JSON.stringify(
                         displayEdge?.Tags && JSON.parse(JSON.stringify(displayEdge.Tags))
                       )}
@@ -293,7 +293,7 @@ const EdgeToolTip = ({
                     />
                   </LitegraphTooltip>
                 </LitegraphFlex>
-                <JsonEditor
+                <JsonEditorWithAce
                   key={JSON.stringify(displayEdge?.Data && JSON.parse(JSON.stringify(displayEdge?.Data)))}
                   value={(displayEdge?.Data && JSON.parse(JSON.stringify(displayEdge.Data))) || {}}
                   mode="view" // Use 'view' mode to make it read-only

@@ -2,6 +2,7 @@ namespace LiteGraph.McpServer.Registrations
 {
     using System;
     using System.Collections.Generic;
+    using System.Net.Http;
     using System.Text.Json;
     using LiteGraph.McpServer.Classes;
     using LiteGraph.Sdk;
@@ -39,8 +40,7 @@ namespace LiteGraph.McpServer.Registrations
                         throw new ArgumentException("User JSON string is required");
                     string userJson = userProp.GetString() ?? throw new ArgumentException("User JSON string cannot be null");
                     UserMaster user = Serializer.DeserializeJson<UserMaster>(userJson);
-                    UserMaster created = sdk.User.Create(user).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(created, true);
+                    return CreateUser(sdk, user);
                 });
 
             server.RegisterTool(
@@ -62,8 +62,7 @@ namespace LiteGraph.McpServer.Registrations
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                     Guid userGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "userGuid");
 
-                    UserMaster user = sdk.User.ReadByGuid(tenantGuid, userGuid).GetAwaiter().GetResult();
-                    return user != null ? Serializer.SerializeJson(user, true) : "null";
+                    return ReadUser(sdk, tenantGuid, userGuid);
                 });
 
             server.RegisterTool(
@@ -87,8 +86,7 @@ namespace LiteGraph.McpServer.Registrations
 
                     Guid tenantGuid = Guid.Parse(tenantGuidProp.GetString()!);
                     (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
-                    List<UserMaster> users = sdk.User.ReadMany(tenantGuid, order, skip).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(users, true);
+                    return ReadUsers(sdk, tenantGuid, order, skip);
                 });
 
             server.RegisterTool(
@@ -113,8 +111,7 @@ namespace LiteGraph.McpServer.Registrations
                     if (query.TenantGUID == null)
                         throw new ArgumentException("query.TenantGUID is required.");
 
-                    EnumerationResult<UserMaster> result = sdk.User.Enumerate(query).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(result, true);
+                    return EnumerateUsers(sdk, query);
                 });
 
             server.RegisterTool(
@@ -135,8 +132,7 @@ namespace LiteGraph.McpServer.Registrations
                         throw new ArgumentException("User JSON string is required");
                     string userJson = userProp.GetString() ?? throw new ArgumentException("User JSON string cannot be null");
                     UserMaster user = Serializer.DeserializeJson<UserMaster>(userJson);
-                    UserMaster updated = sdk.User.Update(user).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(updated, true);
+                    return UpdateUser(sdk, user);
                 });
 
             server.RegisterTool(
@@ -157,7 +153,7 @@ namespace LiteGraph.McpServer.Registrations
                     if (!args.HasValue) throw new ArgumentException("Parameters required");
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                     Guid userGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "userGuid");
-                    sdk.User.DeleteByGuid(tenantGuid, userGuid).GetAwaiter().GetResult();
+                    DeleteUser(sdk, tenantGuid, userGuid);
                     return true;
                 });
 
@@ -179,8 +175,7 @@ namespace LiteGraph.McpServer.Registrations
                     if (!args.HasValue) throw new ArgumentException("Parameters required");
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                     Guid userGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "userGuid");
-                    bool exists = sdk.User.ExistsByGuid(tenantGuid, userGuid).GetAwaiter().GetResult();
-                    return exists.ToString().ToLower();
+                    return UserExists(sdk, tenantGuid, userGuid);
                 });
 
             server.RegisterTool(
@@ -204,8 +199,7 @@ namespace LiteGraph.McpServer.Registrations
                         throw new ArgumentException("User GUIDs array is required");
                     
                     List<Guid> guids = Serializer.DeserializeJson<List<Guid>>(guidsProp.GetRawText());
-                    List<UserMaster> users = sdk.User.ReadByGuids(tenantGuid, guids).GetAwaiter().GetResult();
-                    return Serializer.SerializeJson(users, true);
+                    return ReadUsersByGuids(sdk, tenantGuid, guids);
                 });
         }
 
@@ -226,8 +220,7 @@ namespace LiteGraph.McpServer.Registrations
                     throw new ArgumentException("User JSON string is required");
                 string userJson = userProp.GetString() ?? throw new ArgumentException("User JSON string cannot be null");
                 UserMaster user = Serializer.DeserializeJson<UserMaster>(userJson);
-                UserMaster created = sdk.User.Create(user).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(created, true);
+                return CreateUser(sdk, user);
             });
 
             server.RegisterMethod("user/get", (args) =>
@@ -236,8 +229,7 @@ namespace LiteGraph.McpServer.Registrations
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid userGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "userGuid");
 
-                UserMaster user = sdk.User.ReadByGuid(tenantGuid, userGuid).GetAwaiter().GetResult();
-                return user != null ? Serializer.SerializeJson(user, true) : "null";
+                return ReadUser(sdk, tenantGuid, userGuid);
             });
 
             server.RegisterMethod("user/all", (args) =>
@@ -246,8 +238,7 @@ namespace LiteGraph.McpServer.Registrations
                     throw new ArgumentException("Tenant GUID is required");
                 Guid tenantGuid = Guid.Parse(tenantGuidProp.GetString()!);
                 (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
-                List<UserMaster> users = sdk.User.ReadMany(tenantGuid, order, skip).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(users, true);
+                return ReadUsers(sdk, tenantGuid, order, skip);
             });
 
             server.RegisterMethod("user/enumerate", (args) =>
@@ -260,8 +251,7 @@ namespace LiteGraph.McpServer.Registrations
                 if (query.TenantGUID == null)
                     throw new ArgumentException("query.TenantGUID is required.");
                 
-                EnumerationResult<UserMaster> result = sdk.User.Enumerate(query).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(result, true);
+                return EnumerateUsers(sdk, query);
             });
 
             server.RegisterMethod("user/update", (args) =>
@@ -270,8 +260,7 @@ namespace LiteGraph.McpServer.Registrations
                     throw new ArgumentException("User JSON string is required");
                 string userJson = userProp.GetString() ?? throw new ArgumentException("User JSON string cannot be null");
                 UserMaster user = Serializer.DeserializeJson<UserMaster>(userJson);
-                UserMaster updated = sdk.User.Update(user).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(updated, true);
+                return UpdateUser(sdk, user);
             });
 
             server.RegisterMethod("user/delete", (args) =>
@@ -279,7 +268,7 @@ namespace LiteGraph.McpServer.Registrations
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid userGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "userGuid");
-                sdk.User.DeleteByGuid(tenantGuid, userGuid).GetAwaiter().GetResult();
+                DeleteUser(sdk, tenantGuid, userGuid);
                 return true;
             });
 
@@ -288,8 +277,7 @@ namespace LiteGraph.McpServer.Registrations
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid userGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "userGuid");
-                bool exists = sdk.User.ExistsByGuid(tenantGuid, userGuid).GetAwaiter().GetResult();
-                return exists.ToString().ToLower();
+                return UserExists(sdk, tenantGuid, userGuid);
             });
 
             server.RegisterMethod("user/getmany", (args) =>
@@ -300,8 +288,7 @@ namespace LiteGraph.McpServer.Registrations
                     throw new ArgumentException("User GUIDs array is required");
                 
                 List<Guid> guids = Serializer.DeserializeJson<List<Guid>>(guidsProp.GetRawText());
-                List<UserMaster> users = sdk.User.ReadByGuids(tenantGuid, guids).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(users, true);
+                return ReadUsersByGuids(sdk, tenantGuid, guids);
             });
         }
 
@@ -322,8 +309,7 @@ namespace LiteGraph.McpServer.Registrations
                     throw new ArgumentException("User JSON string is required");
                 string userJson = userProp.GetString() ?? throw new ArgumentException("User JSON string cannot be null");
                 UserMaster user = Serializer.DeserializeJson<UserMaster>(userJson);
-                UserMaster created = sdk.User.Create(user).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(created, true);
+                return CreateUser(sdk, user);
             });
 
             server.RegisterMethod("user/get", (args) =>
@@ -332,8 +318,7 @@ namespace LiteGraph.McpServer.Registrations
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid userGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "userGuid");
 
-                UserMaster user = sdk.User.ReadByGuid(tenantGuid, userGuid).GetAwaiter().GetResult();
-                return user != null ? Serializer.SerializeJson(user, true) : "null";
+                return ReadUser(sdk, tenantGuid, userGuid);
             });
 
             server.RegisterMethod("user/all", (args) =>
@@ -342,8 +327,7 @@ namespace LiteGraph.McpServer.Registrations
                     throw new ArgumentException("Tenant GUID is required");
                 Guid tenantGuid = Guid.Parse(tenantGuidProp.GetString()!);
                 (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
-                List<UserMaster> users = sdk.User.ReadMany(tenantGuid, order, skip).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(users, true);
+                return ReadUsers(sdk, tenantGuid, order, skip);
             });
 
             server.RegisterMethod("user/enumerate", (args) =>
@@ -356,8 +340,7 @@ namespace LiteGraph.McpServer.Registrations
                 if (query.TenantGUID == null)
                     throw new ArgumentException("query.TenantGUID is required.");
                 
-                EnumerationResult<UserMaster> result = sdk.User.Enumerate(query).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(result, true);
+                return EnumerateUsers(sdk, query);
             });
 
             server.RegisterMethod("user/update", (args) =>
@@ -366,8 +349,7 @@ namespace LiteGraph.McpServer.Registrations
                     throw new ArgumentException("User JSON string is required");
                 string userJson = userProp.GetString() ?? throw new ArgumentException("User JSON string cannot be null");
                 UserMaster user = Serializer.DeserializeJson<UserMaster>(userJson);
-                UserMaster updated = sdk.User.Update(user).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(updated, true);
+                return UpdateUser(sdk, user);
             });
 
             server.RegisterMethod("user/delete", (args) =>
@@ -375,7 +357,7 @@ namespace LiteGraph.McpServer.Registrations
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid userGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "userGuid");
-                sdk.User.DeleteByGuid(tenantGuid, userGuid).GetAwaiter().GetResult();
+                DeleteUser(sdk, tenantGuid, userGuid);
                 return true;
             });
 
@@ -384,8 +366,7 @@ namespace LiteGraph.McpServer.Registrations
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid userGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "userGuid");
-                bool exists = sdk.User.ExistsByGuid(tenantGuid, userGuid).GetAwaiter().GetResult();
-                return exists.ToString().ToLower();
+                return UserExists(sdk, tenantGuid, userGuid);
             });
 
             server.RegisterMethod("user/getmany", (args) =>
@@ -396,12 +377,120 @@ namespace LiteGraph.McpServer.Registrations
                     throw new ArgumentException("User GUIDs array is required");
                 
                 List<Guid> guids = Serializer.DeserializeJson<List<Guid>>(guidsProp.GetRawText());
-                List<UserMaster> users = sdk.User.ReadByGuids(tenantGuid, guids).GetAwaiter().GetResult();
-                return Serializer.SerializeJson(users, true);
+                return ReadUsersByGuids(sdk, tenantGuid, guids);
             });
+        }
+
+        #endregion
+
+        #region Private-Methods
+
+        private static string CreateUser(LiteGraphSdk sdk, UserMaster user)
+        {
+            if (user == null) throw new ArgumentNullException(nameof(user));
+
+            string body = Serializer.SerializeJson(user, false);
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Put,
+                "/v1.0/tenants/"
+                + LiteGraphMcpRestProxy.Escape(user.TenantGUID)
+                + "/users",
+                body);
+        }
+
+        private static string ReadUser(LiteGraphSdk sdk, Guid tenantGuid, Guid userGuid)
+        {
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Get,
+                "/v1.0/tenants/"
+                + LiteGraphMcpRestProxy.Escape(tenantGuid)
+                + "/users/"
+                + LiteGraphMcpRestProxy.Escape(userGuid));
+        }
+
+        private static string ReadUsers(LiteGraphSdk sdk, Guid tenantGuid, EnumerationOrderEnum order, int skip)
+        {
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Get,
+                "/v1.0/tenants/"
+                + LiteGraphMcpRestProxy.Escape(tenantGuid)
+                + "/users?order="
+                + LiteGraphMcpRestProxy.Escape(order.ToString())
+                + "&skip="
+                + skip);
+        }
+
+        private static string EnumerateUsers(LiteGraphSdk sdk, EnumerationRequest query)
+        {
+            if (query == null) throw new ArgumentNullException(nameof(query));
+            if (query.TenantGUID == null) throw new ArgumentException("query.TenantGUID is required.");
+
+            string body = Serializer.SerializeJson(query, false);
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Post,
+                "/v2.0/tenants/"
+                + LiteGraphMcpRestProxy.Escape(query.TenantGUID.Value)
+                + "/users",
+                body);
+        }
+
+        private static string UserExists(LiteGraphSdk sdk, Guid tenantGuid, Guid userGuid)
+        {
+            bool exists = LiteGraphMcpRestProxy.HeadExists(
+                sdk,
+                "/v1.0/tenants/"
+                + LiteGraphMcpRestProxy.Escape(tenantGuid)
+                + "/users/"
+                + LiteGraphMcpRestProxy.Escape(userGuid));
+
+            return exists.ToString().ToLowerInvariant();
+        }
+
+        private static string ReadUsersByGuids(LiteGraphSdk sdk, Guid tenantGuid, List<Guid> guids)
+        {
+            if (guids == null) throw new ArgumentNullException(nameof(guids));
+
+            List<UserMaster> users = new List<UserMaster>();
+            foreach (Guid guid in guids)
+            {
+                string body = ReadUser(sdk, tenantGuid, guid);
+                UserMaster user = Serializer.DeserializeJson<UserMaster>(body);
+                if (user != null) users.Add(user);
+            }
+
+            return Serializer.SerializeJson(users, true);
+        }
+
+        private static string UpdateUser(LiteGraphSdk sdk, UserMaster user)
+        {
+            if (user == null) throw new ArgumentNullException(nameof(user));
+
+            string body = Serializer.SerializeJson(user, false);
+            return LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Put,
+                "/v1.0/tenants/"
+                + LiteGraphMcpRestProxy.Escape(user.TenantGUID)
+                + "/users/"
+                + LiteGraphMcpRestProxy.Escape(user.GUID),
+                body);
+        }
+
+        private static void DeleteUser(LiteGraphSdk sdk, Guid tenantGuid, Guid userGuid)
+        {
+            LiteGraphMcpRestProxy.SendJson(
+                sdk,
+                HttpMethod.Delete,
+                "/v1.0/tenants/"
+                + LiteGraphMcpRestProxy.Escape(tenantGuid)
+                + "/users/"
+                + LiteGraphMcpRestProxy.Escape(userGuid));
         }
 
         #endregion
     }
 }
-

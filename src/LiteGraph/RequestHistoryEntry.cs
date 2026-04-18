@@ -15,6 +15,21 @@ namespace LiteGraph
         public Guid GUID { get; set; } = Guid.NewGuid();
 
         /// <summary>
+        /// Request ID exposed to clients for correlation.
+        /// </summary>
+        public string RequestId { get; set; } = null;
+
+        /// <summary>
+        /// Correlation ID used to group related requests.
+        /// </summary>
+        public string CorrelationId { get; set; } = null;
+
+        /// <summary>
+        /// Trace ID from W3C trace context, if available.
+        /// </summary>
+        public string TraceId { get; set; } = null;
+
+        /// <summary>
         /// Timestamp when the request was received, in UTC.
         /// </summary>
         public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;

@@ -19,6 +19,16 @@
         /// </summary>
         public AuthorizationResultEnum Result { get; set; } = AuthorizationResultEnum.Denied;
 
+        /// <summary>
+        /// Machine-readable authorization decision reason.
+        /// </summary>
+        public string Reason { get; set; } = null;
+
+        /// <summary>
+        /// Required credential scope, when applicable.
+        /// </summary>
+        public string RequiredScope { get; set; } = null;
+
         #endregion
 
         #region Private-Members

@@ -248,6 +248,10 @@ namespace LiteGraph.GraphRepositories.Sqlite.Implementations
             string guidStr = Converters.GetDataRowStringValue(row, "guid");
             if (!string.IsNullOrEmpty(guidStr) && Guid.TryParse(guidStr, out Guid g)) entry.GUID = g;
 
+            if (row.Table.Columns.Contains("requestid")) entry.RequestId = Converters.GetDataRowStringValue(row, "requestid");
+            if (row.Table.Columns.Contains("correlationid")) entry.CorrelationId = Converters.GetDataRowStringValue(row, "correlationid");
+            if (row.Table.Columns.Contains("traceid")) entry.TraceId = Converters.GetDataRowStringValue(row, "traceid");
+
             string createdStr = Converters.GetDataRowStringValue(row, "createdutc");
             if (!string.IsNullOrEmpty(createdStr) && DateTime.TryParse(createdStr, out DateTime created))
                 entry.CreatedUtc = DateTime.SpecifyKind(created, DateTimeKind.Utc);

@@ -1,4 +1,4 @@
-﻿namespace LiteGraph.Server.Classes
+namespace LiteGraph.Server.Classes
 {
     using System;
 
@@ -54,6 +54,116 @@
         /// </summary>
         public static string DatabaseFilenameEnvironmentVariable = "LITEGRAPH_DB";
 
+        /// <summary>
+        /// Database provider type environment variable.
+        /// </summary>
+        public static string DatabaseTypeEnvironmentVariable = "LITEGRAPH_DB_TYPE";
+
+        /// <summary>
+        /// Database filename environment variable.
+        /// </summary>
+        public static string DatabaseFilenameEnvironmentVariableAlternate = "LITEGRAPH_DB_FILENAME";
+
+        /// <summary>
+        /// Database hostname environment variable.
+        /// </summary>
+        public static string DatabaseHostnameEnvironmentVariable = "LITEGRAPH_DB_HOST";
+
+        /// <summary>
+        /// Database port environment variable.
+        /// </summary>
+        public static string DatabasePortEnvironmentVariable = "LITEGRAPH_DB_PORT";
+
+        /// <summary>
+        /// Database name environment variable.
+        /// </summary>
+        public static string DatabaseNameEnvironmentVariable = "LITEGRAPH_DB_NAME";
+
+        /// <summary>
+        /// Database username environment variable.
+        /// </summary>
+        public static string DatabaseUsernameEnvironmentVariable = "LITEGRAPH_DB_USERNAME";
+
+        /// <summary>
+        /// Database password environment variable.
+        /// </summary>
+        public static string DatabasePasswordEnvironmentVariable = "LITEGRAPH_DB_PASSWORD";
+
+        /// <summary>
+        /// Database schema environment variable.
+        /// </summary>
+        public static string DatabaseSchemaEnvironmentVariable = "LITEGRAPH_DB_SCHEMA";
+
+        /// <summary>
+        /// Database connection string environment variable.
+        /// </summary>
+        public static string DatabaseConnectionStringEnvironmentVariable = "LITEGRAPH_DB_CONNECTION_STRING";
+
+        /// <summary>
+        /// Database maximum connection count environment variable.
+        /// </summary>
+        public static string DatabaseMaxConnectionsEnvironmentVariable = "LITEGRAPH_DB_MAX_CONNECTIONS";
+
+        /// <summary>
+        /// Database command timeout environment variable.
+        /// </summary>
+        public static string DatabaseCommandTimeoutEnvironmentVariable = "LITEGRAPH_DB_COMMAND_TIMEOUT_SECONDS";
+
+        /// <summary>
+        /// REST request timeout environment variable.
+        /// </summary>
+        public static string RequestTimeoutEnvironmentVariable = "LITEGRAPH_REQUEST_TIMEOUT_SECONDS";
+
+        /// <summary>
+        /// Enable built-in OTLP exporter environment variable.
+        /// </summary>
+        public static string OtlpExporterEnableEnvironmentVariable = "LITEGRAPH_OTLP_ENABLE";
+
+        /// <summary>
+        /// LiteGraph-specific OTLP endpoint environment variable.
+        /// </summary>
+        public static string OtlpEndpointEnvironmentVariable = "LITEGRAPH_OTLP_ENDPOINT";
+
+        /// <summary>
+        /// LiteGraph-specific OTLP protocol environment variable.
+        /// </summary>
+        public static string OtlpProtocolEnvironmentVariable = "LITEGRAPH_OTLP_PROTOCOL";
+
+        /// <summary>
+        /// LiteGraph-specific OTLP headers environment variable.
+        /// </summary>
+        public static string OtlpHeadersEnvironmentVariable = "LITEGRAPH_OTLP_HEADERS";
+
+        /// <summary>
+        /// LiteGraph-specific OTLP timeout environment variable.
+        /// </summary>
+        public static string OtlpTimeoutEnvironmentVariable = "LITEGRAPH_OTLP_TIMEOUT_MILLISECONDS";
+
+        /// <summary>
+        /// Standard OpenTelemetry service name environment variable.
+        /// </summary>
+        public static string OTelServiceNameEnvironmentVariable = "OTEL_SERVICE_NAME";
+
+        /// <summary>
+        /// Standard OpenTelemetry OTLP endpoint environment variable.
+        /// </summary>
+        public static string OTelOtlpEndpointEnvironmentVariable = "OTEL_EXPORTER_OTLP_ENDPOINT";
+
+        /// <summary>
+        /// Standard OpenTelemetry OTLP protocol environment variable.
+        /// </summary>
+        public static string OTelOtlpProtocolEnvironmentVariable = "OTEL_EXPORTER_OTLP_PROTOCOL";
+
+        /// <summary>
+        /// Standard OpenTelemetry OTLP headers environment variable.
+        /// </summary>
+        public static string OTelOtlpHeadersEnvironmentVariable = "OTEL_EXPORTER_OTLP_HEADERS";
+
+        /// <summary>
+        /// Standard OpenTelemetry OTLP timeout environment variable.
+        /// </summary>
+        public static string OTelOtlpTimeoutEnvironmentVariable = "OTEL_EXPORTER_OTLP_TIMEOUT";
+
         #endregion
 
         #region Content-Types
@@ -107,6 +217,26 @@
         /// Hostname header key.
         /// </summary>
         public static string HostnameHeader = "x-hostname";
+
+        /// <summary>
+        /// Request ID header.
+        /// </summary>
+        public static string RequestIdHeader = "x-request-id";
+
+        /// <summary>
+        /// Correlation ID header.
+        /// </summary>
+        public static string CorrelationIdHeader = "x-correlation-id";
+
+        /// <summary>
+        /// W3C trace context header.
+        /// </summary>
+        public static string TraceparentHeader = "traceparent";
+
+        /// <summary>
+        /// W3C trace state header.
+        /// </summary>
+        public static string TracestateHeader = "tracestate";
 
         /// <summary>
         /// Authorization header.

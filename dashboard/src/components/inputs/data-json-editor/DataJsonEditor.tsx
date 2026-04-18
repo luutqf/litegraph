@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import { JsonEditor } from 'jsoneditor-react';
+import JsonEditorWithAce from '@/components/inputs/json-editor/JsonEditorWithAce';
 
 type Props = {
   value?: unknown;
@@ -23,7 +23,7 @@ const DataJsonEditor: React.FC<Props> = ({
   const safeValue: unknown = value === undefined || value === null ? {} : value;
 
   return (
-    <JsonEditor
+    <JsonEditorWithAce
       key={uniqueKey}
       value={isPlainObject(safeValue) || Array.isArray(safeValue) ? safeValue : {}}
       onChange={(json: unknown) => {

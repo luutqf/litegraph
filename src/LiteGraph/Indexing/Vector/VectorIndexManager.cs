@@ -176,6 +176,26 @@ namespace LiteGraph.Indexing.Vector
             IEnumerable<VectorMetadata> vectors,
             CancellationToken cancellationToken = default)
         {
+            IEnumerable<VectorIndexEntry> entries = vectors?
+                .Where(vector => vector != null && vector.Vectors != null && vector.Vectors.Count > 0 && vector.NodeGUID.HasValue)
+                .Select(vector => VectorIndexEntry.FromVectorMetadata(vector, graph))
+                .ToList();
+
+            return await RebuildIndexAsync(graph, entries, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Rebuild the index for a graph from scratch using fully resolved index entries.
+        /// </summary>
+        /// <param name="graph">Graph to rebuild index for.</param>
+        /// <param name="entries">All index entries to add to the index.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>Rebuilt index.</returns>
+        public async Task<IVectorIndex> RebuildIndexAsync(
+            Graph graph,
+            IEnumerable<VectorIndexEntry> entries,
+            CancellationToken cancellationToken = default)
+        {
             ThrowIfDisposed();
 
             if (graph == null) throw new ArgumentNullException(nameof(graph));
@@ -211,34 +231,31 @@ namespace LiteGraph.Indexing.Vector
             await index.InitializeAsync(graph, cancellationToken);
 
             // Add all vectors in batches
-            if (vectors != null)
+            if (entries != null)
             {
-                Dictionary<Guid, List<float>> batch = new Dictionary<Guid, List<float>>();
+                List<VectorIndexEntry> batch = new List<VectorIndexEntry>();
                 const int batchSize = 1000;
 
-                foreach (VectorMetadata vector in vectors)
+                foreach (VectorIndexEntry entry in entries)
                 {
-                    if (vector.Vectors != null && vector.Vectors.Count > 0 && vector.NodeGUID.HasValue)
-                    {
-                        // Use NodeGUID as the key, not vector.GUID, so search can find the node
-                        batch[vector.NodeGUID.Value] = vector.Vectors;
+                    if (entry == null || entry.Vector == null || entry.Vector.Count < 1) continue;
 
-                        if (batch.Count >= batchSize)
-                        {
-                            await index.AddBatchAsync(batch, cancellationToken);
-                            batch.Clear();
-                        }
+                    batch.Add(entry);
+                    if (batch.Count >= batchSize)
+                    {
+                        await index.AddBatchAsync(batch, cancellationToken).ConfigureAwait(false);
+                        batch.Clear();
                     }
                 }
 
                 // Add remaining vectors
                 if (batch.Count > 0)
                 {
-                    await index.AddBatchAsync(batch, cancellationToken);
+                    await index.AddBatchAsync(batch, cancellationToken).ConfigureAwait(false);
                 }
 
                 // Save the index
-                await index.SaveAsync(cancellationToken);
+                await index.SaveAsync(cancellationToken).ConfigureAwait(false);
             }
 
             _Indexes[graph.GUID] = index;

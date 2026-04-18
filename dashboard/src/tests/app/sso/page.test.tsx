@@ -44,11 +44,7 @@ describe('SSOPage', () => {
     render(<SSOPage />);
 
     await waitFor(() => {
-      expect(
-        screen.getByText(
-          'Missing API Key or Endpoint. Please ensure both parameters are provided in the URL.'
-        )
-      ).toBeInTheDocument();
+      expect(screen.getByText('Missing API Key or Endpoint.')).toBeInTheDocument();
     });
   });
 
@@ -60,11 +56,7 @@ describe('SSOPage', () => {
     render(<SSOPage />);
 
     await waitFor(() => {
-      expect(
-        screen.getByText(
-          'Missing API Key or Endpoint. Please ensure both parameters are provided in the URL.'
-        )
-      ).toBeInTheDocument();
+      expect(screen.getByText('Missing API Key or Endpoint.')).toBeInTheDocument();
     });
   });
 
@@ -78,7 +70,7 @@ describe('SSOPage', () => {
     });
 
     (useApiKeyToLogin as jest.Mock).mockReturnValue({
-      loginWithApiKey: mockLoginWithApiKey,
+      loginWithApiKey: jest.fn(() => new Promise(() => {})),
       isLoading: true,
       error: null,
     });
@@ -117,12 +109,14 @@ describe('SSOPage', () => {
       }),
     });
 
-    mockLoginWithApiKey.mockResolvedValue(true);
+    mockLoginWithApiKey.mockResolvedValue({
+      success: true,
+      tenant: { GUID: 'tenant-guid' },
+    });
 
     render(<SSOPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Login Successful')).toBeInTheDocument();
       expect(screen.getByText('Redirecting to dashboard...')).toBeInTheDocument();
     });
   });
@@ -136,12 +130,12 @@ describe('SSOPage', () => {
       }),
     });
 
-    mockLoginWithApiKey.mockResolvedValue(false);
+    mockLoginWithApiKey.mockResolvedValue({ success: false });
 
     render(<SSOPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Login Failed')).toBeInTheDocument();
+      expect(screen.getByText('Cannot validate the API key.')).toBeInTheDocument();
     });
   });
 

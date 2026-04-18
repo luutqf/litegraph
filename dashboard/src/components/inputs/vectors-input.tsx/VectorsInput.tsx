@@ -4,7 +4,7 @@ import { Form, Button } from 'antd';
 import { CloseCircleFilled, CopyOutlined, PlusOutlined } from '@ant-design/icons';
 import LitegraphFormItem from '@/components/base/form/FormItem';
 import LitegraphInput from '@/components/base/input/Input';
-import { JsonEditor } from 'jsoneditor-react';
+import JsonEditorWithAce from '@/components/inputs/json-editor/JsonEditorWithAce';
 import { v4 } from 'uuid';
 import styles from './styles.module.scss';
 import LitegraphFlex from '@/components/base/flex/Flex';
@@ -25,12 +25,19 @@ const VectorsInput: React.FC<VectorsInputProps> = ({ value = [], onChange, name,
   const form = Form.useFormInstance();
 
   useEffect(() => {
+    const current = form.getFieldValue(name);
+    if ((current === undefined || current === null) && value.length > 0) {
+      form.setFieldValue(name, value);
+    }
+  }, [form, name, value]);
+
+  useEffect(() => {
     // Generate unique keys for each vector entry
     setUniqueKeys(value.map(() => v4()));
   }, [value.length]);
 
   return (
-    <Form.List name={name} initialValue={value}>
+    <Form.List name={name}>
       {(fields, { add, remove }, { errors }) => (
         <>
           {fields.length > 0
@@ -106,7 +113,7 @@ const VectorsInput: React.FC<VectorsInputProps> = ({ value = [], onChange, name,
                     }
                     rules={[{ required: true, message: 'Please input Vectors!' }]}
                   >
-                    <JsonEditor
+                    <JsonEditorWithAce
                       key={uniqueKeys[index]}
                       value={form.getFieldValue([field.name, 'Vectors']) || []}
                       onChange={(json: any) => {

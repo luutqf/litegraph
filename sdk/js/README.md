@@ -8,6 +8,8 @@ This SDK is part of the [LiteGraph monorepo](../../README.md). For other languag
 
 LiteGraph is a lightweight graph database with both relational and vector support, built using SQLite, with support for exporting to GEXF. LiteGraph is intended to be a multi-modal database primarily for providing persistence and retrieval for knowledge and artificial intelligence applications.
 
+Current release: v6.0.0.
+
 ## Features
 
 - Multi-tenant support with tenant GUID management
@@ -19,6 +21,7 @@ LiteGraph is a lightweight graph database with both relational and vector suppor
 - Built-in retry mechanism and error handling
 - Comprehensive logging system
 - Access key authentication support
+- Native graph query, graph transaction, authorization, and request history models for LiteGraph v6
 
 ## Requirements
 

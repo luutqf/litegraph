@@ -78,6 +78,21 @@ namespace LiteGraph.Indexing.Vector
         public bool IsLoaded { get; set; }
 
         /// <summary>
+        /// Indicates that the persisted vectors and vector index may be inconsistent and should be rebuilt.
+        /// </summary>
+        public bool IsDirty { get; set; }
+
+        /// <summary>
+        /// Timestamp when the index was marked dirty.
+        /// </summary>
+        public DateTime? DirtySinceUtc { get; set; }
+
+        /// <summary>
+        /// Reason the index was marked dirty.
+        /// </summary>
+        public string DirtyReason { get; set; }
+
+        /// <summary>
         /// Distance metric being used.
         /// </summary>
         public string DistanceMetric { get; set; }
