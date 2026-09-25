@@ -6,14 +6,14 @@ For the setup walkthrough (build, install, start, and connect Claude), see [Usin
 
 ## Transports
 
-The server is built on Voltaic and listens on three transports at once. All three expose the same tools under the same names; pick whichever fits the client.
+The server is built on Voltaic 2.x and listens on three transports at once. All three expose the same operations under the same names; pick whichever fits the client. `tools/list` publishes only LiteGraph tools; Voltaic's demo tools (`echo`, `getTime`, `getSessions`, `getClients`) are not exposed. The protocol `ping` method is always available and returns `{}`.
 
 | Transport | Default endpoint | Notes |
 |-----------|------------------|-------|
 | HTTP (MCP) | `http://localhost:8702/mcp` | MCP Streamable HTTP. Use this URL for Claude Code and other MCP clients; it supports every MCP revision from `2024-11-05` through the stateless `2026-07-28` |
-| HTTP (JSON-RPC) | `http://localhost:8702/rpc` | Plain JSON-RPC over HTTP POST, with server-sent events at `/events`. Intended for direct tool calls; MCP clients that negotiate `2026-07-28` (such as Claude Code 2.1.x) must use `/mcp` |
-| TCP | `localhost:8703` | Raw JSON-RPC over a socket |
-| WebSocket | `ws://localhost:8704/mcp` | JSON-RPC over a WebSocket |
+| HTTP (JSON-RPC) | `http://localhost:8702/rpc` | JSON-RPC over HTTP POST, with server-sent events at `/events`. Tools are called through `tools/call`; MCP clients that negotiate `2026-07-28` (such as Claude Code 2.1.x) must use `/mcp` |
+| TCP | `localhost:8703` | Raw JSON-RPC over a socket; tools are called by their bare name as the JSON-RPC `method` |
+| WebSocket | `ws://localhost:8704/mcp` | JSON-RPC over a WebSocket; tools are called by their bare name as the JSON-RPC `method` |
 
 Hostnames and ports are configurable through `litegraph-mcp.json` or the `MCP_HTTP_*`, `MCP_TCP_*`, and `MCP_WS_*` environment variables. The LiteGraph endpoint and API key the server forwards to are set with `LITEGRAPH_ENDPOINT` and `LITEGRAPH_API_KEY`.
 
@@ -21,7 +21,9 @@ As of v8.0 the MCP server also exposes a Prometheus `/metrics` endpoint (default
 
 ## Request And Response Envelope
 
-Every call is a JSON-RPC 2.0 request whose `method` is the tool name and whose `params` is the tool's argument object. The standard MCP discovery methods (`initialize`, `server/discover`, `tools/list`, `tools/call`) are also available for clients that enumerate tools before calling them. `tools/list` is paginated (100 tools per page); follow `nextCursor` to read the full catalog. `tools/call` validates arguments against each tool's input schema, so a missing required argument is rejected before the tool runs.
+Every call is a JSON-RPC 2.0 request. On the HTTP transport (`/mcp` and `/rpc`) a tool is invoked through the MCP `tools/call` method, with the tool name in `params.name` and the tool's argument object in `params.arguments`. The standard MCP methods (`initialize`, `server/discover`, `ping`, `tools/list`, `tools/call`) are available for clients that enumerate tools before calling them. `tools/list` is paginated (100 tools per page); follow `nextCursor` to read the full catalog. `tools/call` validates arguments against each tool's input schema, so a missing required argument, or an argument of the wrong JSON type, is rejected with `-32602` before the tool runs.
+
+As of Voltaic 2.0, calling a tool by its bare name over HTTP (for example `"method": "graph/get"`) returns `-32601` (method not found). The TCP and WebSocket transports still accept the bare form, with the tool name as `method` and the argument object as `params`; the examples below use the `tools/call` form, and on TCP or WebSocket the `arguments` object moves to `params` unchanged.
 
 Request:
 
@@ -29,11 +31,14 @@ Request:
 {
   "jsonrpc": "2.0",
   "id": 1,
-  "method": "graph/get",
+  "method": "tools/call",
   "params": {
-    "tenantGuid": "00000000-0000-0000-0000-000000000000",
-    "graphGuid": "00000000-0000-0000-0000-000000000000",
-    "includeData": true
+    "name": "graph/get",
+    "arguments": {
+      "tenantGuid": "00000000-0000-0000-0000-000000000000",
+      "graphGuid": "00000000-0000-0000-0000-000000000000",
+      "includeData": true
+    }
   }
 }
 ```
@@ -44,11 +49,15 @@ Response:
 {
   "jsonrpc": "2.0",
   "id": 1,
-  "result": "{ ...serialized graph JSON... }"
+  "result": {
+    "content": [
+      { "type": "text", "text": "{ ...serialized graph JSON... }" }
+    ]
+  }
 }
 ```
 
-Most tools return the REST payload as a JSON string in `result`; a handful return a bare `true`/`false` or an empty string for operations that have no body (deletes, flushes, index rebuilds). When a tool's arguments are invalid or the REST call fails, the server returns a JSON-RPC `error` object with a message describing the failure. Argument names are camelCase. Complex request bodies (search requests, enumeration queries, subgraph extraction, vector index configuration) are passed as a JSON string in a single argument rather than as nested objects, which keeps the tool schemas flat and predictable.
+Most tools return the REST payload as a JSON string in the text content (`result` itself on TCP and WebSocket); a handful return `true`/`false` or an empty string for operations that have no body (deletes, flushes, index rebuilds). When a tool's arguments are invalid or the REST call fails, the server returns a JSON-RPC `error` object with a message describing the failure. Argument names are camelCase. Complex request bodies (search requests, enumeration queries, subgraph extraction, vector index configuration) are passed as a JSON string in a single argument rather than as nested objects, which keeps the tool schemas flat and predictable.
 
 ## List Tools, Paging, And getmany
 
@@ -202,12 +211,15 @@ Renders an entire graph as JSONL and returns it as a string. This is also the po
 {
   "jsonrpc": "2.0",
   "id": 10,
-  "method": "graph/exportjsonl",
+  "method": "tools/call",
   "params": {
-    "tenantGuid": "00000000-0000-0000-0000-000000000000",
-    "graphGuid": "00000000-0000-0000-0000-000000000000",
-    "includeData": true,
-    "includeSubordinates": true
+    "name": "graph/exportjsonl",
+    "arguments": {
+      "tenantGuid": "00000000-0000-0000-0000-000000000000",
+      "graphGuid": "00000000-0000-0000-0000-000000000000",
+      "includeData": true,
+      "includeSubordinates": true
+    }
   }
 }
 ```
@@ -216,7 +228,11 @@ Renders an entire graph as JSONL and returns it as a string. This is also the po
 {
   "jsonrpc": "2.0",
   "id": 10,
-  "result": "# litegraph-jsonl v1\n# kind: graph-backup\n{\"Type\":\"Graph\",\"Object\":{\"GUID\":\"00000000-0000-0000-0000-000000000000\",\"Name\":\"Default graph\"}}\n{\"Type\":\"Node\",\"Object\":{\"GUID\":\"11111111-1111-1111-1111-111111111111\",\"Name\":\"Ada\"}}\n{\"Type\":\"Edge\",\"Object\":{\"GUID\":\"22222222-2222-2222-2222-222222222222\",\"From\":\"11111111-1111-1111-1111-111111111111\",\"To\":\"33333333-3333-3333-3333-333333333333\"}}"
+  "result": {
+    "content": [
+      { "type": "text", "text": "# litegraph-jsonl v1\n# kind: graph-backup\n{\"Type\":\"Graph\",\"Object\":{\"GUID\":\"00000000-0000-0000-0000-000000000000\",\"Name\":\"Default graph\"}}\n{\"Type\":\"Node\",\"Object\":{\"GUID\":\"11111111-1111-1111-1111-111111111111\",\"Name\":\"Ada\"}}\n{\"Type\":\"Edge\",\"Object\":{\"GUID\":\"22222222-2222-2222-2222-222222222222\",\"From\":\"11111111-1111-1111-1111-111111111111\",\"To\":\"33333333-3333-3333-3333-333333333333\"}}" }
+    ]
+  }
 }
 ```
 
@@ -234,11 +250,14 @@ Extracts a subgraph from one or more start nodes and returns it as JSONL. The `r
 {
   "jsonrpc": "2.0",
   "id": 11,
-  "method": "graph/exportsubgraphjsonl",
+  "method": "tools/call",
   "params": {
-    "tenantGuid": "00000000-0000-0000-0000-000000000000",
-    "graphGuid": "00000000-0000-0000-0000-000000000000",
-    "request": "{\"StartNodeGUIDs\":[\"11111111-1111-1111-1111-111111111111\"],\"MaxDepth\":2,\"Direction\":\"Both\",\"IncludeData\":true}"
+    "name": "graph/exportsubgraphjsonl",
+    "arguments": {
+      "tenantGuid": "00000000-0000-0000-0000-000000000000",
+      "graphGuid": "00000000-0000-0000-0000-000000000000",
+      "request": "{\"StartNodeGUIDs\":[\"11111111-1111-1111-1111-111111111111\"],\"MaxDepth\":2,\"Direction\":\"Both\",\"IncludeData\":true}"
+    }
   }
 }
 ```
@@ -262,13 +281,16 @@ Reads a JSONL body back into the store and returns a `GraphImportResult` string.
 {
   "jsonrpc": "2.0",
   "id": 12,
-  "method": "graph/importjsonl",
+  "method": "tools/call",
   "params": {
-    "tenantGuid": "00000000-0000-0000-0000-000000000000",
-    "guidStrategy": "regenerate",
-    "onError": "abort",
-    "batchSize": 1000,
-    "jsonl": "# litegraph-jsonl v1\n{\"Type\":\"Graph\",\"Object\":{\"Name\":\"Copy\"}}\n{\"Type\":\"Node\",\"Object\":{\"GUID\":\"11111111-1111-1111-1111-111111111111\",\"Name\":\"Ada\"}}"
+    "name": "graph/importjsonl",
+    "arguments": {
+      "tenantGuid": "00000000-0000-0000-0000-000000000000",
+      "guidStrategy": "regenerate",
+      "onError": "abort",
+      "batchSize": 1000,
+      "jsonl": "# litegraph-jsonl v1\n{\"Type\":\"Graph\",\"Object\":{\"Name\":\"Copy\"}}\n{\"Type\":\"Node\",\"Object\":{\"GUID\":\"11111111-1111-1111-1111-111111111111\",\"Name\":\"Ada\"}}"
+    }
   }
 }
 ```
@@ -277,7 +299,11 @@ Reads a JSONL body back into the store and returns a `GraphImportResult` string.
 {
   "jsonrpc": "2.0",
   "id": 12,
-  "result": "{\"Success\":true,\"TenantGUID\":\"00000000-0000-0000-0000-000000000000\",\"GraphGUID\":\"9de1f1a2-4b8c-4f7a-9a1b-2c3d4e5f6a7b\",\"GraphsCreated\":1,\"NodesCreated\":1,\"EdgesCreated\":0,\"LinesRead\":2,\"LinesIgnored\":1,\"Warnings\":[],\"GuidMap\":{}}"
+  "result": {
+    "content": [
+      { "type": "text", "text": "{\"Success\":true,\"TenantGUID\":\"00000000-0000-0000-0000-000000000000\",\"GraphGUID\":\"9de1f1a2-4b8c-4f7a-9a1b-2c3d4e5f6a7b\",\"GraphsCreated\":1,\"NodesCreated\":1,\"EdgesCreated\":0,\"LinesRead\":2,\"LinesIgnored\":1,\"Warnings\":[],\"GuidMap\":{}}" }
+    ]
+  }
 }
 ```
 

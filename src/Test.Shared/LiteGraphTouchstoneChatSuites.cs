@@ -1489,11 +1489,11 @@ namespace Test.Shared
             {
                 if (_McpClient == null) throw new InvalidOperationException("MCP client is null");
 
-                string settingsJson = await _McpClient.CallAsync<string>("chat/settings/get", new { tenantGuid = _DefaultTenantGuid }).ConfigureAwait(false);
+                string settingsJson = await CallMcpToolAsync<string>("chat/settings/get", new { tenantGuid = _DefaultTenantGuid }).ConfigureAwait(false);
                 AssertNotNull(settingsJson, "chat/settings/get returns settings");
                 AssertTrue(settingsJson!.Contains("EnableChat"), "The settings payload carries EnableChat");
 
-                string createdJson = await _McpClient.CallAsync<string>("chat/endpoint/create", new
+                string createdJson = await CallMcpToolAsync<string>("chat/endpoint/create", new
                 {
                     tenantGuid = _DefaultTenantGuid,
                     endpoint = "{\"Name\":\"mcp-created\",\"EndpointType\":\"Completion\",\"Provider\":\"Ollama\",\"Endpoint\":\"http://127.0.0.1:11434\",\"Model\":\"gemma3:4b\",\"HealthCheckEnabled\":false}"
@@ -1501,16 +1501,16 @@ namespace Test.Shared
                 AssertNotNull(createdJson, "chat/endpoint/create returns the endpoint");
                 string endpointGuid = ExtractGuid(createdJson!);
 
-                string listJson = await _McpClient.CallAsync<string>("chat/endpoint/all", new { tenantGuid = _DefaultTenantGuid }).ConfigureAwait(false);
+                string listJson = await CallMcpToolAsync<string>("chat/endpoint/all", new { tenantGuid = _DefaultTenantGuid }).ConfigureAwait(false);
                 AssertTrue(listJson != null && listJson.Contains("mcp-created"), "chat/endpoint/all lists the created endpoint");
 
-                string threadsJson = await _McpClient.CallAsync<string>("chat/thread/all", new { tenantGuid = _DefaultTenantGuid }).ConfigureAwait(false);
+                string threadsJson = await CallMcpToolAsync<string>("chat/thread/all", new { tenantGuid = _DefaultTenantGuid }).ConfigureAwait(false);
                 AssertNotNull(threadsJson, "chat/thread/all responds");
 
-                bool deleted = await _McpClient.CallAsync<bool>("chat/endpoint/delete", new { tenantGuid = _DefaultTenantGuid, endpointGuid = endpointGuid }).ConfigureAwait(false);
+                bool deleted = await CallMcpToolAsync<bool>("chat/endpoint/delete", new { tenantGuid = _DefaultTenantGuid, endpointGuid = endpointGuid }).ConfigureAwait(false);
                 AssertTrue(deleted, "chat/endpoint/delete reports success");
 
-                string listAfterDelete = await _McpClient.CallAsync<string>("chat/endpoint/all", new { tenantGuid = _DefaultTenantGuid }).ConfigureAwait(false);
+                string listAfterDelete = await CallMcpToolAsync<string>("chat/endpoint/all", new { tenantGuid = _DefaultTenantGuid }).ConfigureAwait(false);
                 AssertFalse(listAfterDelete != null && listAfterDelete.Contains("mcp-created"), "chat/endpoint/delete removes the endpoint");
             }
             finally

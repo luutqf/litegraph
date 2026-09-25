@@ -2,6 +2,7 @@ namespace Test.Shared
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Net.Http;
     using System.Text;
     using System.Text.Json;
@@ -22,6 +23,7 @@ namespace Test.Shared
 
         private const string _McpStatelessVersion = "2026-07-28";
         private const string _McpNewestHandshakeVersion = "2025-11-25";
+        private static readonly HashSet<string> _VoltaicDemoToolNames = new HashSet<string>(StringComparer.Ordinal) { "ping", "echo", "getTime", "getSessions", "getClients" };
 
         #endregion
 
@@ -41,7 +43,15 @@ namespace Test.Shared
                     McpProtocolCase("Mcp.Protocol.StatelessToolCallMissingArgument", "Stateless tools/call without a required argument is rejected", TestMcpStatelessToolCallMissingArgument),
                     McpProtocolCase("Mcp.Protocol.StatelessUnknownTool", "Stateless tools/call for an unknown tool is rejected", TestMcpStatelessUnknownTool),
                     McpProtocolCase("Mcp.Protocol.HandshakeToolCall", "Handshake tools/call passes arguments through to the handler", TestMcpHandshakeToolCall),
-                    McpProtocolCase("Mcp.Protocol.MethodCallWithoutParams", "A direct method call without params is rejected by the handler", TestMcpMethodCallWithoutParams),
+                    McpProtocolCase("Mcp.Protocol.ToolCallWithoutArguments", "tools/call without arguments or without a required argument is rejected", TestMcpToolCallWithoutArguments),
+                    McpProtocolCase("Mcp.Protocol.SchemaTypeMismatchRejected", "tools/call rejects an argument whose type does not match the tool schema", TestMcpSchemaTypeMismatchRejected),
+                    McpProtocolCase("Mcp.Protocol.BareToolMethodRejected", "Calling an HTTP tool by its bare name returns method-not-found; tools/call succeeds", TestMcpBareToolMethodRejected),
+                    McpProtocolCase("Mcp.Protocol.ToolsListExcludesDiagnosticTools", "tools/list publishes only LiteGraph tools, with no Voltaic demo or diagnostic tools", TestMcpToolsListExcludesDiagnosticTools),
+                    McpProtocolCase("Mcp.Protocol.DiagnosticToolsNotCallable", "tools/call for removed Voltaic demo tools (ping, echo, getTime, getSessions, getClients) is rejected", TestMcpDiagnosticToolsNotCallable),
+                    McpProtocolCase("Mcp.Protocol.PingReturnsEmptyObject", "Protocol ping returns an empty object instead of \"pong\"", TestMcpPingReturnsEmptyObject),
+                    McpProtocolCase("Mcp.Protocol.StatelessPing", "Stateless ping returns resultType complete", TestMcpStatelessPing),
+                    McpProtocolCase("Mcp.Protocol.TcpTransport", "TCP transport answers ping, lists no demo tools, and serves LiteGraph methods", TestMcpTcpTransport),
+                    McpProtocolCase("Mcp.Protocol.WebSocketTransport", "WebSocket transport answers ping and serves LiteGraph methods", TestMcpWebSocketTransport),
                     McpProtocolCase("Mcp.Protocol.InitializeCapsHandshakeVersion", "initialize requesting 2026-07-28 negotiates the newest handshake revision", TestMcpInitializeCapsHandshakeVersion)
                 },
                 afterSuiteAsync: CleanupMcpSuiteAsync);
@@ -287,16 +297,261 @@ namespace Test.Shared
             }
         }
 
-        private static async Task TestMcpMethodCallWithoutParams(CancellationToken cancellationToken)
+        private static async Task TestMcpToolCallWithoutArguments(CancellationToken cancellationToken)
         {
             await EnsureMcpEnvironmentAsync(cancellationToken).ConfigureAwait(false);
             if (_McpClient == null) throw new InvalidOperationException("MCP client is null");
 
-            JsonRpcResponse response = await _McpClient.CallAsync("tenant/get", null, token: cancellationToken).ConfigureAwait(false);
-            AssertTrue(response.Error != null, "tenant/get without params returns a JSON-RPC error");
+            JsonRpcResponse response = await _McpClient.CallAsync("tools/call", new { name = "tenant/get" }, token: cancellationToken).ConfigureAwait(false);
+            AssertTrue(response.Error != null, "tools/call tenant/get without arguments returns a JSON-RPC error");
 
-            JsonRpcResponse missingName = await _McpClient.CallAsync("graph/create", new { tenantGuid = _DefaultTenantGuid }, token: cancellationToken).ConfigureAwait(false);
-            AssertTrue(missingName.Error != null, "graph/create without a name returns a JSON-RPC error");
+            JsonRpcResponse missingName = await _McpClient.CallAsync(
+                "tools/call",
+                new { name = "graph/create", arguments = new { tenantGuid = _DefaultTenantGuid } },
+                token: cancellationToken).ConfigureAwait(false);
+            AssertTrue(missingName.Error != null, "tools/call graph/create without a name returns a JSON-RPC error");
+            AssertEqual(-32602, missingName.Error!.Code, "Missing required argument is reported as invalid params");
+
+            JsonRpcResponse noName = await _McpClient.CallAsync("tools/call", new { arguments = new { tenantGuid = _DefaultTenantGuid } }, token: cancellationToken).ConfigureAwait(false);
+            AssertTrue(noName.Error != null, "tools/call without a tool name returns a JSON-RPC error");
+        }
+
+        private static async Task TestMcpSchemaTypeMismatchRejected(CancellationToken cancellationToken)
+        {
+            await EnsureMcpEnvironmentAsync(cancellationToken).ConfigureAwait(false);
+            if (_McpClient == null) throw new InvalidOperationException("MCP client is null");
+
+            JsonRpcResponse stringRequest = await _McpClient.CallAsync(
+                "tools/call",
+                new { name = "graph/query", arguments = new { tenantGuid = _DefaultTenantGuid, graphGuid = Guid.NewGuid().ToString(), request = "{\"Query\":\"MATCH (n) RETURN n\"}" } },
+                token: cancellationToken).ConfigureAwait(false);
+            AssertTrue(stringRequest.Error != null, "graph/query with a string 'request' is rejected");
+            AssertEqual(-32602, stringRequest.Error!.Code, "Schema type mismatch is reported as invalid params");
+            AssertTrue((stringRequest.Error.Message ?? "").Contains("request"), "The rejection names the argument (" + stringRequest.Error.Message + ")");
+
+            JsonRpcResponse numericGuid = await _McpClient.CallAsync(
+                "tools/call",
+                new { name = "tenant/get", arguments = new { tenantGuid = 42 } },
+                token: cancellationToken).ConfigureAwait(false);
+            AssertTrue(numericGuid.Error != null, "tenant/get with a numeric tenantGuid is rejected");
+            AssertEqual(-32602, numericGuid.Error!.Code, "Numeric tenantGuid is reported as invalid params");
+        }
+
+        private static async Task TestMcpBareToolMethodRejected(CancellationToken cancellationToken)
+        {
+            await EnsureMcpEnvironmentAsync(cancellationToken).ConfigureAwait(false);
+            if (_McpClient == null) throw new InvalidOperationException("MCP client is null");
+
+            JsonRpcResponse bare = await _McpClient.CallAsync("tenant/get", new { tenantGuid = _DefaultTenantGuid }, token: cancellationToken).ConfigureAwait(false);
+            AssertTrue(bare.Error != null, "Bare tenant/get call returns a JSON-RPC error");
+            AssertEqual(-32601, bare.Error!.Code, "Bare tool call returns method-not-found (" + DescribeRpcError(bare) + ")");
+
+            string text = await CallMcpToolAsync<string>("tenant/get", new { tenantGuid = _DefaultTenantGuid }, token: cancellationToken).ConfigureAwait(false);
+            TenantMetadata? tenant = _McpSerializer.DeserializeJson<TenantMetadata>(text);
+            AssertNotNull(tenant, "tools/call tenant/get returns a tenant");
+            AssertEqual(Guid.Parse(_DefaultTenantGuid), tenant!.GUID, "tools/call tenant/get returns the default tenant");
+        }
+
+        private static async Task TestMcpToolsListExcludesDiagnosticTools(CancellationToken cancellationToken)
+        {
+            await EnsureMcpEnvironmentAsync(cancellationToken).ConfigureAwait(false);
+            if (_McpClient == null) throw new InvalidOperationException("MCP client is null");
+
+            HashSet<string> names = await ListMcpToolNamesAsync(cancellationToken).ConfigureAwait(false);
+            AssertTrue(names.Count > 100, "tools/list returns the LiteGraph catalog (" + names.Count + " tools)");
+
+            foreach (string removed in _VoltaicDemoToolNames)
+            {
+                AssertFalse(names.Contains(removed), "tools/list does not include Voltaic demo tool '" + removed + "'");
+            }
+
+            foreach (string name in names)
+            {
+                AssertTrue(name.Contains('/'), "tools/list entry '" + name + "' is a LiteGraph resource/action tool");
+            }
+        }
+
+        private static async Task TestMcpDiagnosticToolsNotCallable(CancellationToken cancellationToken)
+        {
+            await EnsureMcpEnvironmentAsync(cancellationToken).ConfigureAwait(false);
+            if (_McpClient == null) throw new InvalidOperationException("MCP client is null");
+
+            foreach (string removed in _VoltaicDemoToolNames)
+            {
+                JsonRpcResponse response = await _McpClient.CallAsync(
+                    "tools/call",
+                    new { name = removed, arguments = new { message = "hello" } },
+                    token: cancellationToken).ConfigureAwait(false);
+                AssertTrue(response.Error != null, "tools/call " + removed + " is rejected (" + DescribeRpcError(response) + ")");
+            }
+
+            JsonRpcResponse sessions = await _McpClient.CallAsync("getSessions", null, token: cancellationToken).ConfigureAwait(false);
+            AssertTrue(sessions.Error != null, "Bare getSessions is not served (" + DescribeRpcError(sessions) + ")");
+            AssertEqual(-32601, sessions.Error!.Code, "Bare getSessions returns method-not-found");
+        }
+
+        private static async Task TestMcpPingReturnsEmptyObject(CancellationToken cancellationToken)
+        {
+            await EnsureMcpEnvironmentAsync(cancellationToken).ConfigureAwait(false);
+            if (_McpClient == null) throw new InvalidOperationException("MCP client is null");
+
+            await _McpClient.PingAsync(token: cancellationToken).ConfigureAwait(false);
+
+            JsonRpcResponse response = await _McpClient.CallAsync("ping", null, token: cancellationToken).ConfigureAwait(false);
+            AssertTrue(response.Error == null, "ping succeeds (" + DescribeRpcError(response) + ")");
+
+            using (JsonDocument result = ParseRpcResult(response))
+            {
+                AssertEqual(JsonValueKind.Object, result.RootElement.ValueKind, "ping result is a JSON object, not the v1 \"pong\" string");
+                AssertFalse(result.RootElement.EnumerateObject().Any(), "ping result is an empty object");
+            }
+        }
+
+        private static async Task TestMcpStatelessPing(CancellationToken cancellationToken)
+        {
+            using (McpHttpClient client = await ConnectStatelessMcpClientAsync(cancellationToken).ConfigureAwait(false))
+            {
+                JsonRpcResponse response = await client.SendStatelessAsync("ping", null, null, cancellationToken).ConfigureAwait(false);
+                AssertTrue(response.Error == null, "Stateless ping succeeds (" + DescribeRpcError(response) + ")");
+
+                using (JsonDocument result = ParseRpcResult(response))
+                {
+                    AssertEqual(JsonValueKind.Object, result.RootElement.ValueKind, "Stateless ping result is a JSON object");
+                    AssertEqual(McpResult.ResultTypeComplete, GetStringProperty(result.RootElement, "resultType"), "Stateless ping carries resultType complete");
+                }
+            }
+        }
+
+        private static async Task TestMcpTcpTransport(CancellationToken cancellationToken)
+        {
+            await EnsureMcpEnvironmentAsync(cancellationToken).ConfigureAwait(false);
+            if (_McpEnvironment == null) throw new InvalidOperationException("MCP environment is not running.");
+
+            using (McpTcpClient client = new McpTcpClient())
+            {
+                bool connected = await client.ConnectAsync("127.0.0.1", _McpEnvironment.McpTcpPort, cancellationToken).ConfigureAwait(false);
+                AssertTrue(connected, "TCP client connects on port " + _McpEnvironment.McpTcpPort);
+
+                object? ping = await client.CallAsync<object?>("ping", null, 30000, cancellationToken).ConfigureAwait(false);
+                AssertFalse(ping is string, "TCP ping no longer returns the v1 \"pong\" string");
+
+                JsonElement tools = await client.CallAsync<JsonElement>("tools/list", null, 30000, cancellationToken).ConfigureAwait(false);
+                AssertTrue(tools.TryGetProperty("tools", out JsonElement toolArray) && toolArray.ValueKind == JsonValueKind.Array, "TCP tools/list returns a tools array");
+                foreach (JsonElement tool in toolArray.EnumerateArray())
+                {
+                    string? name = GetStringProperty(tool, "name");
+                    AssertFalse(name != null && _VoltaicDemoToolNames.Contains(name), "TCP tools/list does not include Voltaic demo tool '" + name + "'");
+                }
+
+                string text = await client.CallAsync<string>("tenant/get", new { tenantGuid = _DefaultTenantGuid }, 30000, cancellationToken).ConfigureAwait(false);
+                TenantMetadata? tenant = _McpSerializer.DeserializeJson<TenantMetadata>(text);
+                AssertNotNull(tenant, "TCP tenant/get returns a tenant");
+                AssertEqual(Guid.Parse(_DefaultTenantGuid), tenant!.GUID, "TCP tenant/get returns the default tenant");
+
+                bool rejected = false;
+                try
+                {
+                    await client.CallAsync<object?>("getClients", null, 30000, cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception)
+                {
+                    rejected = true;
+                }
+
+                AssertTrue(rejected, "TCP getClients is no longer served");
+            }
+        }
+
+        private static async Task TestMcpWebSocketTransport(CancellationToken cancellationToken)
+        {
+            await EnsureMcpEnvironmentAsync(cancellationToken).ConfigureAwait(false);
+            if (_McpEnvironment == null) throw new InvalidOperationException("MCP environment is not running.");
+
+            using (McpWebsocketsClient client = new McpWebsocketsClient())
+            {
+                string url = "ws://127.0.0.1:" + _McpEnvironment.McpWebSocketPort + "/mcp";
+                bool connected = await client.ConnectAsync(url, cancellationToken).ConfigureAwait(false);
+                AssertTrue(connected, "WebSocket client connects to " + url);
+
+                await client.PingAsync(30000, cancellationToken).ConfigureAwait(false);
+
+                string text = await client.CallAsync<string>("tenant/get", new { tenantGuid = _DefaultTenantGuid }, 30000, cancellationToken).ConfigureAwait(false);
+                TenantMetadata? tenant = _McpSerializer.DeserializeJson<TenantMetadata>(text);
+                AssertNotNull(tenant, "WebSocket tenant/get returns a tenant");
+                AssertEqual(Guid.Parse(_DefaultTenantGuid), tenant!.GUID, "WebSocket tenant/get returns the default tenant");
+
+                bool rejected = false;
+                try
+                {
+                    await client.CallAsync<object?>("getClients", null, 30000, cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception)
+                {
+                    rejected = true;
+                }
+
+                AssertTrue(rejected, "WebSocket getClients is no longer served");
+            }
+        }
+
+        private static async Task<HashSet<string>> ListMcpToolNamesAsync(CancellationToken cancellationToken)
+        {
+            if (_McpClient == null) throw new InvalidOperationException("MCP client is null");
+
+            HashSet<string> names = new HashSet<string>(StringComparer.Ordinal);
+            string? cursor = null;
+            int pages = 0;
+
+            do
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                object parameters = cursor == null ? new { } : new { cursor = cursor };
+                JsonRpcResponse response = await _McpClient.CallAsync("tools/list", parameters, token: cancellationToken).ConfigureAwait(false);
+                AssertTrue(response.Error == null, "tools/list page " + (pages + 1) + " succeeds (" + DescribeRpcError(response) + ")");
+                pages++;
+
+                using (JsonDocument result = ParseRpcResult(response))
+                {
+                    foreach (JsonElement tool in result.RootElement.GetProperty("tools").EnumerateArray())
+                    {
+                        string? name = GetStringProperty(tool, "name");
+                        if (!String.IsNullOrEmpty(name)) names.Add(name);
+                    }
+
+                    cursor = GetStringProperty(result.RootElement, "nextCursor");
+                }
+            }
+            while (!String.IsNullOrEmpty(cursor) && pages < 50);
+
+            return names;
+        }
+
+        private static async Task<T> CallMcpToolAsync<T>(string name, object? arguments = null, int timeoutMs = 0, CancellationToken token = default)
+        {
+            if (_McpClient == null) throw new InvalidOperationException("MCP client is null");
+
+            JsonRpcResponse response = await _McpClient.CallAsync(
+                "tools/call",
+                new { name = name, arguments = arguments ?? new { } },
+                timeoutMs,
+                token).ConfigureAwait(false);
+
+            if (response.Error != null)
+                throw new McpProtocolException(response.Error.Code, "RPC Error " + response.Error.Code + " calling tool '" + name + "': " + response.Error.Message, response.Error.Data);
+
+            using (JsonDocument result = ParseRpcResult(response))
+            {
+                string text = GetToolText(result.RootElement);
+                if (IsToolError(result.RootElement))
+                    throw new InvalidOperationException("Tool '" + name + "' returned an error result: " + text);
+
+                if (typeof(T) == typeof(string)) return (T)(object)text;
+
+                T? value = JsonSerializer.Deserialize<T>(text);
+                if (value == null) throw new InvalidOperationException("Tool '" + name + "' returned content that does not deserialize to " + typeof(T).Name + ": " + Truncate(text, 200));
+                return value;
+            }
         }
 
         private static async Task TestMcpInitializeCapsHandshakeVersion(CancellationToken cancellationToken)

@@ -32,7 +32,7 @@ Inline literals are allowed for simple values, but parameters are preferred for 
 
 `MaxResults` bounds the number of rows a query returns (the result page). `MaxScanRows` (default `1000000`, `0` disables it) bounds *global* operations — aggregates (`COUNT`/`SUM`/`AVG`/`MIN`/`MAX`) and `ORDER BY` — which must examine the whole matching set rather than a single page. When a global operation would examine more than `MaxScanRows` matching rows the query is rejected with a `400` rather than silently truncated (which would make the aggregate or top-N result wrong). Ordinary (non-global) reads are unaffected and remain bounded by `MaxResults` and any `LIMIT`.
 
-The MCP `graph/query` tool accepts `tenantGuid`, `graphGuid`, and either a full `request` object/string with the shape above or the convenience fields `query`, `parameters`, `maxResults`, `timeoutSeconds`, and `maxScanRows`. MCP execution is forwarded to the REST query endpoint so the same authentication, graph scoping, and credential-scope checks apply.
+The MCP `graph/query` tool accepts `tenantGuid`, `graphGuid`, and either a full `request` object with the shape above or the convenience fields `query`, `parameters`, `maxResults`, `timeoutSeconds`, and `maxScanRows`. MCP execution is forwarded to the REST query endpoint so the same authentication, graph scoping, and credential-scope checks apply.
 
 ## Scope Rules
 

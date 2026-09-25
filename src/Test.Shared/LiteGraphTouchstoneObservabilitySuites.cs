@@ -142,7 +142,7 @@ namespace Test.Shared
                 // Invoke a read-only tool over the HTTP transport.
                 try
                 {
-                    await _McpClient.CallAsync<string>("tenant/all", new { }).ConfigureAwait(false);
+                    await CallMcpToolAsync<string>("tenant/all", new { }).ConfigureAwait(false);
                 }
                 catch (Exception)
                 {
@@ -179,7 +179,7 @@ namespace Test.Shared
                 // Invoking an unknown tool must fail and be recorded as an error.
                 try
                 {
-                    await _McpClient.CallAsync<string>("observability/negative/probe", new { }).ConfigureAwait(false);
+                    await CallMcpToolAsync<string>("observability/negative/probe", new { }).ConfigureAwait(false);
                 }
                 catch (Exception)
                 {
