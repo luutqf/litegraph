@@ -3,12 +3,28 @@ namespace LiteGraph.McpServer.Classes
     using System;
     using System.Text.Json;
     using LiteGraph.Sdk;
+    using Voltaic.Core;
 
     /// <summary>
     /// Helper methods for LiteGraph MCP Server.
     /// </summary>
     internal static class LiteGraphMcpServerHelpers
     {
+        /// <summary>
+        /// Converts Voltaic tool-call parameters into a JSON element for property navigation.
+        /// Returns null when no parameters were supplied (null, empty, or JSON null).
+        /// </summary>
+        /// <param name="parameters">Tool-call parameters supplied by Voltaic; may be null.</param>
+        /// <returns>The parameters as a detached JSON element, or null.</returns>
+        /// <exception cref="JsonException">Thrown when the parameters are not valid JSON.</exception>
+        public static JsonElement? ToJsonElement(RpcParameters? parameters)
+        {
+            if (parameters == null || !parameters.HasValue) return null;
+            JsonElement element = JsonSerializer.Deserialize<JsonElement>(parameters.RawJson!);
+            if (element.ValueKind == JsonValueKind.Null || element.ValueKind == JsonValueKind.Undefined) return null;
+            return element;
+        }
+
         /// <summary>
         /// Gets a GUID from JSON element, throwing if not present.
         /// </summary>

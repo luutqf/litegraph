@@ -47,6 +47,16 @@ v9.0 adds native **graph algorithms** — degree, closeness, eigenvector, and be
   - Query scope (read vs. write) is now classified **authoritatively from the parsed AST**. The previous keyword-matching fallback — which, on a parse failure, decided the mutation boundary with a substring search for `CREATE`/`MERGE`/`SET`/`DELETE`/`REMOVE` — has been removed. A query that cannot be parsed during scope classification is rejected with a `400 Bad Request` **before authorization** (fail closed) instead of being guessed; because the execution engine re-parses with the same parser, no valid query is lost.
   - Covered by unit-level classifier assertions (valid queries scope correctly; unparseable queries throw rather than keyword-guess) and an API-level Touchstone case (valid read `200`, valid mutation denied for a read-only credential `401`, unparseable query `400` for both admin and read-only). See [docs/RBAC.md](docs/RBAC.md).
 
+- MCP server: Voltaic 1.1.0 and Claude Code compatibility
+  - Upgraded the MCP server to Voltaic 1.1.0 (from 0.2.0). Tool handlers now receive Voltaic's DOM-free `RpcParameters` and convert them once at the boundary; tool names, arguments, and results are unchanged.
+  - The HTTP listener now serves MCP Streamable HTTP at `/mcp` for every MCP revision from `2024-11-05` through the stateless `2026-07-28`. This includes `server/discover`, `resultType`/`ttlMs`/`cacheScope` on stateless results, and `initialize` capped at `2025-11-25`. Claude Code 2.1.x negotiates `2026-07-28` and must use `/mcp`. `/rpc` remains available for plain JSON-RPC calls.
+  - `LiteGraph.McpServer install` now writes `http://<host>:<port>/mcp` into `~/.claude.json` instead of `/rpc`. Re-run it, or change the URL to `/mcp` by hand, to repair installs where Claude Code showed no LiteGraph tools. The startup banner lists both the `/mcp` and `/rpc` URLs.
+  - Verified live with Claude Code 2.1.281 over `/mcp`: all 212 tools listed across three pages, and tenant read plus graph, node, and edge create, read-back, and forced delete succeeded.
+  - Docs: README, `docs/MCP_API.md`, and `docs/CLAUDE_MCP.md` now point MCP clients at `/mcp`. `docs/CLAUDE_MCP.md` now gives the correct default MCP HTTP port (8702, not 8200).
+  - Behavior changes from Voltaic: `tools/list` is paginated at 100 tools per page (follow `nextCursor`), and `tools/call` validates arguments against each tool's input schema before the tool runs.
+  - New `Mcp.Protocol` Touchstone suite (stateless discover, paginated tools/list, stateless and handshake tools/call, missing-argument and unknown-tool rejection, initialize version capping). The chat tool-catalog parity test now follows `tools/list` pagination.
+  - Dependency refresh: Microsoft.Data.Sqlite / System.Text.Json 10.0.12, RestWrapper 3.3.0, OpenTelemetry 1.19.1, PolyPrompt 2.6.0, Watson 7.2.0, Microsoft.NET.Test.Sdk 18.10.1, NUnit3TestAdapter 6.3.0, NUnit.Analyzers 4.15.0.
+
 - Not yet included: structural graph embeddings (FastRP/node2vec) are a planned follow-on; the v9.0 embedding feature generates content embeddings via a configured embedding endpoint.
 
 ## Previous Versions

@@ -6,7 +6,8 @@ namespace LiteGraph.McpServer.Registrations
     using System.Text.Json;
     using LiteGraph.McpServer.Classes;
     using LiteGraph.Sdk;
-    using Voltaic;
+    using Voltaic.Core;
+    using Voltaic.Mcp;
 
     /// <summary>
     /// Registration methods for Admin operations.
@@ -34,8 +35,9 @@ namespace LiteGraph.McpServer.Registrations
                     },
                     required = new[] { "outputFilename" }
                 },
-                (args) =>
+                (rpcArgs) =>
                 {
+                    JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                     if (!args.HasValue || !args.Value.TryGetProperty("outputFilename", out JsonElement filenameProp))
                         throw new ArgumentException("Output filename is required");
 
@@ -60,8 +62,9 @@ namespace LiteGraph.McpServer.Registrations
                     },
                     required = new string[] { }
                 },
-                (args) =>
+                (rpcArgs) =>
                 {
+                    JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                     int skip = args.HasValue ? LiteGraphMcpServerHelpers.GetIntOrDefault(args.Value, "skip", 0) : 0;
                     return ListBackups(sdk, LiteGraphMcpServerHelpers.GetMaxResults(args), skip);
                 });
@@ -78,8 +81,9 @@ namespace LiteGraph.McpServer.Registrations
                     },
                     required = new[] { "backupFilename" }
                 },
-                (args) =>
+                (rpcArgs) =>
                 {
+                    JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                     if (!args.HasValue || !args.Value.TryGetProperty("backupFilename", out JsonElement filenameProp))
                         throw new ArgumentException("Backup filename is required");
 
@@ -103,8 +107,9 @@ namespace LiteGraph.McpServer.Registrations
                     },
                     required = new[] { "backupFilename" }
                 },
-                (args) =>
+                (rpcArgs) =>
                 {
+                    JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                     if (!args.HasValue || !args.Value.TryGetProperty("backupFilename", out JsonElement filenameProp))
                         throw new ArgumentException("Backup filename is required");
 
@@ -128,8 +133,9 @@ namespace LiteGraph.McpServer.Registrations
                     },
                     required = new[] { "backupFilename" }
                 },
-                (args) =>
+                (rpcArgs) =>
                 {
+                    JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                     if (!args.HasValue || !args.Value.TryGetProperty("backupFilename", out JsonElement filenameProp))
                         throw new ArgumentException("Backup filename is required");
 
@@ -150,8 +156,9 @@ namespace LiteGraph.McpServer.Registrations
                     properties = new { },
                     required = new string[] { }
                 },
-                (args) =>
+                (rpcArgs) =>
                 {
+                    JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                     return FlushDatabase(sdk);
                 });
         }
@@ -167,8 +174,9 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterTcpMethods(McpTcpServer server, LiteGraphSdk sdk)
         {
-            server.RegisterMethod("admin/backup", (args) =>
+            server.RegisterMethod("admin/backup", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("outputFilename", out JsonElement filenameProp))
                     throw new ArgumentException("Output filename is required");
 
@@ -180,14 +188,16 @@ namespace LiteGraph.McpServer.Registrations
                 return string.Empty;
             });
 
-            server.RegisterMethod("admin/backups", (args) =>
+            server.RegisterMethod("admin/backups", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 int skip = args.HasValue ? LiteGraphMcpServerHelpers.GetIntOrDefault(args.Value, "skip", 0) : 0;
                 return ListBackups(sdk, LiteGraphMcpServerHelpers.GetMaxResults(args), skip);
             });
 
-            server.RegisterMethod("admin/backupread", (args) =>
+            server.RegisterMethod("admin/backupread", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("backupFilename", out JsonElement filenameProp))
                     throw new ArgumentException("Backup filename is required");
 
@@ -199,8 +209,9 @@ namespace LiteGraph.McpServer.Registrations
                 return Serializer.SerializeJson(backup, true);
             });
 
-            server.RegisterMethod("admin/backupexists", (args) =>
+            server.RegisterMethod("admin/backupexists", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("backupFilename", out JsonElement filenameProp))
                     throw new ArgumentException("Backup filename is required");
 
@@ -212,8 +223,9 @@ namespace LiteGraph.McpServer.Registrations
                 return exists.ToString().ToLower();
             });
 
-            server.RegisterMethod("admin/backupdelete", (args) =>
+            server.RegisterMethod("admin/backupdelete", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("backupFilename", out JsonElement filenameProp))
                     throw new ArgumentException("Backup filename is required");
 
@@ -225,8 +237,9 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("admin/flush", (args) =>
+            server.RegisterMethod("admin/flush", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 return FlushDatabase(sdk);
             });
         }
@@ -242,8 +255,9 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterWebSocketMethods(McpWebsocketsServer server, LiteGraphSdk sdk)
         {
-            server.RegisterMethod("admin/backup", (args) =>
+            server.RegisterMethod("admin/backup", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("outputFilename", out JsonElement filenameProp))
                     throw new ArgumentException("Output filename is required");
 
@@ -255,14 +269,16 @@ namespace LiteGraph.McpServer.Registrations
                 return string.Empty;
             });
 
-            server.RegisterMethod("admin/backups", (args) =>
+            server.RegisterMethod("admin/backups", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 int skip = args.HasValue ? LiteGraphMcpServerHelpers.GetIntOrDefault(args.Value, "skip", 0) : 0;
                 return ListBackups(sdk, LiteGraphMcpServerHelpers.GetMaxResults(args), skip);
             });
 
-            server.RegisterMethod("admin/backupread", (args) =>
+            server.RegisterMethod("admin/backupread", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("backupFilename", out JsonElement filenameProp))
                     throw new ArgumentException("Backup filename is required");
 
@@ -274,8 +290,9 @@ namespace LiteGraph.McpServer.Registrations
                 return Serializer.SerializeJson(backup, true);
             });
 
-            server.RegisterMethod("admin/backupexists", (args) =>
+            server.RegisterMethod("admin/backupexists", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("backupFilename", out JsonElement filenameProp))
                     throw new ArgumentException("Backup filename is required");
 
@@ -287,8 +304,9 @@ namespace LiteGraph.McpServer.Registrations
                 return exists.ToString().ToLower();
             });
 
-            server.RegisterMethod("admin/backupdelete", (args) =>
+            server.RegisterMethod("admin/backupdelete", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("backupFilename", out JsonElement filenameProp))
                     throw new ArgumentException("Backup filename is required");
 
@@ -300,8 +318,9 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("admin/flush", (args) =>
+            server.RegisterMethod("admin/flush", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 return FlushDatabase(sdk);
             });
         }

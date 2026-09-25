@@ -351,7 +351,8 @@ Default MCP listeners:
 
 | Transport | Endpoint |
 | --- | --- |
-| HTTP | `http://localhost:8702/rpc` |
+| HTTP (MCP clients, e.g. Claude Code) | `http://localhost:8702/mcp` |
+| HTTP (plain JSON-RPC) | `http://localhost:8702/rpc` |
 | TCP | `localhost:8703` |
 | WebSocket | `ws://localhost:8704/mcp` |
 
@@ -367,6 +368,18 @@ MCP configuration can be overridden with:
 | `MCP_TCP_PORT` | TCP port |
 | `MCP_WS_HOSTNAME` | WebSocket hostname |
 | `MCP_WS_PORT` | WebSocket port |
+
+Point Claude Code and other MCP clients at the `/mcp` URL, for example:
+
+```json
+{
+  "mcpServers": {
+    "litegraph": { "type": "http", "url": "http://localhost:8702/mcp" }
+  }
+}
+```
+
+`LiteGraph.McpServer install` writes this entry to `~/.claude.json` for you. Claude Code 2.1.x negotiates the stateless `2026-07-28` MCP revision, which only `/mcp` serves. If Claude Code connects but lists no LiteGraph tools, the entry most likely still points at `/rpc`, which older installs wrote. Change it to `/mcp` or re-run `install`.
 
 See [Using Claude with LiteGraph](docs/CLAUDE_MCP.md) for client setup.
 

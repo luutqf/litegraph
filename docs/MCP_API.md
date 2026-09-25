@@ -10,7 +10,8 @@ The server is built on Voltaic and listens on three transports at once. All thre
 
 | Transport | Default endpoint | Notes |
 |-----------|------------------|-------|
-| HTTP | `http://localhost:8702/rpc` | JSON-RPC over HTTP POST; server-sent events at `/events` |
+| HTTP (MCP) | `http://localhost:8702/mcp` | MCP Streamable HTTP. Use this URL for Claude Code and other MCP clients; it supports every MCP revision from `2024-11-05` through the stateless `2026-07-28` |
+| HTTP (JSON-RPC) | `http://localhost:8702/rpc` | Plain JSON-RPC over HTTP POST, with server-sent events at `/events`. Intended for direct tool calls; MCP clients that negotiate `2026-07-28` (such as Claude Code 2.1.x) must use `/mcp` |
 | TCP | `localhost:8703` | Raw JSON-RPC over a socket |
 | WebSocket | `ws://localhost:8704/mcp` | JSON-RPC over a WebSocket |
 
@@ -20,7 +21,7 @@ As of v8.0 the MCP server also exposes a Prometheus `/metrics` endpoint (default
 
 ## Request And Response Envelope
 
-Every call is a JSON-RPC 2.0 request whose `method` is the tool name and whose `params` is the tool's argument object. The standard MCP discovery methods (`initialize`, `tools/list`) are also available for clients that enumerate tools before calling them.
+Every call is a JSON-RPC 2.0 request whose `method` is the tool name and whose `params` is the tool's argument object. The standard MCP discovery methods (`initialize`, `server/discover`, `tools/list`, `tools/call`) are also available for clients that enumerate tools before calling them. `tools/list` is paginated (100 tools per page); follow `nextCursor` to read the full catalog. `tools/call` validates arguments against each tool's input schema, so a missing required argument is rejected before the tool runs.
 
 Request:
 

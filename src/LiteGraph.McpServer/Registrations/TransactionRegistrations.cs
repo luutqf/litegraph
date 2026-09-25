@@ -8,7 +8,8 @@ namespace LiteGraph.McpServer.Registrations
     using System.Text.Json.Nodes;
     using LiteGraph.McpServer.Classes;
     using LiteGraph.Sdk;
-    using Voltaic;
+    using Voltaic.Core;
+    using Voltaic.Mcp;
 
     /// <summary>
     /// Registration methods for graph-scoped transaction operations.
@@ -49,7 +50,7 @@ namespace LiteGraph.McpServer.Registrations
                     },
                     required = new[] { "tenantGuid", "graphGuid" }
                 },
-                (args) => ExecuteTransaction(args, sdk));
+                (args) => ExecuteTransaction(LiteGraphMcpServerHelpers.ToJsonElement(args), sdk));
         }
 
         #endregion
@@ -63,7 +64,7 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterTcpMethods(McpTcpServer server, LiteGraphSdk sdk)
         {
-            server.RegisterMethod("graph/transaction", (args) => ExecuteTransaction(args, sdk));
+            server.RegisterMethod("graph/transaction", (args) => ExecuteTransaction(LiteGraphMcpServerHelpers.ToJsonElement(args), sdk));
         }
 
         #endregion
@@ -77,7 +78,7 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterWebSocketMethods(McpWebsocketsServer server, LiteGraphSdk sdk)
         {
-            server.RegisterMethod("graph/transaction", (args) => ExecuteTransaction(args, sdk));
+            server.RegisterMethod("graph/transaction", (args) => ExecuteTransaction(LiteGraphMcpServerHelpers.ToJsonElement(args), sdk));
         }
 
         #endregion

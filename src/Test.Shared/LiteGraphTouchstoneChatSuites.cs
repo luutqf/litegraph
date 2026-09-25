@@ -1196,22 +1196,50 @@ namespace Test.Shared
                 if (_McpEnvironment == null) throw new InvalidOperationException("MCP environment is not running.");
                 string rpcUrl = _McpEnvironment.McpHttpEndpoint + "/rpc";
 
+                HashSet<string> catalog = new HashSet<string>(StringComparer.Ordinal);
+                string? cursor = null;
+                int pages = 0;
+
                 using (HttpClient client = new HttpClient())
-                using (HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, rpcUrl))
                 {
                     client.Timeout = TimeSpan.FromSeconds(30);
-                    request.Content = new StringContent("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{}}", Encoding.UTF8, "application/json");
 
-                    using (HttpResponseMessage response = await client.SendAsync(request, cancellationToken).ConfigureAwait(false))
+                    do
                     {
-                        string body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-                        AssertEqual(200, (int)response.StatusCode, "tools/list responds (body " + Truncate(body, 200) + ")");
+                        string paramsJson = cursor == null ? "{}" : "{\"cursor\":" + JsonSerializer.Serialize(cursor) + "}";
 
-                        foreach (string toolName in _ChatAdvertisedToolNames)
+                        using (HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, rpcUrl))
                         {
-                            AssertTrue(body.Contains("\"" + toolName + "\""), "MCP catalog contains chat-advertised tool '" + toolName + "'");
+                            request.Content = new StringContent("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":" + paramsJson + "}", Encoding.UTF8, "application/json");
+
+                            using (HttpResponseMessage response = await client.SendAsync(request, cancellationToken).ConfigureAwait(false))
+                            {
+                                string body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+                                AssertEqual(200, (int)response.StatusCode, "tools/list responds (body " + Truncate(body, 200) + ")");
+                                pages++;
+
+                                using (JsonDocument document = JsonDocument.Parse(body))
+                                {
+                                    JsonElement result = document.RootElement.GetProperty("result");
+                                    foreach (JsonElement tool in result.GetProperty("tools").EnumerateArray())
+                                    {
+                                        if (tool.TryGetProperty("name", out JsonElement name) && name.ValueKind == JsonValueKind.String)
+                                            catalog.Add(name.GetString()!);
+                                    }
+
+                                    cursor = result.TryGetProperty("nextCursor", out JsonElement next) && next.ValueKind == JsonValueKind.String
+                                        ? next.GetString()
+                                        : null;
+                                }
+                            }
                         }
                     }
+                    while (!String.IsNullOrEmpty(cursor) && pages < 50);
+                }
+
+                foreach (string toolName in _ChatAdvertisedToolNames)
+                {
+                    AssertTrue(catalog.Contains(toolName), "MCP catalog contains chat-advertised tool '" + toolName + "'");
                 }
             }
             finally

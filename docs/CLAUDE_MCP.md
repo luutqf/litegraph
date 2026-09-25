@@ -176,7 +176,8 @@ Transaction results include `TransactionId`, validation-failure state, provider/
 
 ## Troubleshooting
 
-- **Connection refused**: Ensure both the LiteGraph REST server (port 8701) and MCP server (port 8200) are running.
+- **Connection refused**: Ensure both the LiteGraph REST server (port 8701) and MCP server (port 8702 by default) are running.
 - **Build errors**: Verify your .NET SDK version with `dotnet --version`. Must be 8.0+.
 - **MCP not detected**: Re-run `./LiteGraph.McpServer install` and restart Claude Code.
+- **Claude Code connects but shows no LiteGraph tools**: The MCP URL must end in `/mcp` (for example `http://127.0.0.1:8702/mcp`), not `/rpc`. Claude Code 2.1.x negotiates the stateless `2026-07-28` MCP revision, which only the `/mcp` endpoint serves. Installs made before v9.0 wrote `/rpc`; re-run `./LiteGraph.McpServer install` to rewrite the entry.
 - **Server config**: MCP server settings (ports, API key) are in `litegraph.json` next to the MCP server binary. The default LiteGraph endpoint is `http://localhost:8701` with API key `litegraphadmin`.

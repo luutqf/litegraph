@@ -6,7 +6,8 @@ namespace LiteGraph.McpServer.Registrations
     using System.Text.Json;
     using LiteGraph.McpServer.Classes;
     using LiteGraph.Sdk;
-    using Voltaic;
+    using Voltaic.Core;
+    using Voltaic.Mcp;
 
     /// <summary>
     /// Registration methods for User Authentication operations.
@@ -43,8 +44,9 @@ namespace LiteGraph.McpServer.Registrations
                     },
                     required = new[] { "email" }
                 },
-                (args) =>
+                (rpcArgs) =>
                 {
+                    JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                     if (!args.HasValue || !args.Value.TryGetProperty("email", out JsonElement emailProp))
                         throw new ArgumentException("Email is required");
 
@@ -78,8 +80,9 @@ namespace LiteGraph.McpServer.Registrations
                     },
                     required = new[] { "email", "password", "tenantGuid" }
                 },
-                (args) =>
+                (rpcArgs) =>
                 {
+                    JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                     if (!args.HasValue) throw new ArgumentException("Parameters required");
                     if (!args.Value.TryGetProperty("email", out JsonElement emailProp))
                         throw new ArgumentException("Email is required");
@@ -132,8 +135,9 @@ namespace LiteGraph.McpServer.Registrations
                     },
                     required = new[] { "authToken" }
                 },
-                (args) =>
+                (rpcArgs) =>
                 {
+                    JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                     if (!args.HasValue || !args.Value.TryGetProperty("authToken", out JsonElement authTokenProp))
                         throw new ArgumentException("Authentication token is required");
 
@@ -177,8 +181,9 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterTcpMethods(McpTcpServer server, LiteGraphSdk sdk)
         {
-            server.RegisterMethod("userauthentication/gettenantsforemail", (args) =>
+            server.RegisterMethod("userauthentication/gettenantsforemail", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("email", out JsonElement emailProp))
                     throw new ArgumentException("Email is required");
 
@@ -196,8 +201,9 @@ namespace LiteGraph.McpServer.Registrations
                 return GetTenantsForEmail(endpoint, email, LiteGraphMcpServerHelpers.GetMaxResults(args), skip);
             });
 
-            server.RegisterMethod("userauthentication/generatetoken", (args) =>
+            server.RegisterMethod("userauthentication/generatetoken", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 if (!args.Value.TryGetProperty("email", out JsonElement emailProp))
                     throw new ArgumentException("Email is required");
@@ -234,8 +240,9 @@ namespace LiteGraph.McpServer.Registrations
                 }
             });
 
-            server.RegisterMethod("userauthentication/gettokendetails", (args) =>
+            server.RegisterMethod("userauthentication/gettokendetails", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("authToken", out JsonElement authTokenProp))
                     throw new ArgumentException("Authentication token is required");
 
@@ -277,8 +284,9 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterWebSocketMethods(McpWebsocketsServer server, LiteGraphSdk sdk)
         {
-            server.RegisterMethod("userauthentication/gettenantsforemail", (args) =>
+            server.RegisterMethod("userauthentication/gettenantsforemail", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("email", out JsonElement emailProp))
                     throw new ArgumentException("Email is required");
 
@@ -296,8 +304,9 @@ namespace LiteGraph.McpServer.Registrations
                 return GetTenantsForEmail(endpoint, email, LiteGraphMcpServerHelpers.GetMaxResults(args), skip);
             });
 
-            server.RegisterMethod("userauthentication/generatetoken", (args) =>
+            server.RegisterMethod("userauthentication/generatetoken", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 if (!args.Value.TryGetProperty("email", out JsonElement emailProp))
                     throw new ArgumentException("Email is required");
@@ -334,8 +343,9 @@ namespace LiteGraph.McpServer.Registrations
                 }
             });
 
-            server.RegisterMethod("userauthentication/gettokendetails", (args) =>
+            server.RegisterMethod("userauthentication/gettokendetails", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("authToken", out JsonElement authTokenProp))
                     throw new ArgumentException("Authentication token is required");
 

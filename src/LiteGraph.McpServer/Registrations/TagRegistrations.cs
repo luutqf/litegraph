@@ -6,7 +6,8 @@ namespace LiteGraph.McpServer.Registrations
     using System.Text.Json;
     using LiteGraph.McpServer.Classes;
     using LiteGraph.Sdk;
-    using Voltaic;
+    using Voltaic.Core;
+    using Voltaic.Mcp;
 
     /// <summary>
     /// Registration methods for Tag operations.
@@ -34,8 +35,9 @@ namespace LiteGraph.McpServer.Registrations
                     },
                     required = new[] { "tag" }
                 },
-                (args) =>
+                (rpcArgs) =>
                 {
+                    JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                     if (!args.HasValue || !args.Value.TryGetProperty("tag", out JsonElement tagProp))
                         throw new ArgumentException("Tag JSON string is required");
                     string tagJson = tagProp.GetString() ?? throw new ArgumentException("Tag JSON string cannot be null");
@@ -56,8 +58,9 @@ namespace LiteGraph.McpServer.Registrations
                     },
                     required = new[] { "tenantGuid", "tagGuid" }
                 },
-                (args) =>
+                (rpcArgs) =>
                 {
+                    JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                     if (!args.HasValue) throw new ArgumentException("Parameters required");
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                     Guid tagGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tagGuid");
@@ -84,8 +87,9 @@ namespace LiteGraph.McpServer.Registrations
                     },
                     required = new[] { "tenantGuid" }
                 },
-                (args) =>
+                (rpcArgs) =>
                 {
+                    JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                     if (!args.HasValue || !args.Value.TryGetProperty("tenantGuid", out JsonElement tenantGuidProp))
                         throw new ArgumentException("Tenant GUID is required");
 
@@ -110,8 +114,9 @@ namespace LiteGraph.McpServer.Registrations
                     },
                     required = new[] { "query" }
                 },
-                (args) =>
+                (rpcArgs) =>
                 {
+                    JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                     if (!args.HasValue || !args.Value.TryGetProperty("query", out JsonElement queryProp))
                         throw new ArgumentException("Enumeration query is required");
 
@@ -135,8 +140,9 @@ namespace LiteGraph.McpServer.Registrations
                     },
                     required = new[] { "tag" }
                 },
-                (args) =>
+                (rpcArgs) =>
                 {
+                    JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                     if (!args.HasValue || !args.Value.TryGetProperty("tag", out JsonElement tagProp))
                         throw new ArgumentException("Tag JSON string is required");
                     string tagJson = tagProp.GetString() ?? throw new ArgumentException("Tag JSON string cannot be null");
@@ -157,8 +163,9 @@ namespace LiteGraph.McpServer.Registrations
                     },
                     required = new[] { "tenantGuid", "tagGuid" }
                 },
-                (args) =>
+                (rpcArgs) =>
                 {
+                    JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                     if (!args.HasValue) throw new ArgumentException("Parameters required");
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                     Guid tagGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tagGuid");
@@ -179,8 +186,9 @@ namespace LiteGraph.McpServer.Registrations
                     },
                     required = new[] { "tenantGuid", "tagGuid" }
                 },
-                (args) =>
+                (rpcArgs) =>
                 {
+                    JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                     if (!args.HasValue) throw new ArgumentException("Parameters required");
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                     Guid tagGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tagGuid");
@@ -201,8 +209,9 @@ namespace LiteGraph.McpServer.Registrations
                     },
                     required = new[] { "tenantGuid", "tagGuids" }
                 },
-                (args) =>
+                (rpcArgs) =>
                 {
+                    JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                     if (!args.HasValue) throw new ArgumentException("Parameters required");
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                     if (!args.Value.TryGetProperty("tagGuids", out JsonElement guidsProp))
@@ -225,8 +234,9 @@ namespace LiteGraph.McpServer.Registrations
                     },
                     required = new[] { "tenantGuid", "tags" }
                 },
-                (args) =>
+                (rpcArgs) =>
                 {
+                    JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                     if (!args.HasValue) throw new ArgumentException("Parameters required");
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                     if (!args.Value.TryGetProperty("tags", out JsonElement tagsProp))
@@ -250,8 +260,9 @@ namespace LiteGraph.McpServer.Registrations
                     },
                     required = new[] { "tenantGuid", "tagGuids" }
                 },
-                (args) =>
+                (rpcArgs) =>
                 {
+                    JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                     if (!args.HasValue) throw new ArgumentException("Parameters required");
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                     if (!args.Value.TryGetProperty("tagGuids", out JsonElement guidsProp))
@@ -278,8 +289,9 @@ namespace LiteGraph.McpServer.Registrations
                     },
                     required = new[] { "tenantGuid" }
                 },
-                (args) =>
+                (rpcArgs) =>
                 {
+                    JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                     if (!args.HasValue) throw new ArgumentException("Parameters required");
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                     (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
@@ -302,8 +314,9 @@ namespace LiteGraph.McpServer.Registrations
                     },
                     required = new[] { "tenantGuid", "graphGuid" }
                 },
-                (args) =>
+                (rpcArgs) =>
                 {
+                    JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                     if (!args.HasValue) throw new ArgumentException("Parameters required");
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                     Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
@@ -327,8 +340,9 @@ namespace LiteGraph.McpServer.Registrations
                     },
                     required = new[] { "tenantGuid", "graphGuid" }
                 },
-                (args) =>
+                (rpcArgs) =>
                 {
+                    JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                     if (!args.HasValue) throw new ArgumentException("Parameters required");
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                     Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
@@ -353,8 +367,9 @@ namespace LiteGraph.McpServer.Registrations
                     },
                     required = new[] { "tenantGuid", "graphGuid", "nodeGuid" }
                 },
-                (args) =>
+                (rpcArgs) =>
                 {
+                    JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                     if (!args.HasValue) throw new ArgumentException("Parameters required");
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                     Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
@@ -380,8 +395,9 @@ namespace LiteGraph.McpServer.Registrations
                     },
                     required = new[] { "tenantGuid", "graphGuid", "edgeGuid" }
                 },
-                (args) =>
+                (rpcArgs) =>
                 {
+                    JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                     if (!args.HasValue) throw new ArgumentException("Parameters required");
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                     Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
@@ -402,8 +418,9 @@ namespace LiteGraph.McpServer.Registrations
                     },
                     required = new[] { "tenantGuid" }
                 },
-                (args) =>
+                (rpcArgs) =>
                 {
+                    JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                     if (!args.HasValue) throw new ArgumentException("Parameters required");
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                     DeleteAllTagsInTenant(sdk, tenantGuid);
@@ -423,8 +440,9 @@ namespace LiteGraph.McpServer.Registrations
                     },
                     required = new[] { "tenantGuid", "graphGuid" }
                 },
-                (args) =>
+                (rpcArgs) =>
                 {
+                    JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                     if (!args.HasValue) throw new ArgumentException("Parameters required");
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                     Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
@@ -445,8 +463,9 @@ namespace LiteGraph.McpServer.Registrations
                     },
                     required = new[] { "tenantGuid", "graphGuid" }
                 },
-                (args) =>
+                (rpcArgs) =>
                 {
+                    JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                     if (!args.HasValue) throw new ArgumentException("Parameters required");
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                     Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
@@ -468,8 +487,9 @@ namespace LiteGraph.McpServer.Registrations
                     },
                     required = new[] { "tenantGuid", "graphGuid", "nodeGuid" }
                 },
-                (args) =>
+                (rpcArgs) =>
                 {
+                    JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                     if (!args.HasValue) throw new ArgumentException("Parameters required");
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                     Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
@@ -492,8 +512,9 @@ namespace LiteGraph.McpServer.Registrations
                     },
                     required = new[] { "tenantGuid", "graphGuid", "edgeGuid" }
                 },
-                (args) =>
+                (rpcArgs) =>
                 {
+                    JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                     if (!args.HasValue) throw new ArgumentException("Parameters required");
                     Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                     Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
@@ -514,8 +535,9 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterTcpMethods(McpTcpServer server, LiteGraphSdk sdk)
         {
-            server.RegisterMethod("tag/create", (args) =>
+            server.RegisterMethod("tag/create", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("tag", out JsonElement tagProp))
                     throw new ArgumentException("Tag JSON string is required");
                 string tagJson = tagProp.GetString() ?? throw new ArgumentException("Tag JSON string cannot be null");
@@ -523,8 +545,9 @@ namespace LiteGraph.McpServer.Registrations
                 return CreateTag(sdk, tag);
             });
 
-            server.RegisterMethod("tag/get", (args) =>
+            server.RegisterMethod("tag/get", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid tagGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tagGuid");
@@ -532,8 +555,9 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadTag(sdk, tenantGuid, tagGuid);
             });
 
-            server.RegisterMethod("tag/readmany", (args) =>
+            server.RegisterMethod("tag/readmany", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("tenantGuid", out JsonElement tenantGuidProp))
                     throw new ArgumentException("Tenant GUID is required");
                 Guid tenantGuid = Guid.Parse(tenantGuidProp.GetString()!);
@@ -544,8 +568,9 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadTags(sdk, tenantGuid, graphGuid, nodeGuid, edgeGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args), LiteGraphMcpServerHelpers.GetContinuationToken(args));
             });
 
-            server.RegisterMethod("tag/enumerate", (args) =>
+            server.RegisterMethod("tag/enumerate", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("query", out JsonElement queryProp))
                     throw new ArgumentException("Enumeration query is required");
 
@@ -557,8 +582,9 @@ namespace LiteGraph.McpServer.Registrations
                 return EnumerateTags(sdk, query);
             });
 
-            server.RegisterMethod("tag/update", (args) =>
+            server.RegisterMethod("tag/update", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("tag", out JsonElement tagProp))
                     throw new ArgumentException("Tag JSON string is required");
                 string tagJson = tagProp.GetString() ?? throw new ArgumentException("Tag JSON string cannot be null");
@@ -566,8 +592,9 @@ namespace LiteGraph.McpServer.Registrations
                 return UpdateTag(sdk, tag);
             });
 
-            server.RegisterMethod("tag/delete", (args) =>
+            server.RegisterMethod("tag/delete", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid tagGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tagGuid");
@@ -575,16 +602,18 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("tag/exists", (args) =>
+            server.RegisterMethod("tag/exists", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid tagGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tagGuid");
                 return TagExists(sdk, tenantGuid, tagGuid).ToString().ToLowerInvariant();
             });
 
-            server.RegisterMethod("tag/getmany", (args) =>
+            server.RegisterMethod("tag/getmany", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 if (!args.Value.TryGetProperty("tagGuids", out JsonElement guidsProp))
@@ -594,8 +623,9 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadTagsByGuids(sdk, tenantGuid, guids, LiteGraphMcpServerHelpers.GetMaxResults(args));
             });
 
-            server.RegisterMethod("tag/createmany", (args) =>
+            server.RegisterMethod("tag/createmany", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 if (!args.Value.TryGetProperty("tags", out JsonElement tagsProp))
@@ -606,8 +636,9 @@ namespace LiteGraph.McpServer.Registrations
                 return CreateTags(sdk, tenantGuid, tags);
             });
 
-            server.RegisterMethod("tag/deletemany", (args) =>
+            server.RegisterMethod("tag/deletemany", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 if (!args.Value.TryGetProperty("tagGuids", out JsonElement guidsProp))
@@ -618,16 +649,18 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("tag/readallintenant", (args) =>
+            server.RegisterMethod("tag/readallintenant", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
                 return ReadAllTagsInTenant(sdk, tenantGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args), LiteGraphMcpServerHelpers.GetContinuationToken(args));
             });
 
-            server.RegisterMethod("tag/readallingraph", (args) =>
+            server.RegisterMethod("tag/readallingraph", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
@@ -635,8 +668,9 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadAllTagsInGraph(sdk, tenantGuid, graphGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args));
             });
 
-            server.RegisterMethod("tag/readmanygraph", (args) =>
+            server.RegisterMethod("tag/readmanygraph", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
@@ -644,8 +678,9 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadGraphTags(sdk, tenantGuid, graphGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args));
             });
 
-            server.RegisterMethod("tag/readmanynode", (args) =>
+            server.RegisterMethod("tag/readmanynode", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
@@ -654,8 +689,9 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadNodeTags(sdk, tenantGuid, graphGuid, nodeGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args));
             });
 
-            server.RegisterMethod("tag/readmanyedge", (args) =>
+            server.RegisterMethod("tag/readmanyedge", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
@@ -664,16 +700,18 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadEdgeTags(sdk, tenantGuid, graphGuid, edgeGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args));
             });
 
-            server.RegisterMethod("tag/deleteallintenant", (args) =>
+            server.RegisterMethod("tag/deleteallintenant", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 DeleteAllTagsInTenant(sdk, tenantGuid);
                 return true;
             });
 
-            server.RegisterMethod("tag/deleteallingraph", (args) =>
+            server.RegisterMethod("tag/deleteallingraph", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
@@ -681,8 +719,9 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("tag/deletegraphlabels", (args) =>
+            server.RegisterMethod("tag/deletegraphlabels", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
@@ -690,8 +729,9 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("tag/deletenodelabels", (args) =>
+            server.RegisterMethod("tag/deletenodelabels", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
@@ -700,8 +740,9 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("tag/deleteedgetags", (args) =>
+            server.RegisterMethod("tag/deleteedgetags", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
@@ -722,8 +763,9 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterWebSocketMethods(McpWebsocketsServer server, LiteGraphSdk sdk)
         {
-            server.RegisterMethod("tag/create", (args) =>
+            server.RegisterMethod("tag/create", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("tag", out JsonElement tagProp))
                     throw new ArgumentException("Tag JSON string is required");
                 string tagJson = tagProp.GetString() ?? throw new ArgumentException("Tag JSON string cannot be null");
@@ -731,8 +773,9 @@ namespace LiteGraph.McpServer.Registrations
                 return CreateTag(sdk, tag);
             });
 
-            server.RegisterMethod("tag/get", (args) =>
+            server.RegisterMethod("tag/get", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid tagGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tagGuid");
@@ -740,8 +783,9 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadTag(sdk, tenantGuid, tagGuid);
             });
 
-            server.RegisterMethod("tag/readmany", (args) =>
+            server.RegisterMethod("tag/readmany", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("tenantGuid", out JsonElement tenantGuidProp))
                     throw new ArgumentException("Tenant GUID is required");
                 Guid tenantGuid = Guid.Parse(tenantGuidProp.GetString()!);
@@ -752,8 +796,9 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadTags(sdk, tenantGuid, graphGuid, nodeGuid, edgeGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args), LiteGraphMcpServerHelpers.GetContinuationToken(args));
             });
 
-            server.RegisterMethod("tag/enumerate", (args) =>
+            server.RegisterMethod("tag/enumerate", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("query", out JsonElement queryProp))
                     throw new ArgumentException("Enumeration query is required");
 
@@ -765,8 +810,9 @@ namespace LiteGraph.McpServer.Registrations
                 return EnumerateTags(sdk, query);
             });
 
-            server.RegisterMethod("tag/update", (args) =>
+            server.RegisterMethod("tag/update", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("tag", out JsonElement tagProp))
                     throw new ArgumentException("Tag JSON string is required");
                 string tagJson = tagProp.GetString() ?? throw new ArgumentException("Tag JSON string cannot be null");
@@ -774,8 +820,9 @@ namespace LiteGraph.McpServer.Registrations
                 return UpdateTag(sdk, tag);
             });
 
-            server.RegisterMethod("tag/delete", (args) =>
+            server.RegisterMethod("tag/delete", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid tagGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tagGuid");
@@ -783,16 +830,18 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("tag/exists", (args) =>
+            server.RegisterMethod("tag/exists", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid tagGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tagGuid");
                 return TagExists(sdk, tenantGuid, tagGuid).ToString().ToLowerInvariant();
             });
 
-            server.RegisterMethod("tag/getmany", (args) =>
+            server.RegisterMethod("tag/getmany", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 if (!args.Value.TryGetProperty("tagGuids", out JsonElement guidsProp))
@@ -802,8 +851,9 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadTagsByGuids(sdk, tenantGuid, guids, LiteGraphMcpServerHelpers.GetMaxResults(args));
             });
 
-            server.RegisterMethod("tag/createmany", (args) =>
+            server.RegisterMethod("tag/createmany", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 if (!args.Value.TryGetProperty("tags", out JsonElement tagsProp))
@@ -814,8 +864,9 @@ namespace LiteGraph.McpServer.Registrations
                 return CreateTags(sdk, tenantGuid, tags);
             });
 
-            server.RegisterMethod("tag/deletemany", (args) =>
+            server.RegisterMethod("tag/deletemany", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 if (!args.Value.TryGetProperty("tagGuids", out JsonElement guidsProp))
@@ -826,16 +877,18 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("tag/readallintenant", (args) =>
+            server.RegisterMethod("tag/readallintenant", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 (EnumerationOrderEnum order, int skip) = LiteGraphMcpServerHelpers.GetEnumerationParams(args.Value);
                 return ReadAllTagsInTenant(sdk, tenantGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args), LiteGraphMcpServerHelpers.GetContinuationToken(args));
             });
 
-            server.RegisterMethod("tag/readallingraph", (args) =>
+            server.RegisterMethod("tag/readallingraph", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
@@ -843,8 +896,9 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadAllTagsInGraph(sdk, tenantGuid, graphGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args));
             });
 
-            server.RegisterMethod("tag/readmanygraph", (args) =>
+            server.RegisterMethod("tag/readmanygraph", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
@@ -852,8 +906,9 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadGraphTags(sdk, tenantGuid, graphGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args));
             });
 
-            server.RegisterMethod("tag/readmanynode", (args) =>
+            server.RegisterMethod("tag/readmanynode", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
@@ -862,8 +917,9 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadNodeTags(sdk, tenantGuid, graphGuid, nodeGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args));
             });
 
-            server.RegisterMethod("tag/readmanyedge", (args) =>
+            server.RegisterMethod("tag/readmanyedge", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
@@ -872,16 +928,18 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadEdgeTags(sdk, tenantGuid, graphGuid, edgeGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args));
             });
 
-            server.RegisterMethod("tag/deleteallintenant", (args) =>
+            server.RegisterMethod("tag/deleteallintenant", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 DeleteAllTagsInTenant(sdk, tenantGuid);
                 return true;
             });
 
-            server.RegisterMethod("tag/deleteallingraph", (args) =>
+            server.RegisterMethod("tag/deleteallingraph", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
@@ -889,8 +947,9 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("tag/deletegraphlabels", (args) =>
+            server.RegisterMethod("tag/deletegraphlabels", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
@@ -898,8 +957,9 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("tag/deletenodelabels", (args) =>
+            server.RegisterMethod("tag/deletenodelabels", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");
@@ -908,8 +968,9 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("tag/deleteedgetags", (args) =>
+            server.RegisterMethod("tag/deleteedgetags", (rpcArgs) =>
             {
+                JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
                 Guid tenantGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "tenantGuid");
                 Guid graphGuid = LiteGraphMcpServerHelpers.GetGuidRequired(args.Value, "graphGuid");

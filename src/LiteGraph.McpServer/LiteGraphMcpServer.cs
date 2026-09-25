@@ -13,7 +13,8 @@
     using LiteGraph.McpServer.Classes;
     using LiteGraph.Sdk;
     using SyslogLogging;
-    using Voltaic;
+    using Voltaic.Core;
+    using Voltaic.Mcp;
 
     /// <summary>
     /// LiteGraph MCP Server - Exposes LiteGraph operations via Model Context Protocol.
@@ -386,7 +387,8 @@
 
             Console.WriteLine(
                 "Starting MCP servers on:" + Environment.NewLine +
-                "| HTTP         : http://" + _Settings.Http.Hostname + ":" + _Settings.Http.Port + "/rpc" + Environment.NewLine +
+                "| HTTP (MCP)   : http://" + _Settings.Http.Hostname + ":" + _Settings.Http.Port + "/mcp" + Environment.NewLine +
+                "| HTTP (RPC)   : http://" + _Settings.Http.Hostname + ":" + _Settings.Http.Port + "/rpc" + Environment.NewLine +
                 "| TCP          : tcp://" + (_Settings.Tcp.Address.Equals("localhost", StringComparison.OrdinalIgnoreCase) ? "127.0.0.1" : _Settings.Tcp.Address) + ":" + _Settings.Tcp.Port + Environment.NewLine +
                 "| WebSocket    : ws://" + _Settings.WebSocket.Hostname + ":" + _Settings.WebSocket.Port + "/mcp");
 
@@ -589,7 +591,7 @@
         {
             string httpHostname = _Settings.Http.Hostname;
             int httpPort = _Settings.Http.Port;
-            string mcpUrl = "http://" + httpHostname + ":" + httpPort + "/rpc";
+            string mcpUrl = "http://" + httpHostname + ":" + httpPort + "/mcp";
 
             Console.WriteLine(dryRun ? "[DRY RUN] Previewing install changes..." : "Installing LiteGraph MCP configuration...");
             Console.WriteLine();

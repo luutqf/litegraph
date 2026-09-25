@@ -6,7 +6,8 @@ namespace LiteGraph.McpServer.Registrations
     using System.Text.Json;
     using LiteGraph.McpServer.Classes;
     using LiteGraph.Sdk;
-    using Voltaic;
+    using Voltaic.Core;
+    using Voltaic.Mcp;
 
     /// <summary>
     /// Registration methods for authorization role and scope operations.
@@ -28,7 +29,7 @@ namespace LiteGraph.McpServer.Registrations
                     definition.Name,
                     definition.Description,
                     definition.Schema,
-                    (args) => definition.Handler(sdk, args));
+                    (args) => definition.Handler(sdk, LiteGraphMcpServerHelpers.ToJsonElement(args)));
             }
         }
 
@@ -41,7 +42,7 @@ namespace LiteGraph.McpServer.Registrations
         {
             foreach (ToolDefinition definition in GetToolDefinitions())
             {
-                server.RegisterMethod(definition.Name, (args) => definition.Handler(sdk, args));
+                server.RegisterMethod(definition.Name, (args) => definition.Handler(sdk, LiteGraphMcpServerHelpers.ToJsonElement(args)));
             }
         }
 
@@ -54,7 +55,7 @@ namespace LiteGraph.McpServer.Registrations
         {
             foreach (ToolDefinition definition in GetToolDefinitions())
             {
-                server.RegisterMethod(definition.Name, (args) => definition.Handler(sdk, args));
+                server.RegisterMethod(definition.Name, (args) => definition.Handler(sdk, LiteGraphMcpServerHelpers.ToJsonElement(args)));
             }
         }
 

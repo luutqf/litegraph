@@ -8,7 +8,8 @@ namespace LiteGraph.McpServer.Registrations
     using System.Text.Json.Nodes;
     using LiteGraph.McpServer.Classes;
     using LiteGraph.Sdk;
-    using Voltaic;
+    using Voltaic.Core;
+    using Voltaic.Mcp;
 
     /// <summary>
     /// Registration methods for graph algorithm operations (run, export projection, import results).
@@ -48,7 +49,7 @@ namespace LiteGraph.McpServer.Registrations
                     },
                     required = new[] { "tenantGuid", "graphGuid" }
                 },
-                (args) => ExecuteRun(args, sdk));
+                (args) => ExecuteRun(LiteGraphMcpServerHelpers.ToJsonElement(args), sdk));
 
             server.RegisterTool(
                 "algorithm/export",
@@ -65,7 +66,7 @@ namespace LiteGraph.McpServer.Registrations
                     },
                     required = new[] { "tenantGuid", "graphGuid" }
                 },
-                (args) => ExecuteExport(args, sdk));
+                (args) => ExecuteExport(LiteGraphMcpServerHelpers.ToJsonElement(args), sdk));
 
             server.RegisterTool(
                 "algorithm/import",
@@ -81,7 +82,7 @@ namespace LiteGraph.McpServer.Registrations
                     },
                     required = new[] { "tenantGuid", "graphGuid", "request" }
                 },
-                (args) => ExecuteImport(args, sdk));
+                (args) => ExecuteImport(LiteGraphMcpServerHelpers.ToJsonElement(args), sdk));
         }
 
         #endregion
@@ -95,9 +96,9 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterTcpMethods(McpTcpServer server, LiteGraphSdk sdk)
         {
-            server.RegisterMethod("algorithm/run", (args) => ExecuteRun(args, sdk));
-            server.RegisterMethod("algorithm/export", (args) => ExecuteExport(args, sdk));
-            server.RegisterMethod("algorithm/import", (args) => ExecuteImport(args, sdk));
+            server.RegisterMethod("algorithm/run", (args) => ExecuteRun(LiteGraphMcpServerHelpers.ToJsonElement(args), sdk));
+            server.RegisterMethod("algorithm/export", (args) => ExecuteExport(LiteGraphMcpServerHelpers.ToJsonElement(args), sdk));
+            server.RegisterMethod("algorithm/import", (args) => ExecuteImport(LiteGraphMcpServerHelpers.ToJsonElement(args), sdk));
         }
 
         #endregion
@@ -111,9 +112,9 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterWebSocketMethods(McpWebsocketsServer server, LiteGraphSdk sdk)
         {
-            server.RegisterMethod("algorithm/run", (args) => ExecuteRun(args, sdk));
-            server.RegisterMethod("algorithm/export", (args) => ExecuteExport(args, sdk));
-            server.RegisterMethod("algorithm/import", (args) => ExecuteImport(args, sdk));
+            server.RegisterMethod("algorithm/run", (args) => ExecuteRun(LiteGraphMcpServerHelpers.ToJsonElement(args), sdk));
+            server.RegisterMethod("algorithm/export", (args) => ExecuteExport(LiteGraphMcpServerHelpers.ToJsonElement(args), sdk));
+            server.RegisterMethod("algorithm/import", (args) => ExecuteImport(LiteGraphMcpServerHelpers.ToJsonElement(args), sdk));
         }
 
         #endregion

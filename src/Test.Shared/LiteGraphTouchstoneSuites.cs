@@ -17,7 +17,8 @@ namespace Test.Shared
     using LiteGraph.McpServer;
     using LiteGraph.Serialization;
     using Touchstone.Core;
-    using Voltaic;
+    using Voltaic.Core;
+    using Voltaic.Mcp;
 
     /// <summary>
     /// Shared Touchstone suites for the LiteGraph automated tests.
@@ -389,6 +390,7 @@ namespace Test.Shared
                     CreateVectorIndexSearchSuite(),
                     CreateChatStorageSuite(),
                     CreateChatRestSuite(),
+                    CreateMcpProtocolSuite(),
                     CreateOnboardingSuite()
                 };
 

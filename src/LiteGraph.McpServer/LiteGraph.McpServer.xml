@@ -159,6 +159,15 @@
             Helper methods for LiteGraph MCP Server.
             </summary>
         </member>
+        <member name="M:LiteGraph.McpServer.Classes.LiteGraphMcpServerHelpers.ToJsonElement(Voltaic.Core.RpcParameters)">
+            <summary>
+            Converts Voltaic tool-call parameters into a JSON element for property navigation.
+            Returns null when no parameters were supplied (null, empty, or JSON null).
+            </summary>
+            <param name="parameters">Tool-call parameters supplied by Voltaic; may be null.</param>
+            <returns>The parameters as a detached JSON element, or null.</returns>
+            <exception cref="T:System.Text.Json.JsonException">Thrown when the parameters are not valid JSON.</exception>
+        </member>
         <member name="M:LiteGraph.McpServer.Classes.LiteGraphMcpServerHelpers.GetGuidRequired(System.Text.Json.JsonElement,System.String)">
             <summary>
             Gets a GUID from JSON element, throwing if not present.
@@ -541,21 +550,21 @@
             Registration methods for Admin operations.
             </summary>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.AdminRegistrations.RegisterHttpTools(Voltaic.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.AdminRegistrations.RegisterHttpTools(Voltaic.Mcp.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers admin tools on HTTP server.
             </summary>
             <param name="server">HTTP server instance.</param>
             <param name="sdk">LiteGraph SDK instance.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.AdminRegistrations.RegisterTcpMethods(Voltaic.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.AdminRegistrations.RegisterTcpMethods(Voltaic.Mcp.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers admin methods on TCP server.
             </summary>
             <param name="server">TCP server instance.</param>
             <param name="sdk">LiteGraph SDK instance.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.AdminRegistrations.RegisterWebSocketMethods(Voltaic.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.AdminRegistrations.RegisterWebSocketMethods(Voltaic.Mcp.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers admin methods on WebSocket server.
             </summary>
@@ -568,21 +577,21 @@
             These tools proxy the LiteGraph REST endpoints under the caller's RBAC.
             </summary>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.AlgorithmRegistrations.RegisterHttpTools(Voltaic.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.AlgorithmRegistrations.RegisterHttpTools(Voltaic.Mcp.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers graph algorithm tools on HTTP server.
             </summary>
             <param name="server">HTTP server instance.</param>
             <param name="sdk">LiteGraph SDK instance.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.AlgorithmRegistrations.RegisterTcpMethods(Voltaic.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.AlgorithmRegistrations.RegisterTcpMethods(Voltaic.Mcp.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers graph algorithm methods on TCP server.
             </summary>
             <param name="server">TCP server instance.</param>
             <param name="sdk">LiteGraph SDK instance.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.AlgorithmRegistrations.RegisterWebSocketMethods(Voltaic.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.AlgorithmRegistrations.RegisterWebSocketMethods(Voltaic.Mcp.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers graph algorithm methods on WebSocket server.
             </summary>
@@ -594,21 +603,21 @@
             Registration methods for authorization role and scope operations.
             </summary>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.AuthorizationRegistrations.RegisterHttpTools(Voltaic.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.AuthorizationRegistrations.RegisterHttpTools(Voltaic.Mcp.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers authorization tools on HTTP server.
             </summary>
             <param name="server">HTTP server instance.</param>
             <param name="sdk">LiteGraph SDK instance.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.AuthorizationRegistrations.RegisterTcpMethods(Voltaic.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.AuthorizationRegistrations.RegisterTcpMethods(Voltaic.Mcp.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers authorization methods on TCP server.
             </summary>
             <param name="server">TCP server instance.</param>
             <param name="sdk">LiteGraph SDK instance.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.AuthorizationRegistrations.RegisterWebSocketMethods(Voltaic.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.AuthorizationRegistrations.RegisterWebSocketMethods(Voltaic.Mcp.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers authorization methods on WebSocket server.
             </summary>
@@ -620,21 +629,21 @@
             Registration methods for Batch operations.
             </summary>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.BatchRegistrations.RegisterHttpTools(Voltaic.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.BatchRegistrations.RegisterHttpTools(Voltaic.Mcp.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers batch tools on HTTP server.
             </summary>
             <param name="server">HTTP server instance.</param>
             <param name="sdk">LiteGraph SDK instance.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.BatchRegistrations.RegisterTcpMethods(Voltaic.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.BatchRegistrations.RegisterTcpMethods(Voltaic.Mcp.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers batch methods on TCP server.
             </summary>
             <param name="server">TCP server instance.</param>
             <param name="sdk">LiteGraph SDK instance.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.BatchRegistrations.RegisterWebSocketMethods(Voltaic.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.BatchRegistrations.RegisterWebSocketMethods(Voltaic.Mcp.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers batch methods on WebSocket server.
             </summary>
@@ -646,21 +655,21 @@
             Registration methods for Chat operations.
             </summary>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.ChatRegistrations.RegisterHttpTools(Voltaic.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.ChatRegistrations.RegisterHttpTools(Voltaic.Mcp.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers chat tools on HTTP server.
             </summary>
             <param name="server">HTTP server instance.</param>
             <param name="sdk">LiteGraph SDK instance.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.ChatRegistrations.RegisterTcpMethods(Voltaic.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.ChatRegistrations.RegisterTcpMethods(Voltaic.Mcp.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers chat methods on TCP server.
             </summary>
             <param name="server">TCP server instance.</param>
             <param name="sdk">LiteGraph SDK instance.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.ChatRegistrations.RegisterWebSocketMethods(Voltaic.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.ChatRegistrations.RegisterWebSocketMethods(Voltaic.Mcp.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers chat methods on WebSocket server.
             </summary>
@@ -672,21 +681,21 @@
             Registration methods for Credential operations.
             </summary>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.CredentialRegistrations.RegisterHttpTools(Voltaic.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.CredentialRegistrations.RegisterHttpTools(Voltaic.Mcp.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers credential tools on HTTP server.
             </summary>
             <param name="server">HTTP server instance.</param>
             <param name="sdk">LiteGraph SDK instance.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.CredentialRegistrations.RegisterTcpMethods(Voltaic.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.CredentialRegistrations.RegisterTcpMethods(Voltaic.Mcp.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers credential methods on TCP server.
             </summary>
             <param name="server">TCP server instance.</param>
             <param name="sdk">LiteGraph SDK instance.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.CredentialRegistrations.RegisterWebSocketMethods(Voltaic.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.CredentialRegistrations.RegisterWebSocketMethods(Voltaic.Mcp.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers credential methods on WebSocket server.
             </summary>
@@ -698,21 +707,21 @@
             Registration methods for Edge operations.
             </summary>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.EdgeRegistrations.RegisterHttpTools(Voltaic.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.EdgeRegistrations.RegisterHttpTools(Voltaic.Mcp.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers edge tools on HTTP server.
             </summary>
             <param name="server">HTTP server instance.</param>
             <param name="sdk">LiteGraph SDK instance.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.EdgeRegistrations.RegisterTcpMethods(Voltaic.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.EdgeRegistrations.RegisterTcpMethods(Voltaic.Mcp.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers edge methods on TCP server.
             </summary>
             <param name="server">TCP server instance.</param>
             <param name="sdk">LiteGraph SDK instance.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.EdgeRegistrations.RegisterWebSocketMethods(Voltaic.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.EdgeRegistrations.RegisterWebSocketMethods(Voltaic.Mcp.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers edge methods on WebSocket server.
             </summary>
@@ -724,21 +733,21 @@
             Registration methods for Graph operations.
             </summary>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.GraphRegistrations.RegisterHttpTools(Voltaic.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.GraphRegistrations.RegisterHttpTools(Voltaic.Mcp.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers graph tools on HTTP server.
             </summary>
             <param name="server">HTTP server instance.</param>
             <param name="sdk">LiteGraph SDK instance.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.GraphRegistrations.RegisterTcpMethods(Voltaic.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.GraphRegistrations.RegisterTcpMethods(Voltaic.Mcp.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers graph methods on TCP server.
             </summary>
             <param name="server">TCP server instance.</param>
             <param name="sdk">LiteGraph SDK instance.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.GraphRegistrations.RegisterWebSocketMethods(Voltaic.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.GraphRegistrations.RegisterWebSocketMethods(Voltaic.Mcp.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers graph methods on WebSocket server.
             </summary>
@@ -750,21 +759,21 @@
             Registration methods for Label operations.
             </summary>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.LabelRegistrations.RegisterHttpTools(Voltaic.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.LabelRegistrations.RegisterHttpTools(Voltaic.Mcp.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers label tools on HTTP server.
             </summary>
             <param name="server">HTTP server instance.</param>
             <param name="sdk">LiteGraph SDK instance.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.LabelRegistrations.RegisterTcpMethods(Voltaic.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.LabelRegistrations.RegisterTcpMethods(Voltaic.Mcp.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers label methods on TCP server.
             </summary>
             <param name="server">TCP server instance.</param>
             <param name="sdk">LiteGraph SDK instance.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.LabelRegistrations.RegisterWebSocketMethods(Voltaic.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.LabelRegistrations.RegisterWebSocketMethods(Voltaic.Mcp.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers label methods on WebSocket server.
             </summary>
@@ -776,21 +785,21 @@
             Registration methods for Node operations.
             </summary>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.NodeRegistrations.RegisterHttpTools(Voltaic.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.NodeRegistrations.RegisterHttpTools(Voltaic.Mcp.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers node tools on HTTP server.
             </summary>
             <param name="server">HTTP server instance.</param>
             <param name="sdk">LiteGraph SDK instance.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.NodeRegistrations.RegisterTcpMethods(Voltaic.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.NodeRegistrations.RegisterTcpMethods(Voltaic.Mcp.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers node methods on TCP server.
             </summary>
             <param name="server">TCP server instance.</param>
             <param name="sdk">LiteGraph SDK instance.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.NodeRegistrations.RegisterWebSocketMethods(Voltaic.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.NodeRegistrations.RegisterWebSocketMethods(Voltaic.Mcp.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers node methods on WebSocket server.
             </summary>
@@ -802,21 +811,21 @@
             Registration methods for native graph query operations.
             </summary>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.QueryRegistrations.RegisterHttpTools(Voltaic.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.QueryRegistrations.RegisterHttpTools(Voltaic.Mcp.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers native graph query tools on HTTP server.
             </summary>
             <param name="server">HTTP server instance.</param>
             <param name="sdk">LiteGraph SDK instance.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.QueryRegistrations.RegisterTcpMethods(Voltaic.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.QueryRegistrations.RegisterTcpMethods(Voltaic.Mcp.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers native graph query methods on TCP server.
             </summary>
             <param name="server">TCP server instance.</param>
             <param name="sdk">LiteGraph SDK instance.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.QueryRegistrations.RegisterWebSocketMethods(Voltaic.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.QueryRegistrations.RegisterWebSocketMethods(Voltaic.Mcp.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers native graph query methods on WebSocket server.
             </summary>
@@ -828,21 +837,21 @@
             MCP tool registrations for subgraph JSONL import and export.
             </summary>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.SubgraphRegistrations.RegisterHttpTools(Voltaic.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.SubgraphRegistrations.RegisterHttpTools(Voltaic.Mcp.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Register HTTP tools.
             </summary>
             <param name="server">MCP HTTP server.</param>
             <param name="sdk">LiteGraph SDK.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.SubgraphRegistrations.RegisterTcpMethods(Voltaic.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.SubgraphRegistrations.RegisterTcpMethods(Voltaic.Mcp.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Register TCP methods.
             </summary>
             <param name="server">MCP TCP server.</param>
             <param name="sdk">LiteGraph SDK.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.SubgraphRegistrations.RegisterWebSocketMethods(Voltaic.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.SubgraphRegistrations.RegisterWebSocketMethods(Voltaic.Mcp.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Register WebSocket methods.
             </summary>
@@ -854,21 +863,21 @@
             Registration methods for Tag operations.
             </summary>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.TagRegistrations.RegisterHttpTools(Voltaic.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.TagRegistrations.RegisterHttpTools(Voltaic.Mcp.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers tag tools on HTTP server.
             </summary>
             <param name="server">HTTP server instance.</param>
             <param name="sdk">LiteGraph SDK instance.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.TagRegistrations.RegisterTcpMethods(Voltaic.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.TagRegistrations.RegisterTcpMethods(Voltaic.Mcp.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers tag methods on TCP server.
             </summary>
             <param name="server">TCP server instance.</param>
             <param name="sdk">LiteGraph SDK instance.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.TagRegistrations.RegisterWebSocketMethods(Voltaic.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.TagRegistrations.RegisterWebSocketMethods(Voltaic.Mcp.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers tag methods on WebSocket server.
             </summary>
@@ -880,21 +889,21 @@
             Registration methods for Tenant operations.
             </summary>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.TenantRegistrations.RegisterHttpTools(Voltaic.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.TenantRegistrations.RegisterHttpTools(Voltaic.Mcp.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers tenant tools on HTTP server.
             </summary>
             <param name="server">HTTP server instance.</param>
             <param name="sdk">LiteGraph SDK instance.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.TenantRegistrations.RegisterTcpMethods(Voltaic.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.TenantRegistrations.RegisterTcpMethods(Voltaic.Mcp.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers tenant methods on TCP server.
             </summary>
             <param name="server">TCP server instance.</param>
             <param name="sdk">LiteGraph SDK instance.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.TenantRegistrations.RegisterWebSocketMethods(Voltaic.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.TenantRegistrations.RegisterWebSocketMethods(Voltaic.Mcp.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers tenant methods on WebSocket server.
             </summary>
@@ -906,21 +915,21 @@
             Registration methods for graph-scoped transaction operations.
             </summary>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.TransactionRegistrations.RegisterHttpTools(Voltaic.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.TransactionRegistrations.RegisterHttpTools(Voltaic.Mcp.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers graph transaction tools on HTTP server.
             </summary>
             <param name="server">HTTP server instance.</param>
             <param name="sdk">LiteGraph SDK instance.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.TransactionRegistrations.RegisterTcpMethods(Voltaic.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.TransactionRegistrations.RegisterTcpMethods(Voltaic.Mcp.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers graph transaction methods on TCP server.
             </summary>
             <param name="server">TCP server instance.</param>
             <param name="sdk">LiteGraph SDK instance.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.TransactionRegistrations.RegisterWebSocketMethods(Voltaic.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.TransactionRegistrations.RegisterWebSocketMethods(Voltaic.Mcp.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers graph transaction methods on WebSocket server.
             </summary>
@@ -932,21 +941,21 @@
             Registration methods for User Authentication operations.
             </summary>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.UserAuthenticationRegistrations.RegisterHttpTools(Voltaic.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.UserAuthenticationRegistrations.RegisterHttpTools(Voltaic.Mcp.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers user authentication tools on HTTP server.
             </summary>
             <param name="server">HTTP server instance.</param>
             <param name="sdk">LiteGraph SDK instance.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.UserAuthenticationRegistrations.RegisterTcpMethods(Voltaic.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.UserAuthenticationRegistrations.RegisterTcpMethods(Voltaic.Mcp.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers user authentication methods on TCP server.
             </summary>
             <param name="server">TCP server instance.</param>
             <param name="sdk">LiteGraph SDK instance.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.UserAuthenticationRegistrations.RegisterWebSocketMethods(Voltaic.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.UserAuthenticationRegistrations.RegisterWebSocketMethods(Voltaic.Mcp.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers user authentication methods on WebSocket server.
             </summary>
@@ -958,21 +967,21 @@
             Registration methods for User operations.
             </summary>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.UserRegistrations.RegisterHttpTools(Voltaic.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.UserRegistrations.RegisterHttpTools(Voltaic.Mcp.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers user tools on HTTP server.
             </summary>
             <param name="server">HTTP server instance.</param>
             <param name="sdk">LiteGraph SDK instance.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.UserRegistrations.RegisterTcpMethods(Voltaic.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.UserRegistrations.RegisterTcpMethods(Voltaic.Mcp.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers user methods on TCP server.
             </summary>
             <param name="server">TCP server instance.</param>
             <param name="sdk">LiteGraph SDK instance.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.UserRegistrations.RegisterWebSocketMethods(Voltaic.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.UserRegistrations.RegisterWebSocketMethods(Voltaic.Mcp.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers user methods on WebSocket server.
             </summary>
@@ -984,21 +993,21 @@
             Registration methods for Vector operations.
             </summary>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.VectorRegistrations.RegisterHttpTools(Voltaic.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.VectorRegistrations.RegisterHttpTools(Voltaic.Mcp.McpHttpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers vector tools on HTTP server.
             </summary>
             <param name="server">HTTP server instance.</param>
             <param name="sdk">LiteGraph SDK instance.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.VectorRegistrations.RegisterTcpMethods(Voltaic.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.VectorRegistrations.RegisterTcpMethods(Voltaic.Mcp.McpTcpServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers vector methods on TCP server.
             </summary>
             <param name="server">TCP server instance.</param>
             <param name="sdk">LiteGraph SDK instance.</param>
         </member>
-        <member name="M:LiteGraph.McpServer.Registrations.VectorRegistrations.RegisterWebSocketMethods(Voltaic.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
+        <member name="M:LiteGraph.McpServer.Registrations.VectorRegistrations.RegisterWebSocketMethods(Voltaic.Mcp.McpWebsocketsServer,LiteGraph.Sdk.LiteGraphSdk)">
             <summary>
             Registers vector methods on WebSocket server.
             </summary>

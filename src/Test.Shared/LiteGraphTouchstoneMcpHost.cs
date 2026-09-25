@@ -10,7 +10,8 @@ namespace Test.Shared
     using System.Runtime.Versioning;
     using System.Threading;
     using System.Threading.Tasks;
-    using Voltaic;
+    using Voltaic.Core;
+    using Voltaic.Mcp;
 
     public static partial class LiteGraphTouchstoneSuites
     {
