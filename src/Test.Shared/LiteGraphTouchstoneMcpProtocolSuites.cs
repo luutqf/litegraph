@@ -52,6 +52,10 @@ namespace Test.Shared
                     McpProtocolCase("Mcp.Protocol.StatelessPing", "Stateless ping returns resultType complete", TestMcpStatelessPing),
                     McpProtocolCase("Mcp.Protocol.TcpTransport", "TCP transport answers ping, lists no demo tools, and serves LiteGraph methods", TestMcpTcpTransport),
                     McpProtocolCase("Mcp.Protocol.WebSocketTransport", "WebSocket transport answers ping and serves LiteGraph methods", TestMcpWebSocketTransport),
+                    McpProtocolCase("Mcp.Protocol.DeletedGraphReadReportsCause", "Reading a deleted graph returns a specific error naming the graph, not a generic internal error", TestMcpDeletedGraphReadReportsCause),
+                    McpProtocolCase("Mcp.Protocol.HandlerArgumentErrorReportsCause", "A malformed argument is reported as invalid params with a readable message", TestMcpHandlerArgumentErrorReportsCause),
+                    McpProtocolCase("Mcp.Protocol.ExistingGraphReadStillSucceeds", "Error translation leaves successful tool results unchanged", TestMcpExistingGraphReadStillSucceeds),
+                    McpProtocolCase("Mcp.Protocol.TcpAndWebSocketErrorsReportCause", "TCP and WebSocket report the cause of a failed LiteGraph call", TestMcpTcpAndWebSocketErrorsReportCause),
                     McpProtocolCase("Mcp.Protocol.InitializeCapsHandshakeVersion", "initialize requesting 2026-07-28 negotiates the newest handshake revision", TestMcpInitializeCapsHandshakeVersion)
                 },
                 afterSuiteAsync: CleanupMcpSuiteAsync);
@@ -492,6 +496,145 @@ namespace Test.Shared
 
                 AssertTrue(rejected, "WebSocket getClients is no longer served");
             }
+        }
+
+        private static async Task<Guid> CreateAndDeleteMcpGraphAsync(CancellationToken cancellationToken)
+        {
+            string created = await CallMcpToolAsync<string>(
+                "graph/create",
+                new { tenantGuid = _DefaultTenantGuid, name = "mcp-deleted-" + Guid.NewGuid().ToString("N") },
+                token: cancellationToken).ConfigureAwait(false);
+            Graph? graph = _McpSerializer.DeserializeJson<Graph>(created);
+            AssertNotNull(graph, "graph/create returns a graph");
+
+            await CallMcpToolAsync<object>(
+                "graph/delete",
+                new { tenantGuid = _DefaultTenantGuid, graphGuid = graph!.GUID.ToString(), force = true },
+                token: cancellationToken).ConfigureAwait(false);
+
+            return graph.GUID;
+        }
+
+        private static async Task TestMcpDeletedGraphReadReportsCause(CancellationToken cancellationToken)
+        {
+            await EnsureMcpEnvironmentAsync(cancellationToken).ConfigureAwait(false);
+            if (_McpClient == null) throw new InvalidOperationException("MCP client is null");
+
+            Guid graphGuid = await CreateAndDeleteMcpGraphAsync(cancellationToken).ConfigureAwait(false);
+
+            JsonRpcResponse response = await _McpClient.CallAsync(
+                "tools/call",
+                new { name = "graph/get", arguments = new { tenantGuid = _DefaultTenantGuid, graphGuid = graphGuid.ToString() } },
+                token: cancellationToken).ConfigureAwait(false);
+
+            AssertTrue(response.Error != null, "graph/get of a deleted graph returns a JSON-RPC error");
+            string message = response.Error!.Message ?? "";
+            AssertTrue(response.Error.Code != -32603, "The error is not a generic internal error (" + DescribeRpcError(response) + ")");
+            AssertEqual(-32602, response.Error.Code, "REST 400 maps to invalid params");
+            AssertFalse(message.Equals("Internal error", StringComparison.Ordinal), "The error message is not the bare 'Internal error'");
+            AssertTrue(message.Contains(graphGuid.ToString()), "The error message names the deleted graph (" + message + ")");
+            AssertTrue(message.Contains("No graph", StringComparison.OrdinalIgnoreCase), "The error message carries the REST description (" + message + ")");
+
+            using (JsonDocument data = JsonDocument.Parse(JsonSerializer.Serialize(response.Error.Data)))
+            {
+                AssertTrue(
+                    data.RootElement.ValueKind == JsonValueKind.Object
+                    && data.RootElement.TryGetProperty("statusCode", out JsonElement statusCode)
+                    && statusCode.GetInt32() == 400,
+                    "The error data carries the REST status code");
+            }
+        }
+
+        private static async Task TestMcpHandlerArgumentErrorReportsCause(CancellationToken cancellationToken)
+        {
+            await EnsureMcpEnvironmentAsync(cancellationToken).ConfigureAwait(false);
+            if (_McpClient == null) throw new InvalidOperationException("MCP client is null");
+
+            JsonRpcResponse response = await _McpClient.CallAsync(
+                "tools/call",
+                new { name = "tenant/get", arguments = new { tenantGuid = "not-a-guid" } },
+                token: cancellationToken).ConfigureAwait(false);
+
+            AssertTrue(response.Error != null, "tenant/get with a malformed GUID returns a JSON-RPC error");
+            AssertEqual(-32602, response.Error!.Code, "A handler argument error maps to invalid params (" + DescribeRpcError(response) + ")");
+            string message = response.Error.Message ?? "";
+            AssertFalse(message.Equals("Internal error", StringComparison.Ordinal), "The error message is not the bare 'Internal error'");
+            AssertTrue(message.Contains("Invalid argument format") && message.Contains("Guid"), "The error message describes the malformed GUID (" + message + ")");
+        }
+
+        private static async Task TestMcpExistingGraphReadStillSucceeds(CancellationToken cancellationToken)
+        {
+            await EnsureMcpEnvironmentAsync(cancellationToken).ConfigureAwait(false);
+
+            string created = await CallMcpToolAsync<string>(
+                "graph/create",
+                new { tenantGuid = _DefaultTenantGuid, name = "mcp-live-" + Guid.NewGuid().ToString("N") },
+                token: cancellationToken).ConfigureAwait(false);
+            Graph? graph = _McpSerializer.DeserializeJson<Graph>(created);
+            AssertNotNull(graph, "graph/create returns a graph");
+
+            try
+            {
+                string read = await CallMcpToolAsync<string>(
+                    "graph/get",
+                    new { tenantGuid = _DefaultTenantGuid, graphGuid = graph!.GUID.ToString() },
+                    token: cancellationToken).ConfigureAwait(false);
+                Graph? readGraph = _McpSerializer.DeserializeJson<Graph>(read);
+                AssertNotNull(readGraph, "graph/get returns the graph");
+                AssertEqual(graph.GUID, readGraph!.GUID, "graph/get returns the created graph");
+            }
+            finally
+            {
+                await CallMcpToolAsync<object>(
+                    "graph/delete",
+                    new { tenantGuid = _DefaultTenantGuid, graphGuid = graph!.GUID.ToString(), force = true },
+                    token: cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        private static async Task TestMcpTcpAndWebSocketErrorsReportCause(CancellationToken cancellationToken)
+        {
+            await EnsureMcpEnvironmentAsync(cancellationToken).ConfigureAwait(false);
+            if (_McpEnvironment == null) throw new InvalidOperationException("MCP environment is not running.");
+
+            Guid graphGuid = await CreateAndDeleteMcpGraphAsync(cancellationToken).ConfigureAwait(false);
+            object arguments = new { tenantGuid = _DefaultTenantGuid, graphGuid = graphGuid.ToString() };
+
+            string? tcpError = null;
+            using (McpTcpClient tcp = new McpTcpClient())
+            {
+                AssertTrue(await tcp.ConnectAsync("127.0.0.1", _McpEnvironment.McpTcpPort, cancellationToken).ConfigureAwait(false), "TCP client connects");
+                try
+                {
+                    await tcp.CallAsync<object?>("graph/get", arguments, 30000, cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    tcpError = ex.Message;
+                }
+            }
+
+            AssertNotNull(tcpError, "TCP graph/get of a deleted graph fails");
+            AssertFalse(tcpError!.Contains("-32603"), "TCP error is not a generic internal error (" + tcpError + ")");
+            AssertTrue(tcpError.Contains(graphGuid.ToString()), "TCP error names the deleted graph (" + tcpError + ")");
+
+            string? wsError = null;
+            using (McpWebsocketsClient ws = new McpWebsocketsClient())
+            {
+                AssertTrue(await ws.ConnectAsync("ws://127.0.0.1:" + _McpEnvironment.McpWebSocketPort + "/mcp", cancellationToken).ConfigureAwait(false), "WebSocket client connects");
+                try
+                {
+                    await ws.CallAsync<object?>("graph/get", arguments, 30000, cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    wsError = ex.Message;
+                }
+            }
+
+            AssertNotNull(wsError, "WebSocket graph/get of a deleted graph fails");
+            AssertFalse(wsError!.Contains("Internal error"), "WebSocket error is not a generic internal error (" + wsError + ")");
+            AssertTrue(wsError.Contains(graphGuid.ToString()), "WebSocket error names the deleted graph (" + wsError + ")");
         }
 
         private static async Task<HashSet<string>> ListMcpToolNamesAsync(CancellationToken cancellationToken)

@@ -32,7 +32,7 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterHttpTools(McpHttpServer server, LiteGraphSdk sdk)
         {
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "algorithm/run",
                 "Runs a graph algorithm (DegreeCentrality, PageRank, WeaklyConnectedComponents, StronglyConnectedComponents, LabelPropagation) over a single graph. Set writeBack=true (requires write permission) to store per-node results into node data.",
                 new
@@ -51,7 +51,7 @@ namespace LiteGraph.McpServer.Registrations
                 },
                 (args) => ExecuteRun(LiteGraphMcpServerHelpers.ToJsonElement(args), sdk));
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "algorithm/export",
                 "Exports a graph as a portable projection (NodeLinkJson, EdgeList, or Graphml) for external computation in engines such as rustworkx or NetworkX.",
                 new
@@ -68,7 +68,7 @@ namespace LiteGraph.McpServer.Registrations
                 },
                 (args) => ExecuteExport(LiteGraphMcpServerHelpers.ToJsonElement(args), sdk));
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "algorithm/import",
                 "Imports externally computed per-node values back onto graph nodes, writing them into node data. Requires write permission.",
                 new
@@ -96,9 +96,9 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterTcpMethods(McpTcpServer server, LiteGraphSdk sdk)
         {
-            server.RegisterMethod("algorithm/run", (args) => ExecuteRun(LiteGraphMcpServerHelpers.ToJsonElement(args), sdk));
-            server.RegisterMethod("algorithm/export", (args) => ExecuteExport(LiteGraphMcpServerHelpers.ToJsonElement(args), sdk));
-            server.RegisterMethod("algorithm/import", (args) => ExecuteImport(LiteGraphMcpServerHelpers.ToJsonElement(args), sdk));
+            server.RegisterLiteGraphMethod("algorithm/run", (args) => ExecuteRun(LiteGraphMcpServerHelpers.ToJsonElement(args), sdk));
+            server.RegisterLiteGraphMethod("algorithm/export", (args) => ExecuteExport(LiteGraphMcpServerHelpers.ToJsonElement(args), sdk));
+            server.RegisterLiteGraphMethod("algorithm/import", (args) => ExecuteImport(LiteGraphMcpServerHelpers.ToJsonElement(args), sdk));
         }
 
         #endregion
@@ -112,9 +112,9 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterWebSocketMethods(McpWebsocketsServer server, LiteGraphSdk sdk)
         {
-            server.RegisterMethod("algorithm/run", (args) => ExecuteRun(LiteGraphMcpServerHelpers.ToJsonElement(args), sdk));
-            server.RegisterMethod("algorithm/export", (args) => ExecuteExport(LiteGraphMcpServerHelpers.ToJsonElement(args), sdk));
-            server.RegisterMethod("algorithm/import", (args) => ExecuteImport(LiteGraphMcpServerHelpers.ToJsonElement(args), sdk));
+            server.RegisterLiteGraphMethod("algorithm/run", (args) => ExecuteRun(LiteGraphMcpServerHelpers.ToJsonElement(args), sdk));
+            server.RegisterLiteGraphMethod("algorithm/export", (args) => ExecuteExport(LiteGraphMcpServerHelpers.ToJsonElement(args), sdk));
+            server.RegisterLiteGraphMethod("algorithm/import", (args) => ExecuteImport(LiteGraphMcpServerHelpers.ToJsonElement(args), sdk));
         }
 
         #endregion
@@ -212,8 +212,7 @@ namespace LiteGraph.McpServer.Registrations
                 {
                     string body = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
                     if (!response.IsSuccessStatusCode)
-                        throw new InvalidOperationException(
-                            "LiteGraph algorithm endpoint returned " + (int)response.StatusCode + " " + response.ReasonPhrase + ": " + body);
+                        throw new LiteGraphRestException("LiteGraph algorithm endpoint", (int)response.StatusCode, response.ReasonPhrase, body);
                     return body;
                 }
             }
@@ -230,8 +229,7 @@ namespace LiteGraph.McpServer.Registrations
                 {
                     string body = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
                     if (!response.IsSuccessStatusCode)
-                        throw new InvalidOperationException(
-                            "LiteGraph export endpoint returned " + (int)response.StatusCode + " " + response.ReasonPhrase + ": " + body);
+                        throw new LiteGraphRestException("LiteGraph export endpoint", (int)response.StatusCode, response.ReasonPhrase, body);
                     return body;
                 }
             }

@@ -23,7 +23,7 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterHttpTools(McpHttpServer server, LiteGraphSdk sdk)
         {
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "label/create",
                 "Creates a new label in LiteGraph",
                 new
@@ -45,7 +45,7 @@ namespace LiteGraph.McpServer.Registrations
                     return CreateLabel(sdk, label);
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "label/get",
                 "Reads a label by GUID",
                 new
@@ -68,7 +68,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadLabel(sdk, tenantGuid, labelGuid);
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "label/all",
                 "Lists all labels in a tenant. Returns a paginated EnumerationResult envelope (Objects, TotalRecords, RecordsRemaining, ContinuationToken/EndOfResults)",
                 new
@@ -95,7 +95,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadLabels(sdk, tenantGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args), LiteGraphMcpServerHelpers.GetContinuationToken(args));
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "label/enumerate",
                 "Enumerates labels with pagination and filtering",
                 new
@@ -121,7 +121,7 @@ namespace LiteGraph.McpServer.Registrations
                     return EnumerateLabels(sdk, query);
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "label/update",
                 "Updates a label",
                 new
@@ -143,7 +143,7 @@ namespace LiteGraph.McpServer.Registrations
                     return UpdateLabel(sdk, label);
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "label/delete",
                 "Deletes a label by GUID",
                 new
@@ -166,7 +166,7 @@ namespace LiteGraph.McpServer.Registrations
                     return true;
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "label/exists",
                 "Checks if a label exists by GUID",
                 new
@@ -188,7 +188,7 @@ namespace LiteGraph.McpServer.Registrations
                     return LabelExists(sdk, tenantGuid, labelGuid).ToString().ToLowerInvariant();
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "label/getmany",
                 "Reads multiple labels by their GUIDs. Returns a paginated EnumerationResult envelope (Objects, TotalRecords, RecordsRemaining, ContinuationToken/EndOfResults)",
                 new
@@ -214,7 +214,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadLabelsByGuids(sdk, tenantGuid, guids, LiteGraphMcpServerHelpers.GetMaxResults(args));
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "label/createmany",
                 "Creates multiple labels",
                 new
@@ -240,7 +240,7 @@ namespace LiteGraph.McpServer.Registrations
                     return CreateLabels(sdk, tenantGuid, labels);
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "label/deletemany",
                 "Deletes multiple labels by their GUIDs",
                 new
@@ -266,7 +266,7 @@ namespace LiteGraph.McpServer.Registrations
                     return true;
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "label/readallintenant",
                 "Reads all labels in a tenant. Returns a paginated EnumerationResult envelope (Objects, TotalRecords, RecordsRemaining, ContinuationToken/EndOfResults)",
                 new
@@ -291,7 +291,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadAllLabelsInTenant(sdk, tenantGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args), LiteGraphMcpServerHelpers.GetContinuationToken(args));
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "label/readallingraph",
                 "Reads all labels in a graph. Returns a paginated EnumerationResult envelope (Objects, TotalRecords, RecordsRemaining, ContinuationToken/EndOfResults)",
                 new
@@ -317,7 +317,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadAllLabelsInGraph(sdk, tenantGuid, graphGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args));
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "label/readmanygraph",
                 "Reads labels scoped to a graph. Returns a paginated EnumerationResult envelope (Objects, TotalRecords, RecordsRemaining, ContinuationToken/EndOfResults)",
                 new
@@ -343,7 +343,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadGraphLabels(sdk, tenantGuid, graphGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args));
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "label/readmanynode",
                 "Reads labels attached to a node. Returns a paginated EnumerationResult envelope (Objects, TotalRecords, RecordsRemaining, ContinuationToken/EndOfResults)",
                 new
@@ -371,7 +371,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadNodeLabels(sdk, tenantGuid, graphGuid, nodeGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args));
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "label/readmanyedge",
                 "Reads labels attached to an edge. Returns a paginated EnumerationResult envelope (Objects, TotalRecords, RecordsRemaining, ContinuationToken/EndOfResults)",
                 new
@@ -399,7 +399,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadEdgeLabels(sdk, tenantGuid, graphGuid, edgeGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args));
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "label/deleteallintenant",
                 "Deletes all labels in a tenant",
                 new
@@ -420,7 +420,7 @@ namespace LiteGraph.McpServer.Registrations
                     return true;
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "label/deleteallingraph",
                 "Deletes all labels in a graph",
                 new
@@ -443,7 +443,7 @@ namespace LiteGraph.McpServer.Registrations
                     return true;
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "label/deletegraphlabels",
                 "Deletes labels assigned to a graph",
                 new
@@ -466,7 +466,7 @@ namespace LiteGraph.McpServer.Registrations
                     return true;
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "label/deletenodelabels",
                 "Deletes labels assigned to a node",
                 new
@@ -491,7 +491,7 @@ namespace LiteGraph.McpServer.Registrations
                     return true;
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "label/deleteedgelabels",
                 "Deletes labels assigned to an edge",
                 new
@@ -528,7 +528,7 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterTcpMethods(McpTcpServer server, LiteGraphSdk sdk)
         {
-            server.RegisterMethod("label/create", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/create", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("label", out JsonElement labelProp))
@@ -538,7 +538,7 @@ namespace LiteGraph.McpServer.Registrations
                 return CreateLabel(sdk, label);
             });
 
-            server.RegisterMethod("label/get", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/get", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -548,7 +548,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadLabel(sdk, tenantGuid, labelGuid);
             });
 
-            server.RegisterMethod("label/all", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/all", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("tenantGuid", out JsonElement tenantGuidProp))
@@ -558,7 +558,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadLabels(sdk, tenantGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args), LiteGraphMcpServerHelpers.GetContinuationToken(args));
             });
 
-            server.RegisterMethod("label/enumerate", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/enumerate", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("query", out JsonElement queryProp))
@@ -572,7 +572,7 @@ namespace LiteGraph.McpServer.Registrations
                 return EnumerateLabels(sdk, query);
             });
 
-            server.RegisterMethod("label/update", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/update", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("label", out JsonElement labelProp))
@@ -582,7 +582,7 @@ namespace LiteGraph.McpServer.Registrations
                 return UpdateLabel(sdk, label);
             });
 
-            server.RegisterMethod("label/delete", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/delete", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -592,7 +592,7 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("label/exists", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/exists", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -601,7 +601,7 @@ namespace LiteGraph.McpServer.Registrations
                 return LabelExists(sdk, tenantGuid, labelGuid).ToString().ToLowerInvariant();
             });
 
-            server.RegisterMethod("label/getmany", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/getmany", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -613,7 +613,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadLabelsByGuids(sdk, tenantGuid, guids, LiteGraphMcpServerHelpers.GetMaxResults(args));
             });
 
-            server.RegisterMethod("label/createmany", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/createmany", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -626,7 +626,7 @@ namespace LiteGraph.McpServer.Registrations
                 return CreateLabels(sdk, tenantGuid, labels);
             });
 
-            server.RegisterMethod("label/deletemany", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/deletemany", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -639,7 +639,7 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("label/readallintenant", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/readallintenant", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -648,7 +648,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadAllLabelsInTenant(sdk, tenantGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args), LiteGraphMcpServerHelpers.GetContinuationToken(args));
             });
 
-            server.RegisterMethod("label/readallingraph", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/readallingraph", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -658,7 +658,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadAllLabelsInGraph(sdk, tenantGuid, graphGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args));
             });
 
-            server.RegisterMethod("label/readmanygraph", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/readmanygraph", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -668,7 +668,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadGraphLabels(sdk, tenantGuid, graphGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args));
             });
 
-            server.RegisterMethod("label/readmanynode", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/readmanynode", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -679,7 +679,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadNodeLabels(sdk, tenantGuid, graphGuid, nodeGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args));
             });
 
-            server.RegisterMethod("label/readmanyedge", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/readmanyedge", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -690,7 +690,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadEdgeLabels(sdk, tenantGuid, graphGuid, edgeGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args));
             });
 
-            server.RegisterMethod("label/deleteallintenant", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/deleteallintenant", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -699,7 +699,7 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("label/deleteallingraph", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/deleteallingraph", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -709,7 +709,7 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("label/deletegraphlabels", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/deletegraphlabels", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -719,7 +719,7 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("label/deletenodelabels", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/deletenodelabels", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -730,7 +730,7 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("label/deleteedgelabels", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/deleteedgelabels", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -753,7 +753,7 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterWebSocketMethods(McpWebsocketsServer server, LiteGraphSdk sdk)
         {
-            server.RegisterMethod("label/create", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/create", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("label", out JsonElement labelProp))
@@ -763,7 +763,7 @@ namespace LiteGraph.McpServer.Registrations
                 return CreateLabel(sdk, label);
             });
 
-            server.RegisterMethod("label/get", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/get", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -773,7 +773,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadLabel(sdk, tenantGuid, labelGuid);
             });
 
-            server.RegisterMethod("label/all", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/all", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("tenantGuid", out JsonElement tenantGuidProp))
@@ -783,7 +783,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadLabels(sdk, tenantGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args), LiteGraphMcpServerHelpers.GetContinuationToken(args));
             });
 
-            server.RegisterMethod("label/enumerate", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/enumerate", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("query", out JsonElement queryProp))
@@ -797,7 +797,7 @@ namespace LiteGraph.McpServer.Registrations
                 return EnumerateLabels(sdk, query);
             });
 
-            server.RegisterMethod("label/update", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/update", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("label", out JsonElement labelProp))
@@ -807,7 +807,7 @@ namespace LiteGraph.McpServer.Registrations
                 return UpdateLabel(sdk, label);
             });
 
-            server.RegisterMethod("label/delete", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/delete", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -817,7 +817,7 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("label/exists", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/exists", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -826,7 +826,7 @@ namespace LiteGraph.McpServer.Registrations
                 return LabelExists(sdk, tenantGuid, labelGuid).ToString().ToLowerInvariant();
             });
 
-            server.RegisterMethod("label/getmany", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/getmany", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -838,7 +838,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadLabelsByGuids(sdk, tenantGuid, guids, LiteGraphMcpServerHelpers.GetMaxResults(args));
             });
 
-            server.RegisterMethod("label/createmany", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/createmany", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -851,7 +851,7 @@ namespace LiteGraph.McpServer.Registrations
                 return CreateLabels(sdk, tenantGuid, labels);
             });
 
-            server.RegisterMethod("label/deletemany", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/deletemany", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -864,7 +864,7 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("label/readallintenant", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/readallintenant", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -873,7 +873,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadAllLabelsInTenant(sdk, tenantGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args), LiteGraphMcpServerHelpers.GetContinuationToken(args));
             });
 
-            server.RegisterMethod("label/readallingraph", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/readallingraph", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -883,7 +883,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadAllLabelsInGraph(sdk, tenantGuid, graphGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args));
             });
 
-            server.RegisterMethod("label/readmanygraph", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/readmanygraph", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -893,7 +893,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadGraphLabels(sdk, tenantGuid, graphGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args));
             });
 
-            server.RegisterMethod("label/readmanynode", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/readmanynode", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -904,7 +904,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadNodeLabels(sdk, tenantGuid, graphGuid, nodeGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args));
             });
 
-            server.RegisterMethod("label/readmanyedge", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/readmanyedge", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -915,7 +915,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadEdgeLabels(sdk, tenantGuid, graphGuid, edgeGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args));
             });
 
-            server.RegisterMethod("label/deleteallintenant", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/deleteallintenant", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -924,7 +924,7 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("label/deleteallingraph", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/deleteallingraph", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -934,7 +934,7 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("label/deletegraphlabels", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/deletegraphlabels", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -944,7 +944,7 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("label/deletenodelabels", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/deletenodelabels", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -955,7 +955,7 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("label/deleteedgelabels", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("label/deleteedgelabels", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");

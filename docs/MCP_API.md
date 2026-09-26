@@ -57,7 +57,20 @@ Response:
 }
 ```
 
-Most tools return the REST payload as a JSON string in the text content (`result` itself on TCP and WebSocket); a handful return `true`/`false` or an empty string for operations that have no body (deletes, flushes, index rebuilds). When a tool's arguments are invalid or the REST call fails, the server returns a JSON-RPC `error` object with a message describing the failure. Argument names are camelCase. Complex request bodies (search requests, enumeration queries, subgraph extraction, vector index configuration) are passed as a JSON string in a single argument rather than as nested objects, which keeps the tool schemas flat and predictable.
+Most tools return the REST payload as a JSON string in the text content (`result` itself on TCP and WebSocket); a handful return `true`/`false` or an empty string for operations that have no body (deletes, flushes, index rebuilds). When a tool's arguments are invalid or the REST call fails, the server returns a JSON-RPC `error` object with a message describing the failure.
+
+| Code | Meaning |
+|------|---------|
+| `-32602` | Invalid arguments: schema validation failure, malformed value, or a REST `400` (for example `LiteGraph endpoint returned 400 Bad Request: No graph with GUID '...' exists.`) |
+| `-32001` | REST `401 Unauthorized` |
+| `-32003` | REST `403 Forbidden` |
+| `-32004` | REST `404 Not Found` |
+| `-32009` | REST `409 Conflict` |
+| `-32000` | Any other REST failure, such as a `5xx` |
+| `-32601` | Unknown method, including a bare tool name over HTTP |
+| `-32603` | Unexpected failure; the message carries the cause |
+
+For REST failures, `error.data` is `{ "statusCode": <HTTP status>, "description": "<LiteGraph error description>" }`. Argument names are camelCase. Complex request bodies (search requests, enumeration queries, subgraph extraction, vector index configuration) are passed as a JSON string in a single argument rather than as nested objects, which keeps the tool schemas flat and predictable.
 
 ## List Tools, Paging, And getmany
 

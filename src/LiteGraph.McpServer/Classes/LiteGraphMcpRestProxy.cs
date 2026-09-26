@@ -31,13 +31,7 @@ namespace LiteGraph.McpServer.Classes
             if (response.IsSuccess) return response.Body;
             if (response.StatusCode == HttpStatusCode.NotFound) return "null";
 
-            throw new InvalidOperationException(
-                "LiteGraph endpoint returned "
-                + (int)response.StatusCode
-                + " "
-                + response.ReasonPhrase
-                + ": "
-                + response.Body);
+            throw new LiteGraphRestException("LiteGraph endpoint", (int)response.StatusCode, response.ReasonPhrase, response.Body);
         }
 
         public static bool HeadExists(LiteGraphSdk sdk, string pathAndQuery)
@@ -46,13 +40,7 @@ namespace LiteGraph.McpServer.Classes
             if (response.IsSuccess) return true;
             if (response.StatusCode == HttpStatusCode.NotFound) return false;
 
-            throw new InvalidOperationException(
-                "LiteGraph endpoint returned "
-                + (int)response.StatusCode
-                + " "
-                + response.ReasonPhrase
-                + ": "
-                + response.Body);
+            throw new LiteGraphRestException("LiteGraph endpoint", (int)response.StatusCode, response.ReasonPhrase, response.Body);
         }
 
         public static string Escape(Guid guid)
@@ -91,13 +79,7 @@ namespace LiteGraph.McpServer.Classes
                     string body = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
                     if (!response.IsSuccessStatusCode && throwOnError)
                     {
-                        throw new InvalidOperationException(
-                            "LiteGraph endpoint returned "
-                            + (int)response.StatusCode
-                            + " "
-                            + response.ReasonPhrase
-                            + ": "
-                            + body);
+                        throw new LiteGraphRestException("LiteGraph endpoint", (int)response.StatusCode, response.ReasonPhrase, body);
                     }
 
                     return new RestResponse(response.StatusCode, response.ReasonPhrase ?? String.Empty, body, response.IsSuccessStatusCode);

@@ -23,7 +23,7 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterHttpTools(McpHttpServer server, LiteGraphSdk sdk)
         {
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "admin/backup",
                 "Creates a database backup",
                 new
@@ -49,7 +49,7 @@ namespace LiteGraph.McpServer.Registrations
                     return string.Empty;
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "admin/backups",
                 "Lists all backup files. Returns a paginated EnumerationResult envelope (Objects, TotalRecords, RecordsRemaining, ContinuationToken/EndOfResults)",
                 new
@@ -69,7 +69,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ListBackups(sdk, LiteGraphMcpServerHelpers.GetMaxResults(args), skip);
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "admin/backupread",
                 "Reads the contents of a backup file",
                 new
@@ -95,7 +95,7 @@ namespace LiteGraph.McpServer.Registrations
                     return Serializer.SerializeJson(backup, true);
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "admin/backupexists",
                 "Checks if a backup file exists",
                 new
@@ -121,7 +121,7 @@ namespace LiteGraph.McpServer.Registrations
                     return exists.ToString().ToLower();
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "admin/backupdelete",
                 "Deletes a backup file",
                 new
@@ -147,7 +147,7 @@ namespace LiteGraph.McpServer.Registrations
                     return true;
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "admin/flush",
                 "Flushes an in-memory database to disk",
                 new
@@ -174,7 +174,7 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterTcpMethods(McpTcpServer server, LiteGraphSdk sdk)
         {
-            server.RegisterMethod("admin/backup", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("admin/backup", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("outputFilename", out JsonElement filenameProp))
@@ -188,14 +188,14 @@ namespace LiteGraph.McpServer.Registrations
                 return string.Empty;
             });
 
-            server.RegisterMethod("admin/backups", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("admin/backups", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 int skip = args.HasValue ? LiteGraphMcpServerHelpers.GetIntOrDefault(args.Value, "skip", 0) : 0;
                 return ListBackups(sdk, LiteGraphMcpServerHelpers.GetMaxResults(args), skip);
             });
 
-            server.RegisterMethod("admin/backupread", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("admin/backupread", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("backupFilename", out JsonElement filenameProp))
@@ -209,7 +209,7 @@ namespace LiteGraph.McpServer.Registrations
                 return Serializer.SerializeJson(backup, true);
             });
 
-            server.RegisterMethod("admin/backupexists", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("admin/backupexists", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("backupFilename", out JsonElement filenameProp))
@@ -223,7 +223,7 @@ namespace LiteGraph.McpServer.Registrations
                 return exists.ToString().ToLower();
             });
 
-            server.RegisterMethod("admin/backupdelete", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("admin/backupdelete", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("backupFilename", out JsonElement filenameProp))
@@ -237,7 +237,7 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("admin/flush", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("admin/flush", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 return FlushDatabase(sdk);
@@ -255,7 +255,7 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterWebSocketMethods(McpWebsocketsServer server, LiteGraphSdk sdk)
         {
-            server.RegisterMethod("admin/backup", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("admin/backup", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("outputFilename", out JsonElement filenameProp))
@@ -269,14 +269,14 @@ namespace LiteGraph.McpServer.Registrations
                 return string.Empty;
             });
 
-            server.RegisterMethod("admin/backups", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("admin/backups", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 int skip = args.HasValue ? LiteGraphMcpServerHelpers.GetIntOrDefault(args.Value, "skip", 0) : 0;
                 return ListBackups(sdk, LiteGraphMcpServerHelpers.GetMaxResults(args), skip);
             });
 
-            server.RegisterMethod("admin/backupread", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("admin/backupread", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("backupFilename", out JsonElement filenameProp))
@@ -290,7 +290,7 @@ namespace LiteGraph.McpServer.Registrations
                 return Serializer.SerializeJson(backup, true);
             });
 
-            server.RegisterMethod("admin/backupexists", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("admin/backupexists", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("backupFilename", out JsonElement filenameProp))
@@ -304,7 +304,7 @@ namespace LiteGraph.McpServer.Registrations
                 return exists.ToString().ToLower();
             });
 
-            server.RegisterMethod("admin/backupdelete", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("admin/backupdelete", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("backupFilename", out JsonElement filenameProp))
@@ -318,7 +318,7 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("admin/flush", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("admin/flush", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 return FlushDatabase(sdk);

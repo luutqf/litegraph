@@ -25,7 +25,7 @@ namespace LiteGraph.McpServer.Registrations
         {
             foreach (ToolDefinition definition in GetToolDefinitions())
             {
-                server.RegisterTool(
+                server.RegisterLiteGraphTool(
                     definition.Name,
                     definition.Description,
                     definition.Schema,
@@ -42,7 +42,7 @@ namespace LiteGraph.McpServer.Registrations
         {
             foreach (ToolDefinition definition in GetToolDefinitions())
             {
-                server.RegisterMethod(definition.Name, (args) => definition.Handler(sdk, LiteGraphMcpServerHelpers.ToJsonElement(args)));
+                server.RegisterLiteGraphMethod(definition.Name, (args) => definition.Handler(sdk, LiteGraphMcpServerHelpers.ToJsonElement(args)));
             }
         }
 
@@ -55,7 +55,7 @@ namespace LiteGraph.McpServer.Registrations
         {
             foreach (ToolDefinition definition in GetToolDefinitions())
             {
-                server.RegisterMethod(definition.Name, (args) => definition.Handler(sdk, LiteGraphMcpServerHelpers.ToJsonElement(args)));
+                server.RegisterLiteGraphMethod(definition.Name, (args) => definition.Handler(sdk, LiteGraphMcpServerHelpers.ToJsonElement(args)));
             }
         }
 

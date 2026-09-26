@@ -23,7 +23,7 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterHttpTools(McpHttpServer server, LiteGraphSdk sdk)
         {
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "user/create",
                 "Creates a new user in LiteGraph",
                 new
@@ -45,7 +45,7 @@ namespace LiteGraph.McpServer.Registrations
                     return CreateUser(sdk, user);
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "user/get",
                 "Reads a user by GUID",
                 new
@@ -68,7 +68,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadUser(sdk, tenantGuid, userGuid);
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "user/all",
                 "Lists all users in a tenant. Returns a paginated EnumerationResult envelope (Objects, TotalRecords, RecordsRemaining, ContinuationToken/EndOfResults)",
                 new
@@ -95,7 +95,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadUsers(sdk, tenantGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args), LiteGraphMcpServerHelpers.GetContinuationToken(args));
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "user/enumerate",
                 "Enumerates users with pagination and filtering",
                 new
@@ -121,7 +121,7 @@ namespace LiteGraph.McpServer.Registrations
                     return EnumerateUsers(sdk, query);
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "user/update",
                 "Updates a user",
                 new
@@ -143,7 +143,7 @@ namespace LiteGraph.McpServer.Registrations
                     return UpdateUser(sdk, user);
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "user/delete",
                 "Deletes a user by GUID",
                 new
@@ -166,7 +166,7 @@ namespace LiteGraph.McpServer.Registrations
                     return true;
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "user/exists",
                 "Checks if a user exists by GUID",
                 new
@@ -188,7 +188,7 @@ namespace LiteGraph.McpServer.Registrations
                     return UserExists(sdk, tenantGuid, userGuid);
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "user/getmany",
                 "Reads multiple users by their GUIDs. Returns a paginated EnumerationResult envelope (Objects, TotalRecords, RecordsRemaining, ContinuationToken/EndOfResults)",
                 new
@@ -226,7 +226,7 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterTcpMethods(McpTcpServer server, LiteGraphSdk sdk)
         {
-            server.RegisterMethod("user/create", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("user/create", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("user", out JsonElement userProp))
@@ -236,7 +236,7 @@ namespace LiteGraph.McpServer.Registrations
                 return CreateUser(sdk, user);
             });
 
-            server.RegisterMethod("user/get", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("user/get", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -246,7 +246,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadUser(sdk, tenantGuid, userGuid);
             });
 
-            server.RegisterMethod("user/all", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("user/all", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("tenantGuid", out JsonElement tenantGuidProp))
@@ -256,7 +256,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadUsers(sdk, tenantGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args), LiteGraphMcpServerHelpers.GetContinuationToken(args));
             });
 
-            server.RegisterMethod("user/enumerate", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("user/enumerate", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("query", out JsonElement queryProp))
@@ -270,7 +270,7 @@ namespace LiteGraph.McpServer.Registrations
                 return EnumerateUsers(sdk, query);
             });
 
-            server.RegisterMethod("user/update", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("user/update", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("user", out JsonElement userProp))
@@ -280,7 +280,7 @@ namespace LiteGraph.McpServer.Registrations
                 return UpdateUser(sdk, user);
             });
 
-            server.RegisterMethod("user/delete", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("user/delete", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -290,7 +290,7 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("user/exists", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("user/exists", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -299,7 +299,7 @@ namespace LiteGraph.McpServer.Registrations
                 return UserExists(sdk, tenantGuid, userGuid);
             });
 
-            server.RegisterMethod("user/getmany", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("user/getmany", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -323,7 +323,7 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterWebSocketMethods(McpWebsocketsServer server, LiteGraphSdk sdk)
         {
-            server.RegisterMethod("user/create", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("user/create", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("user", out JsonElement userProp))
@@ -333,7 +333,7 @@ namespace LiteGraph.McpServer.Registrations
                 return CreateUser(sdk, user);
             });
 
-            server.RegisterMethod("user/get", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("user/get", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -343,7 +343,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadUser(sdk, tenantGuid, userGuid);
             });
 
-            server.RegisterMethod("user/all", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("user/all", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("tenantGuid", out JsonElement tenantGuidProp))
@@ -353,7 +353,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadUsers(sdk, tenantGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args), LiteGraphMcpServerHelpers.GetContinuationToken(args));
             });
 
-            server.RegisterMethod("user/enumerate", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("user/enumerate", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("query", out JsonElement queryProp))
@@ -367,7 +367,7 @@ namespace LiteGraph.McpServer.Registrations
                 return EnumerateUsers(sdk, query);
             });
 
-            server.RegisterMethod("user/update", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("user/update", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("user", out JsonElement userProp))
@@ -377,7 +377,7 @@ namespace LiteGraph.McpServer.Registrations
                 return UpdateUser(sdk, user);
             });
 
-            server.RegisterMethod("user/delete", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("user/delete", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -387,7 +387,7 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("user/exists", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("user/exists", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -396,7 +396,7 @@ namespace LiteGraph.McpServer.Registrations
                 return UserExists(sdk, tenantGuid, userGuid);
             });
 
-            server.RegisterMethod("user/getmany", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("user/getmany", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");

@@ -149,6 +149,101 @@
             Initializes a new instance of the <see cref="T:LiteGraph.McpServer.Classes.HttpServerSettings"/> class.
             </summary>
         </member>
+        <member name="T:LiteGraph.McpServer.Classes.LiteGraphMcpErrors">
+            <summary>
+            Translates exceptions raised by LiteGraph MCP tool handlers into MCP protocol errors, so clients receive
+            a specific JSON-RPC error code and a readable message instead of Voltaic's generic "-32603 Internal error".
+            All members are stateless and thread-safe.
+            </summary>
+        </member>
+        <member name="F:LiteGraph.McpServer.Classes.LiteGraphMcpErrors.InvalidParamsCode">
+            <summary>
+            JSON-RPC invalid-params code (-32602), used for argument errors and REST 400 responses.
+            </summary>
+        </member>
+        <member name="F:LiteGraph.McpServer.Classes.LiteGraphMcpErrors.InternalErrorCode">
+            <summary>
+            JSON-RPC internal-error code (-32603), used for unexpected failures; the message still carries the cause.
+            </summary>
+        </member>
+        <member name="F:LiteGraph.McpServer.Classes.LiteGraphMcpErrors.UpstreamErrorCode">
+            <summary>
+            Server-defined code (-32000) for REST failures that have no more specific mapping (for example 5xx responses).
+            </summary>
+        </member>
+        <member name="F:LiteGraph.McpServer.Classes.LiteGraphMcpErrors.UnauthorizedCode">
+            <summary>
+            Server-defined code (-32001) for REST 401 Unauthorized responses.
+            </summary>
+        </member>
+        <member name="F:LiteGraph.McpServer.Classes.LiteGraphMcpErrors.ForbiddenCode">
+            <summary>
+            Server-defined code (-32003) for REST 403 Forbidden responses.
+            </summary>
+        </member>
+        <member name="F:LiteGraph.McpServer.Classes.LiteGraphMcpErrors.NotFoundCode">
+            <summary>
+            Server-defined code (-32004) for REST 404 Not Found responses and missing records.
+            </summary>
+        </member>
+        <member name="F:LiteGraph.McpServer.Classes.LiteGraphMcpErrors.ConflictCode">
+            <summary>
+            Server-defined code (-32009) for REST 409 Conflict responses.
+            </summary>
+        </member>
+        <member name="M:LiteGraph.McpServer.Classes.LiteGraphMcpErrors.Translate(System.Exception)">
+            <summary>
+            Translate an exception raised by a tool handler into an MCP protocol exception.
+            An existing <see cref="T:Voltaic.Mcp.McpProtocolException"/> is returned unchanged; wrapper exceptions are unwrapped first.
+            </summary>
+            <param name="exception">Exception raised by the handler; must not be null.</param>
+            <returns>An MCP protocol exception with a specific code, a readable message, and structured data.</returns>
+            <exception cref="T:System.ArgumentNullException">Thrown when exception is null.</exception>
+        </member>
+        <member name="M:LiteGraph.McpServer.Classes.LiteGraphMcpErrors.CodeForStatus(System.Int32)">
+            <summary>
+            Map an HTTP status code returned by the LiteGraph REST server to a JSON-RPC error code.
+            400 maps to -32602, 401 to -32001, 403 to -32003, 404 to -32004, 409 to -32009, any other status to -32000.
+            </summary>
+            <param name="statusCode">HTTP status code.</param>
+            <returns>JSON-RPC error code.</returns>
+        </member>
+        <member name="T:LiteGraph.McpServer.Classes.LiteGraphMcpRegistrationExtensions">
+            <summary>
+            Registration helpers that wrap LiteGraph MCP handlers so any exception they raise is translated by
+            <see cref="T:LiteGraph.McpServer.Classes.LiteGraphMcpErrors"/> into a specific MCP protocol error rather than a generic internal error.
+            Registration is not thread-safe; register tools before starting the servers.
+            </summary>
+        </member>
+        <member name="M:LiteGraph.McpServer.Classes.LiteGraphMcpRegistrationExtensions.RegisterLiteGraphTool(Voltaic.Mcp.McpHttpServer,System.String,System.String,System.Object,System.Func{Voltaic.Core.RpcParameters,System.Object})">
+            <summary>
+            Register a LiteGraph tool on the HTTP server with exception translation.
+            </summary>
+            <param name="server">HTTP server; must not be null.</param>
+            <param name="name">Tool name.</param>
+            <param name="description">Tool description.</param>
+            <param name="inputSchema">JSON schema for the tool arguments.</param>
+            <param name="handler">Tool handler; must not be null.</param>
+            <exception cref="T:System.ArgumentNullException">Thrown when server or handler is null.</exception>
+        </member>
+        <member name="M:LiteGraph.McpServer.Classes.LiteGraphMcpRegistrationExtensions.RegisterLiteGraphMethod(Voltaic.Mcp.McpTcpServer,System.String,System.Func{Voltaic.Core.RpcParameters,System.Object})">
+            <summary>
+            Register a LiteGraph method on the TCP server with exception translation.
+            </summary>
+            <param name="server">TCP server; must not be null.</param>
+            <param name="name">Method name.</param>
+            <param name="handler">Method handler; must not be null.</param>
+            <exception cref="T:System.ArgumentNullException">Thrown when server or handler is null.</exception>
+        </member>
+        <member name="M:LiteGraph.McpServer.Classes.LiteGraphMcpRegistrationExtensions.RegisterLiteGraphMethod(Voltaic.Mcp.McpWebsocketsServer,System.String,System.Func{Voltaic.Core.RpcParameters,System.Object})">
+            <summary>
+            Register a LiteGraph method on the WebSocket server with exception translation.
+            </summary>
+            <param name="server">WebSocket server; must not be null.</param>
+            <param name="name">Method name.</param>
+            <param name="handler">Method handler; must not be null.</param>
+            <exception cref="T:System.ArgumentNullException">Thrown when server or handler is null.</exception>
+        </member>
         <member name="T:LiteGraph.McpServer.Classes.LiteGraphMcpRestProxy">
             <summary>
             Minimal authenticated REST bridge for MCP operations that must honor server-side RBAC.
@@ -284,6 +379,49 @@
             <summary>
             Initializes a new instance of the <see cref="T:LiteGraph.McpServer.Classes.LiteGraphMcpServerSettings"/> class.
             </summary>
+        </member>
+        <member name="T:LiteGraph.McpServer.Classes.LiteGraphRestException">
+            <summary>
+            Raised when the LiteGraph REST server answers an MCP-forwarded request with a non-success status.
+            Carries the HTTP status and the REST error description so the MCP layer can report a meaningful error.
+            Instances are immutable and safe to share across threads.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.McpServer.Classes.LiteGraphRestException.EndpointLabel">
+            <summary>
+            Label of the REST endpoint that failed, for example "LiteGraph endpoint" or "LiteGraph query endpoint".
+            </summary>
+        </member>
+        <member name="P:LiteGraph.McpServer.Classes.LiteGraphRestException.StatusCode">
+            <summary>
+            HTTP status code returned by the REST server (for example 400, 401, 403, 404, 409, or 500).
+            </summary>
+        </member>
+        <member name="P:LiteGraph.McpServer.Classes.LiteGraphRestException.ReasonPhrase">
+            <summary>
+            HTTP reason phrase returned by the REST server; empty when none was supplied.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.McpServer.Classes.LiteGraphRestException.ResponseBody">
+            <summary>
+            Raw response body returned by the REST server; empty when none was supplied.
+            </summary>
+        </member>
+        <member name="P:LiteGraph.McpServer.Classes.LiteGraphRestException.Description">
+            <summary>
+            Human-readable failure description extracted from the REST error body (its Description, then Message);
+            null when the body is not a LiteGraph error object.
+            </summary>
+        </member>
+        <member name="M:LiteGraph.McpServer.Classes.LiteGraphRestException.#ctor(System.String,System.Int32,System.String,System.String)">
+            <summary>
+            Instantiate the exception from a REST response.
+            </summary>
+            <param name="endpointLabel">Label of the REST endpoint that failed; must not be null or empty.</param>
+            <param name="statusCode">HTTP status code returned by the REST server.</param>
+            <param name="reasonPhrase">HTTP reason phrase; null is treated as empty.</param>
+            <param name="responseBody">Raw response body; null is treated as empty.</param>
+            <exception cref="T:System.ArgumentNullException">Thrown when endpointLabel is null or empty.</exception>
         </member>
         <member name="T:LiteGraph.McpServer.Classes.LiteGraphSettings">
             <summary>

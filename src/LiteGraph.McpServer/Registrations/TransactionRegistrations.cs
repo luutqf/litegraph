@@ -31,7 +31,7 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterHttpTools(McpHttpServer server, LiteGraphSdk sdk)
         {
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "graph/transaction",
                 "Executes an atomic graph-scoped transaction against a single tenant and graph",
                 new
@@ -64,7 +64,7 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterTcpMethods(McpTcpServer server, LiteGraphSdk sdk)
         {
-            server.RegisterMethod("graph/transaction", (args) => ExecuteTransaction(LiteGraphMcpServerHelpers.ToJsonElement(args), sdk));
+            server.RegisterLiteGraphMethod("graph/transaction", (args) => ExecuteTransaction(LiteGraphMcpServerHelpers.ToJsonElement(args), sdk));
         }
 
         #endregion
@@ -78,7 +78,7 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterWebSocketMethods(McpWebsocketsServer server, LiteGraphSdk sdk)
         {
-            server.RegisterMethod("graph/transaction", (args) => ExecuteTransaction(LiteGraphMcpServerHelpers.ToJsonElement(args), sdk));
+            server.RegisterLiteGraphMethod("graph/transaction", (args) => ExecuteTransaction(LiteGraphMcpServerHelpers.ToJsonElement(args), sdk));
         }
 
         #endregion
@@ -106,13 +106,7 @@ namespace LiteGraph.McpServer.Registrations
                     string body = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
                     if (!response.IsSuccessStatusCode && !IsDiagnosticTransactionResult(response.StatusCode, body))
                     {
-                        throw new InvalidOperationException(
-                            "LiteGraph transaction endpoint returned "
-                            + (int)response.StatusCode
-                            + " "
-                            + response.ReasonPhrase
-                            + ": "
-                            + body);
+                        throw new LiteGraphRestException("LiteGraph transaction endpoint", (int)response.StatusCode, response.ReasonPhrase, body);
                     }
 
                     return body;

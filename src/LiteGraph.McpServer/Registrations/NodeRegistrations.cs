@@ -24,7 +24,7 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterHttpTools(McpHttpServer server, LiteGraphSdk sdk)
         {
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "node/create",
                 "Creates a new node in a graph",
                 new
@@ -54,7 +54,7 @@ namespace LiteGraph.McpServer.Registrations
                     return CreateNode(sdk, tenantGuid, graphGuid, node);
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "node/get",
                 "Reads a node by GUID",
                 new
@@ -88,7 +88,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadNode(sdk, tenantGuid, graphGuid, nodeGuid, includeData, includeSubordinates);
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "node/all",
                 "Lists all nodes in a graph. Returns a paginated EnumerationResult envelope (Objects, TotalRecords, RecordsRemaining, ContinuationToken/EndOfResults)",
                 new
@@ -119,7 +119,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadNodes(sdk, tenantGuid, graphGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args), LiteGraphMcpServerHelpers.GetContinuationToken(args), includeData, includeSubordinates);
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "node/traverse",
                 "Finds routes/paths between two nodes in a graph using depth-first search",
                 new
@@ -163,7 +163,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadRoutes(sdk, tenantGuid, graphGuid, fromNodeGuid, toNodeGuid, edgeFilter, nodeFilter);
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "node/parents",
                 "Gets parent nodes (nodes that have edges connecting to this node). Returns a paginated EnumerationResult envelope (Objects, TotalRecords, RecordsRemaining, ContinuationToken/EndOfResults)",
                 new
@@ -192,7 +192,7 @@ namespace LiteGraph.McpServer.Registrations
 
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "node/children",
                 "Gets child nodes (nodes to which this node has connecting edges). Returns a paginated EnumerationResult envelope (Objects, TotalRecords, RecordsRemaining, ContinuationToken/EndOfResults)",
                 new
@@ -220,7 +220,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadChildren(sdk, tenantGuid, graphGuid, nodeGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args));
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "node/deleteall",
                 "Deletes all nodes in a graph",
                 new
@@ -247,7 +247,7 @@ namespace LiteGraph.McpServer.Registrations
                     return true;
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "node/deletemany",
                 "Deletes multiple nodes by their GUIDs",
                 new
@@ -278,7 +278,7 @@ namespace LiteGraph.McpServer.Registrations
                     return true;
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "node/readallintenant",
                 "Reads all nodes in a tenant across all graphs. Returns a paginated EnumerationResult envelope (Objects, TotalRecords, RecordsRemaining, ContinuationToken/EndOfResults)",
                 new
@@ -307,7 +307,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadAllNodesInTenant(sdk, tenantGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args), LiteGraphMcpServerHelpers.GetContinuationToken(args), includeData, includeSubordinates);
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "node/readallingraph",
                 "Reads all nodes in a graph with optional data/subordinate inclusion. Returns a paginated EnumerationResult envelope (Objects, TotalRecords, RecordsRemaining, ContinuationToken/EndOfResults)",
                 new
@@ -338,7 +338,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadAllNodesInGraph(sdk, tenantGuid, graphGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args), LiteGraphMcpServerHelpers.GetContinuationToken(args), includeData, includeSubordinates);
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "node/readmostconnected",
                 "Reads the most connected nodes in a graph. Returns a paginated EnumerationResult envelope (Objects, TotalRecords, RecordsRemaining, ContinuationToken/EndOfResults)",
                 new
@@ -368,7 +368,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadMostConnectedNodes(sdk, tenantGuid, graphGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args), includeData, includeSubordinates);
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "node/readleastconnected",
                 "Reads the least connected nodes in a graph. Returns a paginated EnumerationResult envelope (Objects, TotalRecords, RecordsRemaining, ContinuationToken/EndOfResults)",
                 new
@@ -398,7 +398,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadLeastConnectedNodes(sdk, tenantGuid, graphGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args), includeData, includeSubordinates);
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "node/deleteallintenant",
                 "Deletes all nodes across all graphs in a tenant",
                 new
@@ -419,7 +419,7 @@ namespace LiteGraph.McpServer.Registrations
                     return true;
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "node/neighbors",
                 "Gets neighbor nodes (all connected nodes regardless of edge direction). Returns a paginated EnumerationResult envelope (Objects, TotalRecords, RecordsRemaining, ContinuationToken/EndOfResults)",
                 new
@@ -447,7 +447,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadNeighbors(sdk, tenantGuid, graphGuid, nodeGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args));
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "node/createmany",
                 "Creates multiple nodes in a graph",
                 new
@@ -475,7 +475,7 @@ namespace LiteGraph.McpServer.Registrations
                     return CreateNodes(sdk, tenantGuid, graphGuid, nodes);
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "node/getmany",
                 "Reads multiple nodes by their GUIDs. Returns a paginated EnumerationResult envelope (Objects, TotalRecords, RecordsRemaining, ContinuationToken/EndOfResults)",
                 new
@@ -507,7 +507,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadNodesByGuids(sdk, tenantGuid, graphGuid, guids, LiteGraphMcpServerHelpers.GetMaxResults(args), includeData, includeSubordinates);
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "node/update",
                 "Updates a node",
                 new
@@ -529,7 +529,7 @@ namespace LiteGraph.McpServer.Registrations
                     return UpdateNode(sdk, node);
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "node/delete",
                 "Deletes a single node by GUID",
                 new
@@ -554,7 +554,7 @@ namespace LiteGraph.McpServer.Registrations
                     return true;
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "node/exists",
                 "Checks if a node exists by GUID",
                 new
@@ -578,7 +578,7 @@ namespace LiteGraph.McpServer.Registrations
                     return NodeExists(sdk, tenantGuid, graphGuid, nodeGuid).ToString().ToLowerInvariant();
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "node/search",
                 "Searches nodes with filters",
                 new
@@ -601,7 +601,7 @@ namespace LiteGraph.McpServer.Registrations
                     return SearchNodes(sdk, req);
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "node/readfirst",
                 "Reads the first node matching search criteria",
                 new
@@ -624,7 +624,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadFirstNode(sdk, req);
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "node/enumerate",
                 "Enumerates nodes with pagination and filtering",
                 new
@@ -664,7 +664,7 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterTcpMethods(McpTcpServer server, LiteGraphSdk sdk)
         {
-            server.RegisterMethod("node/create", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/create", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -680,7 +680,7 @@ namespace LiteGraph.McpServer.Registrations
                 return CreateNode(sdk, tenantGuid, graphGuid, node);
             });
 
-            server.RegisterMethod("node/get", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/get", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -697,7 +697,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadNode(sdk, tenantGuid, graphGuid, nodeGuid, includeData, includeSubordinates);
             });
 
-            server.RegisterMethod("node/all", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/all", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -709,7 +709,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadNodes(sdk, tenantGuid, graphGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args), LiteGraphMcpServerHelpers.GetContinuationToken(args), includeData, includeSubordinates);
             });
 
-            server.RegisterMethod("node/traverse", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/traverse", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -735,7 +735,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadRoutes(sdk, tenantGuid, graphGuid, fromNodeGuid, toNodeGuid, edgeFilter, nodeFilter);
             });
 
-            server.RegisterMethod("node/parents", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/parents", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -746,7 +746,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadParents(sdk, tenantGuid, graphGuid, nodeGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args));
             });
 
-            server.RegisterMethod("node/children", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/children", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -757,7 +757,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadChildren(sdk, tenantGuid, graphGuid, nodeGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args));
             });
 
-            server.RegisterMethod("node/neighbors", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/neighbors", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -768,7 +768,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadNeighbors(sdk, tenantGuid, graphGuid, nodeGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args));
             });
 
-            server.RegisterMethod("node/deleteall", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/deleteall", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -778,7 +778,7 @@ namespace LiteGraph.McpServer.Registrations
                     return true;
             });
 
-            server.RegisterMethod("node/deletemany", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/deletemany", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -793,7 +793,7 @@ namespace LiteGraph.McpServer.Registrations
                     return true;
             });
 
-            server.RegisterMethod("node/readallintenant", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/readallintenant", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -804,7 +804,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadAllNodesInTenant(sdk, tenantGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args), LiteGraphMcpServerHelpers.GetContinuationToken(args), includeData, includeSubordinates);
             });
 
-            server.RegisterMethod("node/readallingraph", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/readallingraph", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -816,7 +816,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadAllNodesInGraph(sdk, tenantGuid, graphGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args), LiteGraphMcpServerHelpers.GetContinuationToken(args), includeData, includeSubordinates);
             });
 
-            server.RegisterMethod("node/readmostconnected", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/readmostconnected", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -828,7 +828,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadMostConnectedNodes(sdk, tenantGuid, graphGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args), includeData, includeSubordinates);
             });
 
-            server.RegisterMethod("node/readleastconnected", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/readleastconnected", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -840,7 +840,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadLeastConnectedNodes(sdk, tenantGuid, graphGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args), includeData, includeSubordinates);
             });
 
-            server.RegisterMethod("node/deleteallintenant", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/deleteallintenant", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -849,7 +849,7 @@ namespace LiteGraph.McpServer.Registrations
                     return true;
             });
 
-            server.RegisterMethod("node/readallintenant", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/readallintenant", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -860,7 +860,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadAllNodesInTenant(sdk, tenantGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args), LiteGraphMcpServerHelpers.GetContinuationToken(args), includeData, includeSubordinates);
             });
 
-            server.RegisterMethod("node/readallingraph", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/readallingraph", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -872,7 +872,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadAllNodesInGraph(sdk, tenantGuid, graphGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args), LiteGraphMcpServerHelpers.GetContinuationToken(args), includeData, includeSubordinates);
             });
 
-            server.RegisterMethod("node/readmostconnected", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/readmostconnected", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -884,7 +884,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadMostConnectedNodes(sdk, tenantGuid, graphGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args), includeData, includeSubordinates);
             });
 
-            server.RegisterMethod("node/readleastconnected", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/readleastconnected", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -896,7 +896,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadLeastConnectedNodes(sdk, tenantGuid, graphGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args), includeData, includeSubordinates);
             });
 
-            server.RegisterMethod("node/deleteallintenant", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/deleteallintenant", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -905,7 +905,7 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("node/createmany", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/createmany", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -919,7 +919,7 @@ namespace LiteGraph.McpServer.Registrations
                     return CreateNodes(sdk, tenantGuid, graphGuid, nodes);
             });
 
-            server.RegisterMethod("node/getmany", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/getmany", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -934,7 +934,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadNodesByGuids(sdk, tenantGuid, graphGuid, guids, LiteGraphMcpServerHelpers.GetMaxResults(args), includeData, includeSubordinates);
             });
 
-            server.RegisterMethod("node/update", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/update", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("node", out JsonElement nodeProp))
@@ -944,7 +944,7 @@ namespace LiteGraph.McpServer.Registrations
                 return UpdateNode(sdk, node);
             });
 
-            server.RegisterMethod("node/delete", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/delete", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -955,7 +955,7 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("node/exists", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/exists", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -965,7 +965,7 @@ namespace LiteGraph.McpServer.Registrations
                     return NodeExists(sdk, tenantGuid, graphGuid, nodeGuid).ToString().ToLowerInvariant();
             });
 
-            server.RegisterMethod("node/search", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/search", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("searchRequest", out JsonElement reqProp))
@@ -976,7 +976,7 @@ namespace LiteGraph.McpServer.Registrations
                     return SearchNodes(sdk, req);
             });
 
-            server.RegisterMethod("node/readfirst", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/readfirst", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("searchRequest", out JsonElement reqProp))
@@ -987,7 +987,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadFirstNode(sdk, req);
             });
 
-            server.RegisterMethod("node/enumerate", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/enumerate", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("query", out JsonElement queryProp))
@@ -1015,7 +1015,7 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterWebSocketMethods(McpWebsocketsServer server, LiteGraphSdk sdk)
         {
-            server.RegisterMethod("node/create", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/create", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -1031,7 +1031,7 @@ namespace LiteGraph.McpServer.Registrations
                 return CreateNode(sdk, tenantGuid, graphGuid, node);
             });
 
-            server.RegisterMethod("node/get", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/get", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -1048,7 +1048,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadNode(sdk, tenantGuid, graphGuid, nodeGuid, includeData, includeSubordinates);
             });
 
-            server.RegisterMethod("node/all", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/all", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -1060,7 +1060,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadNodes(sdk, tenantGuid, graphGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args), LiteGraphMcpServerHelpers.GetContinuationToken(args), includeData, includeSubordinates);
             });
 
-            server.RegisterMethod("node/traverse", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/traverse", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -1086,7 +1086,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadRoutes(sdk, tenantGuid, graphGuid, fromNodeGuid, toNodeGuid, edgeFilter, nodeFilter);
             });
 
-            server.RegisterMethod("node/parents", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/parents", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -1097,7 +1097,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadParents(sdk, tenantGuid, graphGuid, nodeGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args));
             });
 
-            server.RegisterMethod("node/children", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/children", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -1108,7 +1108,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadChildren(sdk, tenantGuid, graphGuid, nodeGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args));
             });
 
-            server.RegisterMethod("node/neighbors", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/neighbors", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -1119,7 +1119,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadNeighbors(sdk, tenantGuid, graphGuid, nodeGuid, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args));
             });
 
-            server.RegisterMethod("node/deleteall", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/deleteall", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -1129,7 +1129,7 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("node/deletemany", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/deletemany", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -1144,7 +1144,7 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("node/createmany", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/createmany", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -1158,7 +1158,7 @@ namespace LiteGraph.McpServer.Registrations
                     return CreateNodes(sdk, tenantGuid, graphGuid, nodes);
             });
 
-            server.RegisterMethod("node/getmany", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/getmany", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -1173,7 +1173,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadNodesByGuids(sdk, tenantGuid, graphGuid, guids, LiteGraphMcpServerHelpers.GetMaxResults(args), includeData, includeSubordinates);
             });
 
-            server.RegisterMethod("node/update", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/update", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("node", out JsonElement nodeProp))
@@ -1183,7 +1183,7 @@ namespace LiteGraph.McpServer.Registrations
                 return UpdateNode(sdk, node);
             });
 
-            server.RegisterMethod("node/delete", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/delete", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -1194,7 +1194,7 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("node/exists", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/exists", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -1204,7 +1204,7 @@ namespace LiteGraph.McpServer.Registrations
                     return NodeExists(sdk, tenantGuid, graphGuid, nodeGuid).ToString().ToLowerInvariant();
             });
 
-            server.RegisterMethod("node/search", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/search", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("searchRequest", out JsonElement reqProp))
@@ -1215,7 +1215,7 @@ namespace LiteGraph.McpServer.Registrations
                     return SearchNodes(sdk, req);
             });
 
-            server.RegisterMethod("node/readfirst", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/readfirst", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("searchRequest", out JsonElement reqProp))
@@ -1226,7 +1226,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadFirstNode(sdk, req);
             });
 
-            server.RegisterMethod("node/enumerate", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("node/enumerate", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("query", out JsonElement queryProp))

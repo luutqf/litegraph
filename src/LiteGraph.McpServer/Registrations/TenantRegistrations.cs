@@ -23,7 +23,7 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterHttpTools(McpHttpServer server, LiteGraphSdk sdk)
         {
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "tenant/create",
                 "Creates a new tenant in LiteGraph",
                 new
@@ -46,7 +46,7 @@ namespace LiteGraph.McpServer.Registrations
                     return CreateTenant(sdk, tenant);
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "tenant/get",
                 "Reads a tenant by GUID",
                 new
@@ -68,7 +68,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadTenant(sdk, tenantGuid);
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "tenant/all",
                 "Lists all tenants. Returns a paginated EnumerationResult envelope (Objects, TotalRecords, RecordsRemaining, ContinuationToken/EndOfResults)",
                 new
@@ -93,7 +93,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadTenants(sdk, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args), LiteGraphMcpServerHelpers.GetContinuationToken(args));
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "tenant/update",
                 "Updates a tenant",
                 new
@@ -115,7 +115,7 @@ namespace LiteGraph.McpServer.Registrations
                     return UpdateTenant(sdk, tenant);
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "tenant/delete",
                 "Deletes a tenant by GUID",
                 new
@@ -140,7 +140,7 @@ namespace LiteGraph.McpServer.Registrations
                     return true;
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "tenant/enumerate",
                 "Enumerates tenants with pagination and filtering",
                 new
@@ -164,7 +164,7 @@ namespace LiteGraph.McpServer.Registrations
                     return EnumerateTenants(sdk, query);
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "tenant/exists",
                 "Checks if a tenant exists by GUID",
                 new
@@ -186,7 +186,7 @@ namespace LiteGraph.McpServer.Registrations
                     return TenantExists(sdk, tenantGuid);
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "tenant/statistics",
                 "Gets statistics for a specific tenant",
                 new
@@ -208,7 +208,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadTenantStatistics(sdk, tenantGuid);
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "tenant/statisticsall",
                 "Gets statistics for all tenants",
                 new
@@ -223,7 +223,7 @@ namespace LiteGraph.McpServer.Registrations
                     return ReadAllTenantStatistics(sdk);
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "tenant/getmany",
                 "Reads multiple tenants by their GUIDs. Returns a paginated EnumerationResult envelope (Objects, TotalRecords, RecordsRemaining, ContinuationToken/EndOfResults)",
                 new
@@ -258,7 +258,7 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterTcpMethods(McpTcpServer server, LiteGraphSdk sdk)
         {
-            server.RegisterMethod("tenant/create", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("tenant/create", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("name", out JsonElement nameProp))
@@ -269,7 +269,7 @@ namespace LiteGraph.McpServer.Registrations
                 return CreateTenant(sdk, tenant);
             });
 
-            server.RegisterMethod("tenant/get", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("tenant/get", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("tenantGuid", out JsonElement guidProp))
@@ -279,7 +279,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadTenant(sdk, tenantGuid);
             });
 
-            server.RegisterMethod("tenant/all", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("tenant/all", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 (EnumerationOrderEnum order, int skip) = args.HasValue 
@@ -289,7 +289,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadTenants(sdk, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args), LiteGraphMcpServerHelpers.GetContinuationToken(args));
             });
 
-            server.RegisterMethod("tenant/update", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("tenant/update", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("tenant", out JsonElement tenantProp))
@@ -299,7 +299,7 @@ namespace LiteGraph.McpServer.Registrations
                 return UpdateTenant(sdk, tenant);
             });
 
-            server.RegisterMethod("tenant/delete", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("tenant/delete", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("tenantGuid", out JsonElement guidProp))
@@ -310,7 +310,7 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("tenant/enumerate", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("tenant/enumerate", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("query", out JsonElement queryProp))
@@ -322,7 +322,7 @@ namespace LiteGraph.McpServer.Registrations
                 return EnumerateTenants(sdk, query);
             });
 
-            server.RegisterMethod("tenant/exists", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("tenant/exists", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("tenantGuid", out JsonElement guidProp))
@@ -331,7 +331,7 @@ namespace LiteGraph.McpServer.Registrations
                 return TenantExists(sdk, tenantGuid);
             });
 
-            server.RegisterMethod("tenant/statistics", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("tenant/statistics", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("tenantGuid", out JsonElement guidProp))
@@ -341,13 +341,13 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadTenantStatistics(sdk, tenantGuid);
             });
 
-            server.RegisterMethod("tenant/statisticsall", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("tenant/statisticsall", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 return ReadAllTenantStatistics(sdk);
             });
 
-            server.RegisterMethod("tenant/getmany", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("tenant/getmany", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("tenantGuids", out JsonElement guidsProp))
@@ -369,7 +369,7 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterWebSocketMethods(McpWebsocketsServer server, LiteGraphSdk sdk)
         {
-            server.RegisterMethod("tenant/create", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("tenant/create", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("name", out JsonElement nameProp))
@@ -380,7 +380,7 @@ namespace LiteGraph.McpServer.Registrations
                 return CreateTenant(sdk, tenant);
             });
 
-            server.RegisterMethod("tenant/get", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("tenant/get", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("tenantGuid", out JsonElement guidProp))
@@ -390,7 +390,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadTenant(sdk, tenantGuid);
             });
 
-            server.RegisterMethod("tenant/all", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("tenant/all", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 (EnumerationOrderEnum order, int skip) = args.HasValue 
@@ -400,7 +400,7 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadTenants(sdk, order, skip, LiteGraphMcpServerHelpers.GetMaxResults(args), LiteGraphMcpServerHelpers.GetContinuationToken(args));
             });
 
-            server.RegisterMethod("tenant/update", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("tenant/update", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("tenant", out JsonElement tenantProp))
@@ -410,7 +410,7 @@ namespace LiteGraph.McpServer.Registrations
                 return UpdateTenant(sdk, tenant);
             });
 
-            server.RegisterMethod("tenant/delete", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("tenant/delete", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("tenantGuid", out JsonElement guidProp))
@@ -421,7 +421,7 @@ namespace LiteGraph.McpServer.Registrations
                 return true;
             });
 
-            server.RegisterMethod("tenant/enumerate", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("tenant/enumerate", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("query", out JsonElement queryProp))
@@ -433,7 +433,7 @@ namespace LiteGraph.McpServer.Registrations
                 return EnumerateTenants(sdk, query);
             });
 
-            server.RegisterMethod("tenant/exists", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("tenant/exists", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("tenantGuid", out JsonElement guidProp))
@@ -442,7 +442,7 @@ namespace LiteGraph.McpServer.Registrations
                 return TenantExists(sdk, tenantGuid);
             });
 
-            server.RegisterMethod("tenant/statistics", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("tenant/statistics", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("tenantGuid", out JsonElement guidProp))
@@ -452,13 +452,13 @@ namespace LiteGraph.McpServer.Registrations
                 return ReadTenantStatistics(sdk, tenantGuid);
             });
 
-            server.RegisterMethod("tenant/statisticsall", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("tenant/statisticsall", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 return ReadAllTenantStatistics(sdk);
             });
 
-            server.RegisterMethod("tenant/getmany", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("tenant/getmany", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("tenantGuids", out JsonElement guidsProp))

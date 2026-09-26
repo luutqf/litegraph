@@ -29,7 +29,7 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterHttpTools(McpHttpServer server, LiteGraphSdk sdk)
         {
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "userauthentication/gettenantsforemail",
                 "Gets all tenants associated with an email address. Returns a paginated EnumerationResult envelope (Objects, TotalRecords, RecordsRemaining, ContinuationToken/EndOfResults)",
                 new
@@ -64,7 +64,7 @@ namespace LiteGraph.McpServer.Registrations
                     return GetTenantsForEmail(endpoint, email, LiteGraphMcpServerHelpers.GetMaxResults(args), skip);
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "userauthentication/generatetoken",
                 "Generates an authentication token using email, password, and tenant GUID",
                 new
@@ -121,7 +121,7 @@ namespace LiteGraph.McpServer.Registrations
                     return Serializer.SerializeJson(token, true);
                 });
 
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "userauthentication/gettokendetails",
                 "Gets details for an authentication token",
                 new
@@ -181,7 +181,7 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterTcpMethods(McpTcpServer server, LiteGraphSdk sdk)
         {
-            server.RegisterMethod("userauthentication/gettenantsforemail", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("userauthentication/gettenantsforemail", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("email", out JsonElement emailProp))
@@ -201,7 +201,7 @@ namespace LiteGraph.McpServer.Registrations
                 return GetTenantsForEmail(endpoint, email, LiteGraphMcpServerHelpers.GetMaxResults(args), skip);
             });
 
-            server.RegisterMethod("userauthentication/generatetoken", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("userauthentication/generatetoken", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -240,7 +240,7 @@ namespace LiteGraph.McpServer.Registrations
                 }
             });
 
-            server.RegisterMethod("userauthentication/gettokendetails", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("userauthentication/gettokendetails", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("authToken", out JsonElement authTokenProp))
@@ -284,7 +284,7 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterWebSocketMethods(McpWebsocketsServer server, LiteGraphSdk sdk)
         {
-            server.RegisterMethod("userauthentication/gettenantsforemail", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("userauthentication/gettenantsforemail", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("email", out JsonElement emailProp))
@@ -304,7 +304,7 @@ namespace LiteGraph.McpServer.Registrations
                 return GetTenantsForEmail(endpoint, email, LiteGraphMcpServerHelpers.GetMaxResults(args), skip);
             });
 
-            server.RegisterMethod("userauthentication/generatetoken", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("userauthentication/generatetoken", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue) throw new ArgumentException("Parameters required");
@@ -343,7 +343,7 @@ namespace LiteGraph.McpServer.Registrations
                 }
             });
 
-            server.RegisterMethod("userauthentication/gettokendetails", (rpcArgs) =>
+            server.RegisterLiteGraphMethod("userauthentication/gettokendetails", (rpcArgs) =>
             {
                 JsonElement? args = LiteGraphMcpServerHelpers.ToJsonElement(rpcArgs);
                 if (!args.HasValue || !args.Value.TryGetProperty("authToken", out JsonElement authTokenProp))
@@ -396,13 +396,7 @@ namespace LiteGraph.McpServer.Registrations
                     string body = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
                     if (!response.IsSuccessStatusCode)
                     {
-                        throw new InvalidOperationException(
-                            "LiteGraph endpoint returned "
-                            + (int)response.StatusCode
-                            + " "
-                            + response.ReasonPhrase
-                            + ": "
-                            + body);
+                        throw new LiteGraphRestException("LiteGraph endpoint", (int)response.StatusCode, response.ReasonPhrase, body);
                     }
 
                     return body;

@@ -31,7 +31,7 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterHttpTools(McpHttpServer server, LiteGraphSdk sdk)
         {
-            server.RegisterTool(
+            server.RegisterLiteGraphTool(
                 "graph/query",
                 "Executes a native LiteGraph graph query against a single tenant and graph",
                 new
@@ -63,7 +63,7 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterTcpMethods(McpTcpServer server, LiteGraphSdk sdk)
         {
-            server.RegisterMethod("graph/query", (args) => ExecuteQuery(LiteGraphMcpServerHelpers.ToJsonElement(args), sdk));
+            server.RegisterLiteGraphMethod("graph/query", (args) => ExecuteQuery(LiteGraphMcpServerHelpers.ToJsonElement(args), sdk));
         }
 
         #endregion
@@ -77,7 +77,7 @@ namespace LiteGraph.McpServer.Registrations
         /// <param name="sdk">LiteGraph SDK instance.</param>
         public static void RegisterWebSocketMethods(McpWebsocketsServer server, LiteGraphSdk sdk)
         {
-            server.RegisterMethod("graph/query", (args) => ExecuteQuery(LiteGraphMcpServerHelpers.ToJsonElement(args), sdk));
+            server.RegisterLiteGraphMethod("graph/query", (args) => ExecuteQuery(LiteGraphMcpServerHelpers.ToJsonElement(args), sdk));
         }
 
         #endregion
@@ -105,13 +105,7 @@ namespace LiteGraph.McpServer.Registrations
                     string body = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
                     if (!response.IsSuccessStatusCode)
                     {
-                        throw new InvalidOperationException(
-                            "LiteGraph query endpoint returned "
-                            + (int)response.StatusCode
-                            + " "
-                            + response.ReasonPhrase
-                            + ": "
-                            + body);
+                        throw new LiteGraphRestException("LiteGraph query endpoint", (int)response.StatusCode, response.ReasonPhrase, body);
                     }
 
                     return body;
